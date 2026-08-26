@@ -38,6 +38,11 @@ import { SHIP_BY_ID } from '../../src/ship/data';
 
 const ROW_PAD_V = 8;
 
+// Per-gift distance tags ("₹3,60,000 more" / "Needed ₹80,000 more") are hidden for
+// now: the hero sentence already carries the next gift's distance, and the rows keep
+// their "At ₹X" slab values. Flip to true to bring the tags back.
+const SHOW_DISTANCE_TAGS = false;
+
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const ddMMM = (ms) => {
   const d = new Date(ms);
@@ -88,9 +93,9 @@ function LadderRow({ s, tier, fulfilment, onCenter }) {
       : { text: 'Your gift order will be placed soon', color: C.mediumGrey };
   } else if (!s.started) {
     right = null;
-  } else if (!crossed && !s.ended) {
+  } else if (SHOW_DISTANCE_TAGS && !crossed && !s.ended) {
     right = { text: `${indianPrice(tier.at - s.currentValue)} more`, color: SOLV.blue };
-  } else if (!crossed && s.ended) {
+  } else if (SHOW_DISTANCE_TAGS && !crossed && s.ended) {
     right = { text: `Needed ${indianPrice(tier.at - s.currentValue)} more`, color: C.mediumGrey };
   }
 
