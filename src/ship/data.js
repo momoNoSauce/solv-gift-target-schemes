@@ -12,10 +12,11 @@
 // slab-to-gift pricing is the sheet's, never invented here. Starter takes the
 // Electronics ladder's low end; the other three are consecutive windows of the
 // Lifestyle ladder up to the iPhone 17 (a 2-gift ladder, which the layout allows).
-// Every cohort carries the same journey: one running Diwali scheme, the announced New
-// Year scheme, and a history of one won-and-ordered plus one missed scheme. The
-// running states differ on purpose, so the four views also demo LIVE, EARNED and
-// NEAR_SLAB without inventing extra schemes.
+// Every cohort carries the same journey: ONE running Diwali scheme and a history of
+// one won-and-ordered plus one missed scheme. The running tab stays clean: a not-yet
+// started scheme never sits on it (the SCHEDULED card lives in the states gallery).
+// The running states differ across cohorts on purpose, so the four views also demo
+// LIVE and EARNED without inventing extra schemes.
 import { giftSchemeNode, LADDERS, NOW } from '../gifts/data';
 import { C } from '../theme';
 import { SOLV } from '../gifts/solv';
@@ -60,17 +61,6 @@ function cohortJourney({ key, ladder, slabs, running, onam, summer, included, ex
         name: 'Diwali Gifts',
         windowLabel: '1st Oct - 9th Nov, 26',
         currentValue: running,
-      }),
-      scheme({
-        ...shared,
-        id: `SHIP-${key}-NEWYEAR`,
-        name: 'New Year Gifts',
-        windowLabel: '15th Nov - 31st Dec, 26',
-        currentValue: 0,
-        startTime: Date.UTC(2026, 10, 15),
-        endTime: Date.UTC(2026, 11, 31),
-        startLabel: '15 Nov 2026',
-        endLabel: '31 Dec 2026',
       }),
     ],
     completed: [

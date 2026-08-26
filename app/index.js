@@ -52,6 +52,7 @@ const GIFT_FLOWS = [
   ['SHIP view: Growth cohort, ₹2L to ₹10L', '/ship?cohort=growth'],
   ['SHIP view: Established cohort, ₹15L to ₹30L', '/ship?cohort=established'],
   ['SHIP view: Bumper cohort, ₹40L to ₹1.2Cr', '/ship?cohort=bumper'],
+  ['SHIP: card states gallery, start to end', '/ship/states'],
   ['A. Gift scheme in the current paradigm', '/gift-targets'],
   ['B. Solv My Schemes, Mega Diwali and parallel schemes', '/solv-schemes'],
   ['C. Entry points (banner, PDP, cart, push, WhatsApp)', '/mega-diwali/entries'],

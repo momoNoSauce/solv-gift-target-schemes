@@ -114,8 +114,9 @@ emphasis is size and colour, never weight. Amounts use tabular figures.
 8. The ladder timeline is drawn from measured row centres: one continuous line,
    blue up to the gift in hand.
 9. The bar fill animates once, 600ms ease-out. Cards scale 0.98 on press.
-10. SCHEDULED: list card announces the top gift and start date (no chip, no meter);
-    detail is a catalogue with no amounts to act on.
+10. SCHEDULED: the card announces the top gift and start date (no chip, no meter);
+    a not-yet-started scheme never sits on the running list. The state renders in
+    the states gallery, and its detail is a catalogue with no amounts to act on.
 
 ## QA checklist
 

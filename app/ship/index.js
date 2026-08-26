@@ -53,9 +53,25 @@ export default function ShipTargets() {
           )}
           ListFooterComponent={
             withStatesLink ? (
-              <Pressable style={styles.protoLink} onPress={() => router.push('/ship/states')}>
-                <Text style={styles.protoText} allowFontScaling={false}>Prototype: card states, start to end</Text>
-              </Pressable>
+              <>
+                <Pressable style={styles.protoLink} onPress={() => router.push('/ship/states')}>
+                  <Text style={styles.protoText} allowFontScaling={false}>Prototype: card states, start to end</Text>
+                </Pressable>
+                {/* Demo chrome only: switch whose view renders. Never ships. */}
+                <View style={styles.cohortRow}>
+                  <Text style={styles.cohortLabel} allowFontScaling={false}>View as:</Text>
+                  {Object.keys(SHIP_COHORTS).map((k) => (
+                    <Pressable key={k} hitSlop={8} onPress={() => router.replace(`/ship?cohort=${k}`)}>
+                      <Text
+                        style={[styles.cohortText, k === cohort && styles.cohortActive]}
+                        allowFontScaling={false}
+                      >
+                        {k}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </>
             ) : null
           }
         />
@@ -98,4 +114,8 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: D.listPaddingH, paddingTop: D.cardGap, paddingBottom: D.cardGap },
   protoLink: { marginTop: 20, alignItems: 'center' },
   protoText: { fontFamily: F.medium, fontSize: 12, lineHeight: 14.4, color: C.mediumGrey, textDecorationLine: 'underline' },
+  cohortRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12, gap: 12 },
+  cohortLabel: { fontFamily: F.regular, fontSize: 12, lineHeight: 14.4, color: C.mediumGrey },
+  cohortText: { fontFamily: F.medium, fontSize: 12, lineHeight: 14.4, color: C.mediumGrey, textDecorationLine: 'underline' },
+  cohortActive: { color: SOLV.blue, textDecorationLine: 'none' },
 });

@@ -13,7 +13,7 @@ import { giftSchemeNode, LADDERS } from '../../src/gifts/data';
 
 const L = 100000;
 const LIFESTYLE = LADDERS[0];
-const APPL = { key: 'lifestyle', label: 'Appliances', tiers: LIFESTYLE.tiers };
+const LIFE = { key: 'lifestyle', label: 'Lifestyle', tiers: LIFESTYLE.tiers };
 // The electronics ladder holds tiers without photos (kettle, watch, microwave).
 const ELEC = { key: 'electronics', label: 'Electronics', tiers: LADDERS[1].tiers };
 
@@ -22,7 +22,7 @@ const base = (id, currentValue, extra = {}) =>
     id,
     name: 'Diwali Gifts',
     windowLabel: '1st Oct - 9th Nov, 26',
-    ladder: APPL,
+    ladder: LIFE,
     slabsInLakhs: [2, 5, 10],
     currentValue,
     ...extra,
@@ -33,15 +33,15 @@ const CASES = [
     node: base('SS-SCHEDULED', 0, { now: Date.UTC(2026, 8, 20) }) },
   { caption: 'LIVE. Window open, nothing crossed. The value pill is hidden at zero.',
     node: base('SS-LIVE', 0) },
-  { caption: 'EARNED. One slab crossed: check badge on the Mixer, the rest stay locked.',
+  { caption: 'EARNED. First slab crossed: green check on the Mixer, the rest stay open.',
     node: base('SS-EARNED', 2.9 * L) },
-  { caption: 'EARNED, second slab. Two checks; the sentence sells the Soundbar.',
+  { caption: 'EARNED, second slab. One green check on the Air Fryer; the passed Mixer dims with no badge.',
     node: base('SS-EARNED2', 6.4 * L) },
   { caption: 'NEAR SLAB. Gap 20% or less of the step: the sentence turns red, the chip stays calm.',
     node: base('SS-NEAR', 9.4 * L) },
   { caption: 'EXPIRING. Three days or fewer: the chip turns red.',
     node: base('SS-EXPIRING', 6.4 * L, { now: Date.UTC(2026, 10, 7) }) },
-  { caption: 'TOP REACHED. All three checked; the man stands at the end.',
+  { caption: 'TOP REACHED. The Soundbar carries the one green check; the passed gifts dim.',
     node: base('SS-TOP', 10.5 * L) },
   { caption: 'ENDED PENDING. Closed with a slab crossed; the outcome replaces the meter.',
     node: base('SS-PENDING', 6.4 * L, { now: Date.UTC(2026, 10, 12) }) },
@@ -52,9 +52,9 @@ const CASES = [
   { caption: 'ENDED MISSED. Closed below the first slab. Terminal.',
     node: base('SS-MISSED', 0.8 * L, { now: Date.UTC(2026, 10, 12) }) },
   { caption: 'STRESS: crowded slabs (10L/15L/20L). Medallions push apart instead of overlapping.',
-    node: giftSchemeNode({ id: 'SS-CROWD', name: 'Diwali Bumper', windowLabel: '1st Oct - 9th Nov, 26', ladder: APPL, slabsInLakhs: [10, 15, 20], currentValue: 11.2 * L }) },
-  { caption: 'STRESS: a gift with no photo (kettle) falls back to its line glyph.',
-    node: giftSchemeNode({ id: 'SS-NOPHOTO', name: 'Diwali Gifts', windowLabel: '1st Oct - 9th Nov, 26', ladder: ELEC, slabsInLakhs: [1, 5, 10], currentValue: 2.2 * L }) },
+    node: giftSchemeNode({ id: 'SS-CROWD', name: 'Diwali Bumper', windowLabel: '1st Oct - 9th Nov, 26', ladder: LIFE, slabsInLakhs: [10, 15, 20], currentValue: 11.2 * L }) },
+  { caption: 'STRESS: a gift with no verified photo (the Bosch fridge) falls back to its line glyph.',
+    node: giftSchemeNode({ id: 'SS-NOPHOTO', name: 'Diwali Gifts', windowLabel: '1st Oct - 9th Nov, 26', ladder: ELEC, slabsInLakhs: [20, 30, 40], currentValue: 22 * L }) },
 ];
 
 export default function ShipCardStates() {

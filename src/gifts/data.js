@@ -140,7 +140,8 @@ function copyFor(s, ladder) {
     case STATE.SCHEDULED:
       return `Buy ${scope} from ${s.startLabel} and win gifts up to the ${s.top.shortName}`;
     case STATE.LIVE:
-      return `Buy <b>${indianPrice(s.remaining)}</b> of ${scope} and the ${s.next.shortName} is yours`;
+      // "more" only once some buying already counts toward the scheme.
+      return `Buy <b>${indianPrice(s.remaining)}</b>${s.currentValue > 0 ? ' more' : ''} of ${scope} and the ${s.next.shortName} is yours`;
     case STATE.NEAR_SLAB:
       return `Only <b>${indianPrice(s.remaining)}</b> more for the ${s.next.shortName}`;
     case STATE.EARNED:
