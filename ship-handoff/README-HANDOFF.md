@@ -36,8 +36,9 @@ Per the business decision:
 | `src/ship/MedallionRail.js` | The progress rail: man, bar, flags, photo medallions. `medallions={false}` is the compact hero variant. |
 | `src/ship/GiftMedallion.js` | Product photo in a ring, check badge when crossed, glyph fallback. |
 | `src/ship/data.js` | Mock schemes. Replace with the API. |
-| `src/ship/SchemeStrip.js` | The in-journey touchpoints: PPV strip, cart strip (projected bar), confirmation card (nudge + win). |
-| `app/ship/ppv.js`, `cart.js`, `order-confirmation.js` | Touchpoint host mocks; `order-confirmation?win=1` shows the slab-crossing celebration. |
+| `app/ship/ppv.js` | PDP offers: offers_header_view_holder + target_scheme_view_holder + the dialog_product_offers sheet. |
+| `app/ship/cart.js` | Cart: cart_suggestion_target_scheme strip + the dialog_target_schemes bottom dialog. |
+| `app/ship/order-confirmation.js` | fragment_cart_order_confirmation's gamification block, the scheme card in the won-layout slot; `?win=1` = slab crossed. |
 | `src/gifts/state.js` | THE state machine. Single source of truth for every surface. |
 | `src/gifts/data.js` | `giftSchemeNode()` (card payload builder) and shared copy. |
 
@@ -122,17 +123,25 @@ emphasis is size and colour, never weight. Amounts use tabular figures.
 
 ## In-journey touchpoints
 
-All three read the same schemeState() as My Targets, so no surface can disagree.
+Every touchpoint is the app's OWN layout with the two sanctioned deltas (Solv blue,
+the medallion rail in place of the coin progress block). Nothing is invented. All
+three read the same schemeState() as My Targets, so no surface can disagree.
 
-- PPV: one strip in the offers position. It renders ONLY when the product falls
-  inside the scheme's included category; an ineligible product carries no strip.
-- Cart: the strip states this cart's ELIGIBLE amount ("₹18,000 of this cart counts:
-  Lifestyle products only"), the projected landing point, and draws the projection as
-  a lighter segment on the bar. Out-of-scope line items visibly do not move it.
-- Order confirmation: the quiet nudge (added amount + distance left), or the WIN
-  moment when the order crosses a slab: the won gift leads at full size with the
-  delivery timing. The added amount is the cart's eligible total, so the confirmation
-  continues the exact number the cart promised.
+- PPV (offers_header_view_holder + target_scheme_view_holder): the OFFERS header
+  card, the TARGET SCHEME offer row, the scheme title and the rail; the row opens
+  the dialog_product_offers sheet with the full dialog_view_holder_target_scheme
+  card (title, validity, rail, VIEW MORE DETAILS, bottom border). The row renders
+  only for products inside the scheme's included category.
+- Cart (cart_suggestion_target_scheme + dialog_target_schemes): the suggestion strip
+  keeps the app's own copy shape with the gift as payout: "Add ₹3,60,000 more of
+  Lifestyle products to earn the boAt Aavante Bar Soundbar". Tapping opens the bottom
+  dialog listing the member's scheme as a target_scheme_view_holder_list card.
+- Order confirmation (fragment_cart_order_confirmation): the gamification block
+  ("Congratulations!" + subtitle) with the member's scheme card in the shadowed
+  won-layout slot where the JT app hands out a scratch card. The card is projected
+  past this order's eligible amount through the same node builder, so subtitle and
+  card re-derive together. `?win=1` = the order crossed a slab: subtitle names the
+  gift, the card shows its green check at 100%.
 
 ## QA checklist
 

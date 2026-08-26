@@ -1,105 +1,125 @@
-// Touchpoint: the Solv cart carrying the running scheme. The strip answers: what does
-// THIS order add, and where does it land me? The projected bar draws today's fill
-// solid and this cart's contribution lighter, so the landing point is a picture.
-//
-// Honesty rule: only ELIGIBLE items count. The strip states the eligible amount, and
-// an out-of-scope line item (grocery here) visibly does not move the number.
-import React from 'react';
-import { View, Text, Image, Pressable, ScrollView, StyleSheet } from 'react-native';
+// Touchpoint: the cart's target-scheme surfaces, built from the app's OWN layouts:
+//   cart_suggestion_target_scheme.xml   the suggestion strip in the cart
+//     (CartDetailsFragment.getView: icon, all-caps title, arrow, suggestion sentence)
+//   dialog_target_schemes.xml           the dialog it opens (TargetSchemesDialog.java),
+//     listing target_scheme_view_holder_list.xml cards with the progress block
+// Deltas from the JT original, both sanctioned: Solv blue chrome, and the gift
+// MedallionRail in place of the coin progress block. The suggestion sentence keeps the
+// app's own copy shape ("Add ₹X more of Y to earn Z"), with the gift as the payout.
+import React, { useState } from 'react';
+import { View, Text, Image, Pressable, Modal, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 import Toolbar from '../../src/components/Toolbar';
+import MedallionRail from '../../src/ship/MedallionRail';
 import { C, F } from '../../src/theme';
 import { SOLV } from '../../src/gifts/solv';
-import { L12, L14 } from '../../src/textMetrics';
-import { REMOTE } from '../../src/remoteAssets';
+import { IconTruckOutline } from '../../src/icons';
+import { schemeState } from '../../src/gifts/state';
 import { indianPrice } from '../../src/data';
 import { SHIP_COHORTS } from '../../src/ship/data';
-import { CartSchemeStrip } from '../../src/ship/SchemeStrip';
 
+// One customer, one scheme: the dialog lists exactly the member's scheme.
 const node = SHIP_COHORTS.growth.running[0].node;
 
-export const CART = {
-  items: [
-    { name: 'Prestige Svachh Dry Iron, case of 12', qty: 1, price: 10800, eligible: true },
-    { name: 'Milton Thermosteel Flask 1 L, case of 24', qty: 1, price: 7200, eligible: true },
-    { name: 'Tata Salt 1 kg, bale of 50', qty: 1, price: 1150, eligible: false },
-  ],
-  get itemTotal() { return this.items.reduce((a, i) => a + i.price * i.qty, 0); },
-  get eligibleTotal() { return this.items.filter((i) => i.eligible).reduce((a, i) => a + i.price * i.qty, 0); },
-};
-
-export default function ShipCart() {
+export default function ShipCartTargetScheme() {
+  const [dialog, setDialog] = useState(false);
   const router = useRouter();
+  const s = schemeState(node.gift);
+  const scope = node.entityData.localizedTitle.includes('Electronics') ? 'Electronics' : 'Lifestyle';
+
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <Toolbar title={`My Cart (${CART.items.length})`} color={SOLV.blue} />
-      <ScrollView contentContainerStyle={{ paddingBottom: 16 }}>
-        {CART.items.map((it) => (
-          <View key={it.name} style={styles.item}>
-            <Image source={REMOTE.productPlaceholder} style={styles.thumb} resizeMode="contain" />
-            <View style={styles.itemText}>
-              <Text style={styles.itemName} numberOfLines={2} allowFontScaling={false}>{it.name}</Text>
-              <Text style={styles.itemQty} allowFontScaling={false}>Qty {it.qty}</Text>
+      {/* CartDetailsFragment: @string/_cart_items_msg = "Your Cart Items (%$)" */}
+      <Toolbar title="Your Cart Items (3)" elevation={4} color={SOLV.blue} />
+      <ScrollView>
+        {/* cart_suggestion_target_scheme.xml */}
+        <Pressable style={styles.suggestion} onPress={() => setDialog(true)}>
+          <View style={styles.suggestionTopRow}>
+            <View style={styles.icon}>
+              <IconTruckOutline size={24} />
             </View>
-            <Text style={styles.itemPrice} allowFontScaling={false}>{indianPrice(it.price * it.qty)}</Text>
+            <Text style={styles.title} allowFontScaling={false}>TARGET SCHEME</Text>
+            <Svg width={24} height={24} viewBox="0 0 24 24">
+              <Path fill="#d55d3b" d="M8.59,16.58L13.17,12L8.59,7.41L10,6l6,6l-6,6L8.59,16.58z" />
+            </Svg>
           </View>
-        ))}
-
-        {/* The scheme touchpoint, above the bill */}
-        <View style={styles.stripHost}>
-          <CartSchemeStrip
-            node={node}
-            eligibleAmount={CART.eligibleTotal}
-            onPress={() => router.push(`/ship/${node.entityId}`)}
-          />
-          <Text style={styles.eligibleNote} allowFontScaling={false}>
-            {indianPrice(CART.eligibleTotal)} of this cart counts: Lifestyle products only
+          <Text style={styles.suggestionText} allowFontScaling={false}>
+            Add {indianPrice(s.remaining)} more of {scope} products to earn the {s.next.name}
           </Text>
-        </View>
-
-        <View style={styles.bill}>
-          <View style={styles.billRow}>
-            <Text style={styles.billLabel} allowFontScaling={false}>Item total</Text>
-            <Text style={styles.billValue} allowFontScaling={false}>{indianPrice(CART.itemTotal)}</Text>
-          </View>
-          <View style={styles.billRow}>
-            <Text style={styles.billLabel} allowFontScaling={false}>Delivery</Text>
-            <Text style={[styles.billValue, { color: SOLV.green }]} allowFontScaling={false}>Free</Text>
-          </View>
-          <View style={[styles.billRow, styles.billTotalRow]}>
-            <Text style={styles.billTotal} allowFontScaling={false}>To pay</Text>
-            <Text style={styles.billTotal} allowFontScaling={false}>{indianPrice(CART.itemTotal)}</Text>
-          </View>
-        </View>
+          <View style={styles.divider} />
+        </Pressable>
       </ScrollView>
 
-      <View style={styles.bottomBar}>
-        <Pressable style={styles.placeBtn} onPress={() => router.push('/ship/order-confirmation')} android_ripple={{ color: '#ffffff33' }}>
-          <Text style={styles.placeText} allowFontScaling={false}>PLACE ORDER</Text>
-        </Pressable>
-      </View>
+      {/* dialog_target_schemes.xml */}
+      <Modal visible={dialog} transparent animationType="slide" onRequestClose={() => setDialog(false)}>
+        <Pressable style={styles.scrim} onPress={() => setDialog(false)} />
+        <View style={styles.dialog}>
+          <View style={styles.dialogHeader}>
+            <Image source={require('../../assets/remote/target_offer_disabled.png')} style={styles.dialogLogo} resizeMode="contain" />
+            <Text style={styles.dialogTitle} allowFontScaling={false}>TARGET SCHEME</Text>
+            <Pressable onPress={() => setDialog(false)} hitSlop={8}>
+              <Svg width={24} height={24} viewBox="0 0 24 24">
+                <Path fill={C.black} d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+              </Svg>
+            </Pressable>
+          </View>
+          <View style={styles.dialogDivider} />
+          <ScrollView>
+            {/* target_scheme_view_holder_list.xml */}
+            <Pressable
+              style={styles.listCard}
+              onPress={() => { setDialog(false); router.push(`/ship/${node.entityId}`); }}
+            >
+              <View style={styles.listCardHead}>
+                <Text style={styles.listTitle} numberOfLines={1} allowFontScaling={false}>
+                  {node.entityData.localizedTitle}
+                </Text>
+                <Text style={styles.listTime} allowFontScaling={false}>Valid till {node.gift.endLabel}</Text>
+              </View>
+              <Text style={styles.listDescription} numberOfLines={2} allowFontScaling={false}>
+                Buy {indianPrice(s.remaining)} more and the {s.next.name} is yours
+              </Text>
+              <MedallionRail s={s} currentValue={node.gift.currentValue} size={44} showNames />
+            </Pressable>
+          </ScrollView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: SOLV.bg },
-  item: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.white, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: SOLV.line },
-  thumb: { width: 48, height: 48 },
-  itemText: { flex: 1 },
-  itemName: { fontFamily: F.medium, fontSize: 13, lineHeight: 17, color: C.black },
-  itemQty: { marginTop: 2, fontFamily: F.regular, fontSize: 12, lineHeight: L12, color: C.greyText },
-  itemPrice: { fontFamily: F.medium, fontSize: 13, lineHeight: 17, color: C.black, fontVariant: ['tabular-nums'] },
-  stripHost: { marginHorizontal: 12, marginTop: 12 },
-  eligibleNote: { marginTop: 6, marginHorizontal: 4, fontFamily: F.regular, fontSize: 11, lineHeight: 14, color: C.mediumGrey, fontVariant: ['tabular-nums'] },
-  bill: { marginHorizontal: 12, marginTop: 12, backgroundColor: C.white, borderRadius: 8, borderWidth: 1, borderColor: SOLV.line, padding: 12 },
-  billRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
-  billLabel: { fontFamily: F.regular, fontSize: 13, lineHeight: 17, color: C.greyText },
-  billValue: { fontFamily: F.regular, fontSize: 13, lineHeight: 17, color: C.black, fontVariant: ['tabular-nums'] },
-  billTotalRow: { borderTopWidth: 1, borderTopColor: SOLV.line, marginTop: 6, paddingTop: 10 },
-  billTotal: { fontFamily: F.bold, fontSize: 14, lineHeight: L14, color: C.black, fontVariant: ['tabular-nums'] },
-  bottomBar: { padding: 12, borderTopWidth: 1, borderTopColor: SOLV.line, backgroundColor: C.white },
-  placeBtn: { backgroundColor: SOLV.blue, borderRadius: 8, alignItems: 'center', paddingVertical: 14 },
-  placeText: { fontFamily: F.medium, fontSize: 14, lineHeight: L14, color: C.white },
+  screen: { flex: 1, backgroundColor: C.white },
+  suggestion: { backgroundColor: C.white },
+  suggestionTopRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
+  icon: { width: 24, height: 24, marginLeft: 16, justifyContent: 'center' },
+  title: { flex: 1, marginHorizontal: 16, color: C.greyTextDark, fontSize: 12, lineHeight: 14.4, fontFamily: F.medium },
+  suggestionText: { marginLeft: 56, marginRight: 56, marginTop: 8, marginBottom: 12, color: C.textPrimary, fontSize: 12, lineHeight: 14.4, fontFamily: F.medium },
+  divider: { height: 1, backgroundColor: C.greyishWhite },
+  scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
+  // dialog_target_schemes.xml: match_parent width, wrap height, anchored to the bottom
+  dialog: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.white, maxHeight: '80%' },
+  dialogHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16 },
+  dialogLogo: { width: 20, height: 20 },
+  dialogTitle: { flex: 1, marginLeft: 16, color: C.greyTextDark, fontSize: 14, lineHeight: 16.8, fontFamily: F.medium },
+  dialogDivider: { height: 1, marginTop: 16, backgroundColor: C.greyishWhite },
+  // target_scheme_view_holder_list.xml
+  listCard: {
+    marginHorizontal: 10,
+    marginVertical: 4,
+    borderRadius: 4,
+    backgroundColor: C.white,
+    paddingBottom: 14,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  listCardHead: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 14, paddingTop: 14 },
+  listTitle: { flex: 1, marginRight: 30, color: C.black, fontSize: 15, lineHeight: 18.0, fontFamily: F.medium },
+  listTime: { paddingHorizontal: 10, paddingVertical: 4, color: SOLV.blueDark, fontSize: 13, lineHeight: 15.6, fontFamily: F.medium },
+  listDescription: { marginTop: 14, marginHorizontal: 14, marginBottom: 4, color: C.textPrimary, fontSize: 15, lineHeight: 18.0, fontFamily: F.regular },
 });
