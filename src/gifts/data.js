@@ -202,6 +202,7 @@ export function giftSchemeNode({
     nextPageType: 'TARGET_SCHEME_DETAILS',
     gift,
     ladderKey: ladder.key,
+    schemeName: name,
     entityData: {
       logo: '',
       localizedTitle: `${name}: ${ladder.label} - (${windowLabel})`,

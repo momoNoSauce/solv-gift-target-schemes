@@ -36,6 +36,8 @@ Per the business decision:
 | `src/ship/MedallionRail.js` | The progress rail: man, bar, flags, photo medallions. `medallions={false}` is the compact hero variant. |
 | `src/ship/GiftMedallion.js` | Product photo in a ring, check badge when crossed, glyph fallback. |
 | `src/ship/data.js` | Mock schemes. Replace with the API. |
+| `src/ship/SchemeStrip.js` | The in-journey touchpoints: PPV strip, cart strip (projected bar), confirmation card (nudge + win). |
+| `app/ship/ppv.js`, `cart.js`, `order-confirmation.js` | Touchpoint host mocks; `order-confirmation?win=1` shows the slab-crossing celebration. |
 | `src/gifts/state.js` | THE state machine. Single source of truth for every surface. |
 | `src/gifts/data.js` | `giftSchemeNode()` (card payload builder) and shared copy. |
 
@@ -118,8 +120,24 @@ emphasis is size and colour, never weight. Amounts use tabular figures.
     a not-yet-started scheme never sits on the running list. The state renders in
     the states gallery, and its detail is a catalogue with no amounts to act on.
 
+## In-journey touchpoints
+
+All three read the same schemeState() as My Targets, so no surface can disagree.
+
+- PPV: one strip in the offers position. It renders ONLY when the product falls
+  inside the scheme's included category; an ineligible product carries no strip.
+- Cart: the strip states this cart's ELIGIBLE amount ("₹18,000 of this cart counts:
+  Lifestyle products only"), the projected landing point, and draws the projection as
+  a lighter segment on the bar. Out-of-scope line items visibly do not move it.
+- Order confirmation: the quiet nudge (added amount + distance left), or the WIN
+  moment when the order crosses a slab: the won gift leads at full size with the
+  delivery timing. The added amount is the cart's eligible total, so the confirmation
+  continues the exact number the cart promised.
+
 ## QA checklist
 
 Walk `app/ship/states.js` (11 states + 2 stress cases), then on the list: both tabs,
 every card opens its detail, back returns to the same tab. On details check the four
-endings: won+pending, won+ordered, won+delivered, missed.
+endings: won+pending, won+ordered, won+delivered, missed. On touchpoints: PPV strip
+opens the detail, cart's eligible amount matches the confirmation's added amount, and
+`?win=1` celebrates with the correct gift.
