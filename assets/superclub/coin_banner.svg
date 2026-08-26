@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="38px" height="38px" viewBox="0 0 38 38" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 51 (57462) - http://www.bohemiancoding.com/sketch -->
+    <title>Group Copy 10</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <linearGradient x1="16.13147%" y1="15.3293832%" x2="47.7523436%" y2="95.213348%" id="linearGradient-1">
+            <stop stop-color="#E8BE0B" offset="0%"></stop>
+            <stop stop-color="#FECE02" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="-14.1211097%" y1="84.6080055%" x2="90.4879483%" y2="23.9149875%" id="linearGradient-2">
+            <stop stop-color="#F9D744" offset="0%"></stop>
+            <stop stop-color="#FFE000" offset="100%"></stop>
+        </linearGradient>
+        <circle id="path-3" cx="16.0769231" cy="16.0769231" r="16.0769231"></circle>
+        <filter x="-4.7%" y="-1.6%" width="109.3%" height="109.3%" filterUnits="objectBoundingBox" id="filter-4">
+            <feMorphology radius="0.5" operator="erode" in="SourceAlpha" result="shadowSpreadOuter1"></feMorphology>
+            <feOffset dx="0" dy="1" in="shadowSpreadOuter1" result="shadowOffsetOuter1"></feOffset>
+            <feGaussianBlur stdDeviation="0.5" in="shadowOffsetOuter1" result="shadowBlurOuter1"></feGaussianBlur>
+            <feColorMatrix values="0 0 0 0 0.707350128   0 0 0 0 0.707350128   0 0 0 0 0.707350128  0 0 0 0.5 0" type="matrix" in="shadowBlurOuter1"></feColorMatrix>
+        </filter>
+    </defs>
+    <g id="SuperClub" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Artboard-3" transform="translate(-149.000000, -135.000000)">
+            <g id="Group-Copy-10" transform="translate(149.000000, 135.000000)">
+                <g id="Group-2">
+                    <circle id="Oval-5-Copy" fill="url(#linearGradient-1)" cx="19" cy="19" r="19"></circle>
+                    <g id="Group-23-Copy-4" transform="translate(2.923077, 2.923077)">
+                        <g id="Group-22">
+                            <g id="Group-8">
+                                <g id="Oval-5" transform="translate(16.076923, 16.076923) scale(1, -1) translate(-16.076923, -16.076923) ">
+                                    <use fill="black" fill-opacity="1" filter="url(#filter-4)" xlink:href="#path-3"></use>
+                                    <use fill="url(#linearGradient-2)" fill-rule="evenodd" xlink:href="#path-3"></use>
+                                </g>
+                            </g>
+                        </g>
+                    </g>
+                </g>
+                <g id="Group-4" transform="translate(6.935000, 2.818333)" fill="#E4B901">
+                    <path d="M4.52947827,19.5351496 L0,22.1412687 C3.01945186,28.2889666 14.7647695,31.3398856 21.3053376,22.1412687 C25.2934871,16.5321501 23.6008392,8.89017466 21.3053376,2.94383471 C18.5746742,1.22821884 15.1877812,0 11.8168338,0 C9.426979,0 7.26179633,0.663042043 5.16285014,1.63560041 C5.63326382,2.77317304 6.16217884,3.6318568 7.04568815,5.12374519 C9.73129804,9.65749044 13.5883597,13.5559251 12.7493977,17.3885905 C11.9107362,21.221256 7.38148329,22.6013094 4.52947827,19.5351496 Z" id="Fill-64"></path>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

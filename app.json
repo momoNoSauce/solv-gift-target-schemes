@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Target Schemes",
+    "slug": "target-schemes-proto",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "jumbotail",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "android": { "package": "com.jumbotail.proto.targetschemes" },
+    "web": { "bundler": "metro", "output": "single" },
+    "plugins": ["expo-router"]
+  }
+}
