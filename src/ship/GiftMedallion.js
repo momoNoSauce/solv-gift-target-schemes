@@ -2,10 +2,11 @@
 // bar where a flag used to be. Reference: Shopee's task track (reward badges on the
 // bar), Ulta's tick labels. THREE states, because the scheme pays one gift and the
 // medallions must say which:
-//   won     blue ring, GREEN check, full photo. The gift going home. Exactly one
-//           green check per card; the single check quietly is the one-gift rule.
-//   passed  grey ring, grey check, photo dimmed. Crossed, then out-climbed: real,
-//           but out of play. Dimming is correct here; desire moved up the ladder.
+//   won     blue ring, GREEN check, full photo. The gift going home. The check is
+//           the card's ONLY badge, so the badge itself is the one-gift rule.
+//   passed  grey ring, photo dimmed, NO badge. Crossed, then out-climbed. Dimming
+//           alone says out-of-play; any checkmark near a gift whispers "you get
+//           this", so the passed state carries none.
 //   open    grey ring, FULL-COLOUR photo, no badge. Still worth wanting, so it is
 //           never washed out.
 // A tier without a photo falls back to its line glyph, same ring rules.
@@ -56,8 +57,8 @@ export default function GiftMedallion({ tier, state, achieved, size = 44, dark =
           style={[styles.photoOutline, { borderRadius: size / 2 }]}
         />
       </View>
-      {st !== 'open' ? (
-        <View style={[styles.badge, st === 'passed' && styles.badgePassed]}>
+      {st === 'won' ? (
+        <View style={styles.badge}>
           <Svg width={9} height={9} viewBox="0 0 12 12">
             <Path d="M2 6.2l2.8 2.8L10 3.4" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
           </Svg>
@@ -97,5 +98,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgePassed: { backgroundColor: '#ABABAB' },
 });

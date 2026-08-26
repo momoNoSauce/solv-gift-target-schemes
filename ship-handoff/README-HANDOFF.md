@@ -72,11 +72,16 @@ Colour, one meaning each:
 - Grey: not yet, or past tense.
 
 Medallion states (the scheme pays ONE gift; the medallions must say which):
-- won     highest crossed slab: blue ring, GREEN check, full photo. Exactly one green
-          check per card; the single check is the one-gift rule made visible.
-- passed  crossed, then out-climbed: grey ring, grey check, photo dimmed to 50%.
+- won     highest crossed slab: blue ring, GREEN check, full photo. The check is the
+          card's ONLY badge, so the badge itself is the one-gift rule.
+- passed  crossed, then out-climbed: grey ring, photo dimmed to 50%, NO badge.
+          Any checkmark near a gift whispers "you get this", so passed carries none.
 - open    not yet crossed: grey ring, FULL-COLOUR photo, no badge. Never washed out.
-Two green checks on one card would read as "you get both" and become a support call.
+Two checks on one card would read as "you get both" and become a support call.
+
+Cohort mapping: ONE customer maps to ONE running scheme, slabs priced to the
+customer (demo views: /ship?cohort=starter|growth|established|bumper). The cohort
+name is a targeting artifact and never renders in customer-facing copy.
 
 Copy, one shape each:
 - Running distance: "₹3,60,000 more". Ended distance: "Needed ₹80,000 more".

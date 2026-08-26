@@ -48,7 +48,10 @@ const OTHER = [
 //                        -> /solv-schemes/states
 // The entry-point mocks stay a separate row because they sit outside both lists.
 const GIFT_FLOWS = [
-  ['SHIP: gift targets on the current UI, photo rail', '/ship'],
+  ['SHIP view: Starter cohort, ₹1L to ₹5L', '/ship?cohort=starter'],
+  ['SHIP view: Growth cohort, ₹2L to ₹10L', '/ship?cohort=growth'],
+  ['SHIP view: Established cohort, ₹15L to ₹30L', '/ship?cohort=established'],
+  ['SHIP view: Bumper cohort, ₹40L to ₹1.2Cr', '/ship?cohort=bumper'],
   ['A. Gift scheme in the current paradigm', '/gift-targets'],
   ['B. Solv My Schemes, Mega Diwali and parallel schemes', '/solv-schemes'],
   ['C. Entry points (banner, PDP, cart, push, WhatsApp)', '/mega-diwali/entries'],

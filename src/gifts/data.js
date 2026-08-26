@@ -29,8 +29,8 @@ export const MEMBER = { ladderKey: 'lifestyle' };
 
 // Product photos, pulled from the product pages linked in the sheet
 // (m.media-amazon.com / rukminim2.flixcart.com), stored as local assets.
-// Electronics-only gifts (kettle, watch, microwave, Bosch fridge) have no
-// image yet; those tiers fall back to the line glyph.
+// The Bosch 207 L has no verified photo (Amazon lists newer capacities only), so
+// that tier keeps its line glyph rather than wearing another fridge's picture.
 const IMG = {
   mixer: require('../../assets/gifts/mixer.jpg'),
   airfryer: require('../../assets/gifts/airfryer.jpg'),
@@ -40,6 +40,9 @@ const IMG = {
   fridge: require('../../assets/gifts/fridge.jpg'),
   tv: require('../../assets/gifts/tv.jpg'),
   iphone17: require('../../assets/gifts/iphone17.jpg'),
+  kettle: require('../../assets/gifts/kettle.jpg'),
+  watch: require('../../assets/gifts/watch.jpg'),
+  microwave: require('../../assets/gifts/microwave.jpg'),
 };
 
 // Full ladders, as in the sheet. shortName must stay short: it renders in 100dp markers.
@@ -68,11 +71,11 @@ export const LADDERS = [
     label: 'Electronics',
     scopeLine: 'Electronics products only',
     tiers: [
-      { at: 1 * L,   name: 'Pigeon Amaze Plus Electric Kettle', shortName: 'Kettle', icon: 'kettle', image: null },
-      { at: 2 * L,   name: 'Fire-Boltt Brillia Smart Watch', shortName: 'Watch',    icon: 'watch',   image: null },
+      { at: 1 * L,   name: 'Pigeon Amaze Plus Electric Kettle', shortName: 'Kettle', icon: 'kettle', image: IMG.kettle },
+      { at: 2 * L,   name: 'Fire-Boltt Brillia Smart Watch', shortName: 'Watch',    icon: 'watch',   image: IMG.watch },
       { at: 5 * L,   name: 'Pigeon Healthifry Air Fryer',   shortName: 'Air Fryer', icon: 'airfryer', image: IMG.airfryer },
       { at: 10 * L,  name: 'boAt Aavante Bar Soundbar',     shortName: 'Soundbar',  icon: 'soundbar', image: IMG.soundbar },
-      { at: 15 * L,  name: 'Godrej 20 L Solo Microwave Oven', shortName: 'Microwave', icon: 'microwave', image: null },
+      { at: 15 * L,  name: 'Godrej 20 L Solo Microwave Oven', shortName: 'Microwave', icon: 'microwave', image: IMG.microwave },
       { at: 20 * L,  name: 'Philips PowerPro Vacuum Cleaner', shortName: 'Vacuum',  icon: 'vacuum',  image: IMG.vacuum },
       { at: 30 * L,  name: 'Samsung Galaxy F06 5G',         shortName: 'Phone',     icon: 'phone',   image: IMG.phone },
       { at: 40 * L,  name: 'Bosch 207 L Refrigerator',      shortName: 'Fridge',    icon: 'fridge',  image: null },
@@ -88,6 +91,11 @@ export function lakh(v) {
   // Below a lakh the compact form reads worse than the number: "₹0.4L" and "₹0L" are
   // both harder to parse than "₹40,000" and "₹0". Fall back to the plain format.
   if (v < L) return indianPrice(v);
+  // From a crore up, the trade says crore: "₹1.2Cr", never "₹120L".
+  if (v >= 100 * L) {
+    const c = Math.round((v / (100 * L)) * 100) / 100;
+    return '₹' + String(c) + 'Cr';
+  }
   const n = Math.round((v / L) * 100) / 100;
   return '₹' + String(n) + 'L';
 }

@@ -12,11 +12,15 @@ import ShipSchemeCard from '../../src/ship/ShipSchemeCard';
 import { C, D, F } from '../../src/theme';
 import { SOLV } from '../../src/gifts/solv';
 import { M } from '../../src/data';
-import { SHIP_RUNNING, SHIP_COMPLETED } from '../../src/ship/data';
+import { SHIP_COHORTS, DEFAULT_COHORT } from '../../src/ship/data';
 
 export default function ShipTargets() {
   const pager = useRef(null);
   const params = useLocalSearchParams();
+  // One customer sees one scheme; ?cohort= picks whose view the demo renders.
+  // The cohort never appears inside the screen itself.
+  const cohort = SHIP_COHORTS[params.cohort] ? params.cohort : DEFAULT_COHORT;
+  const { running, completed } = SHIP_COHORTS[cohort];
   const initialTab = Number(params.tab) === 1 ? 1 : 0;
   const [tab, setTab] = useState(initialTab);
   const [pageW, setPageW] = useState(0);
@@ -79,8 +83,8 @@ export default function ShipTargets() {
         onMomentumScrollEnd={(e) => (pageW ? setTab(Math.round(e.nativeEvent.contentOffset.x / pageW)) : null)}
         style={{ flex: 1 }}
       >
-        {renderList(SHIP_RUNNING, true)}
-        {renderList(SHIP_COMPLETED)}
+        {renderList(running, true)}
+        {renderList(completed)}
       </ScrollView>
     </SafeAreaView>
   );
