@@ -38,7 +38,7 @@ export default function ShipTargets() {
     pager.current?.scrollTo({ x: i * pageW, animated: true });
   };
 
-  const renderList = (data, withStatesLink) => (
+  const renderList = (data) => (
     <View style={{ width: pageW, flex: 1 }}>
       {data.length === 0 ? (
         <EmptyState />
@@ -51,29 +51,6 @@ export default function ShipTargets() {
           renderItem={({ item }) => (
             <ShipSchemeCard node={item.node} onPress={() => router.push(`/ship/${item.node.entityId}`)} />
           )}
-          ListFooterComponent={
-            withStatesLink ? (
-              <>
-                <Pressable style={styles.protoLink} onPress={() => router.push('/ship/states')}>
-                  <Text style={styles.protoText} allowFontScaling={false}>Prototype: card states, start to end</Text>
-                </Pressable>
-                {/* Demo chrome only: switch whose view renders. Never ships. */}
-                <View style={styles.cohortRow}>
-                  <Text style={styles.cohortLabel} allowFontScaling={false}>View as:</Text>
-                  {Object.keys(SHIP_COHORTS).map((k) => (
-                    <Pressable key={k} hitSlop={8} onPress={() => router.replace(`/ship?cohort=${k}`)}>
-                      <Text
-                        style={[styles.cohortText, k === cohort && styles.cohortActive]}
-                        allowFontScaling={false}
-                      >
-                        {k}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </>
-            ) : null
-          }
         />
       )}
     </View>
@@ -99,9 +76,26 @@ export default function ShipTargets() {
         onMomentumScrollEnd={(e) => (pageW ? setTab(Math.round(e.nativeEvent.contentOffset.x / pageW)) : null)}
         style={{ flex: 1 }}
       >
-        {renderList(running, true)}
+        {renderList(running)}
         {renderList(completed)}
       </ScrollView>
+
+      {/* Demo chrome only, pinned to the bottom edge: never ships. */}
+      <View style={styles.demoBar}>
+        <View style={styles.cohortRow}>
+          <Text style={styles.cohortLabel} allowFontScaling={false}>View as:</Text>
+          {Object.keys(SHIP_COHORTS).map((k) => (
+            <Pressable key={k} hitSlop={8} onPress={() => router.replace(`/ship?cohort=${k}`)}>
+              <Text style={[styles.cohortText, k === cohort && styles.cohortActive]} allowFontScaling={false}>
+                {k}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <Pressable style={styles.protoLink} onPress={() => router.push('/ship/states')}>
+          <Text style={styles.protoText} allowFontScaling={false}>Prototype: card states, start to end</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
@@ -112,9 +106,16 @@ const styles = StyleSheet.create({
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
   indicator: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, backgroundColor: C.white },
   list: { paddingHorizontal: D.listPaddingH, paddingTop: D.cardGap, paddingBottom: D.cardGap },
-  protoLink: { marginTop: 20, alignItems: 'center' },
+  demoBar: {
+    borderTopWidth: 1,
+    borderTopColor: C.greyishWhite,
+    backgroundColor: C.white,
+    paddingTop: 10,
+    paddingBottom: 12,
+  },
+  protoLink: { marginTop: 8, alignItems: 'center' },
   protoText: { fontFamily: F.medium, fontSize: 12, lineHeight: 14.4, color: C.mediumGrey, textDecorationLine: 'underline' },
-  cohortRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12, gap: 12 },
+  cohortRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12 },
   cohortLabel: { fontFamily: F.regular, fontSize: 12, lineHeight: 14.4, color: C.mediumGrey },
   cohortText: { fontFamily: F.medium, fontSize: 12, lineHeight: 14.4, color: C.mediumGrey, textDecorationLine: 'underline' },
   cohortActive: { color: SOLV.blue, textDecorationLine: 'none' },
