@@ -15,6 +15,14 @@
 //      the amount with the next gift it buys, not with the won gift above.
 //   3. The close: one CTA into the eligible catalog.
 //
+// The stage surface is a lit scene (src/gifts/Scene.js), not a plain gradient:
+// a solid ground with vertical falloff, a key glow behind the pedestal, an
+// ambient glow at the top, a corner vignette, and fixed light specks.
+//
+// Motion: the stage content enters as a staged sequence (label, tile, name,
+// bar sweep, amount, CTA), 90ms apart, once per state. Confetti greets a won
+// gift, fades out, and never loops.
+//
 // The page renders every lifecycle state from schemeState() (?state=...), in any
 // theme from src/gifts/themes.js (?theme=..., set at scheme creation). The ended
 // states carry the delivery stepper and the shop address inline.
@@ -31,10 +39,12 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LottieView from 'lottie-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Defs, RadialGradient, Stop, Rect, Ellipse } from 'react-native-svg';
+import Svg, { Ellipse } from 'react-native-svg';
 import { F } from '../../src/theme';
 import { IconBack } from '../../src/icons';
 import GiftGlyph from '../../src/gifts/icons';
+import StageScene from '../../src/gifts/Scene';
+import { usePressScale } from '../../src/gifts/solv';
 import { LADDERS, lakh } from '../../src/gifts/data';
 import { schemeState, STATE } from '../../src/gifts/state';
 import { themeOf, THEMES } from '../../src/gifts/themes';
@@ -49,12 +59,19 @@ const N = {
   bg: '#F7F7F7',
   green: '#1E8E3E',
 };
+const PHOTO_EDGE = 'rgba(0,0,0,0.08)';
+const TABULAR = { fontVariant: ['tabular-nums'] };
 
 const L = 100000;
 const LIFESTYLE = LADDERS[0];
 const D = (m, d, y = 2026) => Date.UTC(y, m - 1, d);
 const START = D(10, 1);
 const END = D(11, 9);
+
+// Headless capture (navigator.webdriver) renders the final state directly.
+const STATIC =
+  typeof navigator !== 'undefined' &&
+  (navigator.webdriver === true || /HeadlessChrome/.test(navigator.userAgent || ''));
 
 // Lifecycle scenarios: value bought + the clock. The page derives everything else.
 const SCEN = {
@@ -84,21 +101,21 @@ const ORDER_NO = 'Amazon order 408-5561234-7789045';
 // Slab labels the trade way: ₹2L … ₹40L, then ₹1.2Cr.
 const slab = (v) => lakh(v);
 
-// UI strings, both languages. Product and brand names stay Latin.
+// UI strings, both languages. Product and brand names stay Latin. The big amount
+// renders from parts (prefix, amount, suffix) so the number can be set larger
+// than the words around it in both languages.
 const T = {
   en: {
-    rules: 'Rules',
-    langToggle: 'हिंदी',
     startsLine: (d) => `Starts ${d}`,
-    endsLine: (d, days) => `Ends ${d} • `,
+    endsLine: (d) => `Ends ${d} • `,
     daysLeft: (days) => `${days} days left`,
     endedLine: (d) => `Ended ${d}`,
     youWon: 'YOU WON',
     firstGift: 'FIRST GIFT',
     topGift: 'TOP GIFT',
     wonTop: 'YOU WON THE TOP GIFT',
-    more: (amt) => `${amt} more`,
-    onlyLeft: (amt) => `Only ${amt} left`,
+    morePrefix: '', moreSuffix: ' more',
+    onlyPrefix: 'Only ', onlySuffix: ' left',
     rest: (next, cur) => (cur ? `and the ${next} is yours instead` : `and the ${next} is yours`),
     bought: (amt, ladder) => `Bought so far: ${amt} • ${ladder} products`,
     cta: (ladder) => `Shop ${ladder} products`,
@@ -111,7 +128,7 @@ const T = {
     orderedNote: (by) => `On the way to your shop. Arrives by ${by}.`,
     deliveredNote: (d) => `Delivered to your shop on ${d}.`,
     giftList: 'GIFT LIST',
-    next: 'next',
+    next: 'NEXT',
     steps: ['Won', 'Ordered', 'On the way', 'Delivered'],
     shipsHere: 'Your gift ships here',
     confirm: 'Confirm address',
@@ -124,8 +141,6 @@ const T = {
     ],
   },
   hi: {
-    rules: 'नियम',
-    langToggle: 'English',
     startsLine: (d) => `${d} से शुरू`,
     endsLine: (d) => `${d} तक • `,
     daysLeft: (days) => `${days} दिन बाक़ी`,
@@ -134,8 +149,8 @@ const T = {
     firstGift: 'पहला गिफ़्ट',
     topGift: 'टॉप गिफ़्ट',
     wonTop: 'आपने टॉप गिफ़्ट जीता',
-    more: (amt) => `${amt} और चाहिए`,
-    onlyLeft: (amt) => `सिर्फ़ ${amt} और`,
+    morePrefix: '', moreSuffix: ' और चाहिए',
+    onlyPrefix: 'सिर्फ़ ', onlySuffix: ' और',
     rest: (next, cur) => (cur ? `फिर ${next} मिलेगा, ${cur} की जगह` : `फिर ${next} आपका`),
     bought: (amt, ladder) => `अब तक की ख़रीदारी: ${amt} • ${ladder}`,
     cta: (ladder) => `${ladder} प्रोडक्ट ख़रीदें`,
@@ -173,6 +188,36 @@ const STEP_DATES = {
   [STATE.GIFT_ORDERED]: ['10 Nov', '12 Nov', 'by 21 Nov', ''],
   [STATE.DELIVERED]: ['10 Nov', '12 Nov', '', '18 Nov'],
 };
+
+// The primary pill: a top sheen for depth, a soft glow in its own color, and a
+// spring press to 0.96 that can be interrupted mid-motion.
+function CtaButton({ label, bg, fg, glow = false, onPress }) {
+  const p = usePressScale(0.96);
+  return (
+    <Animated.View style={{ transform: [{ scale: p.scale }] }}>
+      <Pressable
+        onPress={onPress}
+        onPressIn={p.pressIn}
+        onPressOut={p.pressOut}
+        android_ripple={{ color: '#00000022' }}
+        style={[styles.cta, { backgroundColor: bg }, glow && [styles.ctaGlow, { shadowColor: bg }]]}
+      >
+        <LinearGradient
+          colors={['rgba(255,255,255,0.30)', 'rgba(255,255,255,0)']}
+          style={styles.ctaSheen}
+          pointerEvents="none"
+        />
+        <Text style={[styles.ctaText, { color: fg }]} allowFontScaling={false}>{label}</Text>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+// One staged entrance value: opacity + a small rise.
+const rise = (v, d = 10) => ({
+  opacity: v,
+  transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [d, 0] }) }],
+});
 
 export default function SchemeDetail() {
   const router = useRouter();
@@ -216,7 +261,8 @@ export default function SchemeDetail() {
 
   const showBar = running && s.next;
   const prevAt = s.secured ? s.secured.at : 0;
-  const localPct = s.next ? Math.min(100, Math.round(((s.currentValue - prevAt) / (s.next.at - prevAt)) * 100)) : 100;
+  const localPct = s.next ? Math.min(1, (s.currentValue - prevAt) / (s.next.at - prevAt)) : 1;
+  const [trackW, setTrackW] = useState(0);
 
   // The one line under the hero for the states with no bar.
   const heroNote =
@@ -227,32 +273,41 @@ export default function SchemeDetail() {
     : s.state === STATE.DELIVERED ? t.deliveredNote('18 Nov')
     : null;
 
-  // Entrance motion, re-run when the scenario changes.
-  const tileAnim = useRef(new Animated.Value(0)).current;
-  const barAnim = useRef(new Animated.Value(0)).current;
+  // Staged entrance: label, tile, name, bar sweep, amount, CTA. 90ms apart,
+  // re-run when the scenario or the theme changes.
+  const intro = useRef([...Array(6)].map(() => new Animated.Value(STATIC ? 1 : 0))).current;
+  const [labelA, tileA, nameA, barA, amountA, ctaA] = intro;
+  useEffect(() => {
+    if (STATIC) return;
+    intro.forEach((v) => v.setValue(0));
+    Animated.stagger(90, [
+      Animated.timing(labelA, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+      Animated.spring(tileA, { toValue: 1, friction: 7, tension: 60, useNativeDriver: false }),
+      Animated.timing(nameA, { toValue: 1, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+      Animated.timing(barA, { toValue: 1, duration: 700, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+      Animated.timing(amountA, { toValue: 1, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+      Animated.timing(ctaA, { toValue: 1, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+    ]).start();
+  }, [stateKey, th.key]);
+
   const sparkleAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    tileAnim.setValue(0);
-    barAnim.setValue(0);
-    Animated.spring(tileAnim, { toValue: 1, friction: 6, tension: 50, useNativeDriver: true }).start();
-    Animated.timing(barAnim, { toValue: 1, duration: 900, delay: 450, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
-  }, [stateKey, th.key, tileAnim, barAnim]);
-  useEffect(() => {
+    if (STATIC) return;
     Animated.loop(
       Animated.sequence([
-        Animated.timing(sparkleAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
-        Animated.timing(sparkleAnim, { toValue: 0, duration: 1200, useNativeDriver: true }),
+        Animated.timing(sparkleAnim, { toValue: 1, duration: 1400, easing: Easing.inOut(Easing.quad), useNativeDriver: false }),
+        Animated.timing(sparkleAnim, { toValue: 0, duration: 1400, easing: Easing.inOut(Easing.quad), useNativeDriver: false }),
       ])
     ).start();
   }, [sparkleAnim]);
-  const sparkleOpacity = sparkleAnim.interpolate({ inputRange: [0, 1], outputRange: [0.35, 1] });
+  const sparkleOpacity = sparkleAnim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.9] });
 
   const h2 = s.state === STATE.SCHEDULED
-    ? <Text style={[styles.h2, { color: st.sub }]} allowFontScaling={false}>{t.startsLine(s.startLabel)}</Text>
+    ? <Text style={[styles.h2, TABULAR, { color: st.sub }]} allowFontScaling={false}>{t.startsLine(s.startLabel)}</Text>
     : s.ended
-    ? <Text style={[styles.h2, { color: st.sub }]} allowFontScaling={false}>{t.endedLine(s.endLabel)}</Text>
+    ? <Text style={[styles.h2, TABULAR, { color: st.sub }]} allowFontScaling={false}>{t.endedLine(s.endLabel)}</Text>
     : (
-      <Text style={[styles.h2, { color: st.sub }]} allowFontScaling={false}>
+      <Text style={[styles.h2, TABULAR, { color: st.sub }]} allowFontScaling={false}>
         {t.endsLine(s.endLabel)}
         <Text style={{ color: st.accent, fontFamily: F.medium }} allowFontScaling={false}>{t.daysLeft(s.daysLeft)}</Text>
       </Text>
@@ -261,26 +316,37 @@ export default function SchemeDetail() {
   const stepStates = withDelivery ? stepsFor(s.state) : null;
   const stepDates = withDelivery ? STEP_DATES[s.state] : null;
 
-  // Delight: a short confetti burst greets a page that holds a won gift. It plays
-  // once and stops; a loop would turn celebration into noise.
-  const celebrate = s.earned && !s.ended;
+  // Delight: a short confetti burst greets a page that holds a won gift. It
+  // fades out; it never loops or cuts.
+  const celebrate = s.earned && !s.ended && !STATIC;
   const [confetti, setConfetti] = useState(false);
+  const confettiA = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    if (celebrate) {
-      setConfetti(true);
-      const id = setTimeout(() => setConfetti(false), 4500);
-      return () => clearTimeout(id);
+    if (!celebrate) {
+      setConfetti(false);
+      return;
     }
-    setConfetti(false);
+    setConfetti(true);
+    confettiA.setValue(0);
+    Animated.timing(confettiA, { toValue: 1, duration: 250, useNativeDriver: false }).start();
+    const id = setTimeout(() => {
+      Animated.timing(confettiA, { toValue: 0, duration: 700, useNativeDriver: false }).start(() => setConfetti(false));
+    }, 3800);
+    return () => clearTimeout(id);
   }, [stateKey, celebrate]);
+
+  const amountParts = s.nearSlab
+    ? { pre: t.onlyPrefix, amt: indianPrice(s.remaining), post: t.onlySuffix, color: st.urgent }
+    : { pre: t.morePrefix, amt: indianPrice(s.remaining), post: t.moreSuffix, color: st.accent };
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <ScrollView>
         {/* ——— The stage ——— */}
-        <LinearGradient colors={st.grad} start={{ x: 0, y: 0 }} end={{ x: 0.8, y: 1 }} style={styles.stage}>
+        <View style={styles.stage}>
+          <StageScene stage={st} festive={festive} focusY={missed ? 0.2 : 0.44} />
           <View style={styles.topBar}>
-            <Pressable onPress={() => router.back()} android_ripple={{ color: '#ffffff33', borderless: true }}>
+            <Pressable onPress={() => router.back()} hitSlop={12} android_ripple={{ color: '#ffffff33', borderless: true }}>
               <IconBack size={24} color="#fff" />
             </Pressable>
           </View>
@@ -298,31 +364,25 @@ export default function SchemeDetail() {
             <View style={styles.missedBlock}>
               <Text style={[styles.missedTitle, { color: st.ink }]} allowFontScaling={false}>{t.missedTitle}</Text>
               <Text style={[styles.missedNote, { color: st.sub }]} allowFontScaling={false}>{t.missedNote}</Text>
-              <Pressable
-                style={({ pressed }) => [styles.cta, { backgroundColor: st.accent }, pressed && styles.ctaPressed]}
-                android_ripple={{ color: '#00000022' }}
-                onPress={() => router.push('/solv-schemes')}
-              >
-                <Text style={[styles.ctaText, { color: st.accentInk }]} allowFontScaling={false}>{t.ctaEnded}</Text>
-              </Pressable>
+              <View style={styles.missedCta}>
+                <CtaButton label={t.ctaEnded} bg={st.accent} fg={st.accentInk} onPress={() => router.push('/solv-schemes')} />
+              </View>
             </View>
           ) : (
             <>
-              {/* The hero pedestal */}
+              {/* The hero pedestal. The key light comes from the scene; the tile
+                  keeps only its contact shadow. */}
               <View style={styles.pedestal}>
-                {festive ? (
-                  <Svg width={320} height={250} style={StyleSheet.absoluteFill}>
-                    <Defs>
-                      <RadialGradient id="glow" cx="50%" cy="52%" r="52%">
-                        <Stop offset="0%" stopColor={st.accent} stopOpacity="0.42" />
-                        <Stop offset="60%" stopColor={st.accent} stopOpacity="0.12" />
-                        <Stop offset="100%" stopColor={st.accent} stopOpacity="0" />
-                      </RadialGradient>
-                    </Defs>
-                    <Rect x="0" y="0" width="320" height="250" fill="url(#glow)" />
-                    <Ellipse cx="160" cy="232" rx="78" ry="10" fill="#000" opacity="0.35" />
-                  </Svg>
-                ) : null}
+                <Svg
+                  width="100%"
+                  height="100%"
+                  viewBox="0 0 412 250"
+                  preserveAspectRatio="xMidYMid slice"
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                >
+                  <Ellipse cx="206" cy="234" rx="76" ry="9" fill="#000" opacity="0.3" />
+                </Svg>
                 {festive ? (
                   <>
                     <Animated.View style={[styles.sparkleL, { opacity: sparkleOpacity }]}>
@@ -333,12 +393,14 @@ export default function SchemeDetail() {
                     </Animated.View>
                   </>
                 ) : null}
-                <Text style={[styles.heroLabel, { color: st.accent }]} allowFontScaling={false}>{hero.label}</Text>
+                <Animated.Text style={[styles.heroLabel, { color: st.accent, opacity: labelA }]} allowFontScaling={false}>
+                  {hero.label}
+                </Animated.Text>
                 <Animated.View
                   style={[
                     styles.tile,
                     hero.dashed && [styles.tileNotYet, { borderColor: st.accent }],
-                    { opacity: tileAnim, transform: [{ scale: tileAnim.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] }) }] },
+                    { opacity: tileA, transform: [{ scale: tileA.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] },
                   ]}
                 >
                   {hero.gift.image ? (
@@ -348,64 +410,78 @@ export default function SchemeDetail() {
                   )}
                 </Animated.View>
               </View>
-              <Text style={[styles.giftName, { color: st.ink }]} allowFontScaling={false}>{hero.gift.name}</Text>
+              <Animated.Text style={[styles.giftName, { color: st.ink }, rise(nameA, 8)]} allowFontScaling={false}>
+                {hero.gift.name}
+              </Animated.Text>
 
               {showBar ? (
                 <>
                   {/* The action cluster: bar, next gift on its end, slab values, and the
                       amount UNDER the bar so it groups with the next gift, not the hero. */}
                   <View style={styles.barZone}>
-                    <View style={[styles.barTrack, { backgroundColor: st.track }]}>
+                    <View
+                      style={[styles.barTrack, { backgroundColor: st.track }]}
+                      onLayout={(e) => setTrackW(e.nativeEvent.layout.width)}
+                    >
                       <Animated.View
                         style={[
                           styles.barFill,
-                          { backgroundColor: st.accent, width: barAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', `${localPct}%`] }) },
+                          { backgroundColor: st.accent, width: barA.interpolate({ inputRange: [0, 1], outputRange: ['0%', `${localPct * 100}%`] }) },
                         ]}
                       />
                     </View>
-                    <View style={[styles.barGift, { borderColor: st.accent }]}>
+                    {trackW > 0 && localPct > 0 && localPct < 0.97 ? (
+                      <Animated.View
+                        style={[
+                          styles.knob,
+                          {
+                            borderColor: st.accent,
+                            opacity: barA,
+                            left: barA.interpolate({ inputRange: [0, 1], outputRange: [-6, localPct * trackW - 6] }),
+                          },
+                        ]}
+                      />
+                    ) : null}
+                    <View style={styles.barGift}>
                       {s.next.image ? (
-                        <Image source={s.next.image} style={{ width: 34, height: 34 }} resizeMode="contain" />
+                        <Image source={s.next.image} style={{ width: 36, height: 36 }} resizeMode="contain" />
                       ) : (
                         <GiftGlyph kind={s.next.icon} size={24} color={st.accentDeep} strokeWidth={1.6} />
                       )}
                     </View>
                   </View>
-                  <View style={styles.barEnds}>
-                    <Text style={[styles.barEnd, { color: st.sub }]} allowFontScaling={false}>{slab(prevAt)}</Text>
-                    <Text style={[styles.barEnd, { color: st.sub }]} allowFontScaling={false}>{slab(s.next.at)}</Text>
-                  </View>
+                  <Animated.View style={[styles.barEnds, { opacity: barA }]}>
+                    <Text style={[styles.barEnd, TABULAR, { color: st.sub }]} allowFontScaling={false}>{slab(prevAt)}</Text>
+                    <Text style={[styles.barEnd, TABULAR, { color: st.sub }]} allowFontScaling={false}>{slab(s.next.at)}</Text>
+                  </Animated.View>
 
-                  <Text style={[styles.bigMore, { color: s.nearSlab ? st.urgent : st.accent }]} allowFontScaling={false}>
-                    {s.nearSlab ? t.onlyLeft(indianPrice(s.remaining)) : t.more(indianPrice(s.remaining))}
-                  </Text>
-                  <Text style={[styles.bigRest, { color: st.sub }]} allowFontScaling={false}>
-                    {t.rest(s.next.shortName, s.secured ? s.secured.shortName : null)}
-                  </Text>
-
-                  <Text style={[styles.bought, { color: st.sub }]} allowFontScaling={false}>
-                    {t.bought(indianPrice(s.currentValue), LIFESTYLE.label)}
-                  </Text>
+                  <Animated.View style={rise(amountA, 10)}>
+                    <Text style={[styles.bigMore, TABULAR, { color: amountParts.color }]} allowFontScaling={false}>
+                      {amountParts.pre ? <Text style={styles.bigMoreWord}>{amountParts.pre}</Text> : null}
+                      {amountParts.amt}
+                      <Text style={styles.bigMoreWord}>{amountParts.post}</Text>
+                    </Text>
+                    <Text style={[styles.bigRest, { color: st.sub }]} allowFontScaling={false}>
+                      {t.rest(s.next.shortName, s.secured ? s.secured.shortName : null)}
+                    </Text>
+                    <Text style={[styles.bought, TABULAR, { color: st.sub }]} allowFontScaling={false}>
+                      {t.bought(indianPrice(s.currentValue), LIFESTYLE.label)}
+                    </Text>
+                  </Animated.View>
 
                   {/* The close: into the eligible catalog */}
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.cta,
-                      { backgroundColor: st.accent, shadowColor: st.accent },
-                      styles.ctaGlow,
-                      pressed && styles.ctaPressed,
-                    ]}
-                    android_ripple={{ color: '#00000022' }}
-                  >
-                    <Text style={[styles.ctaText, { color: st.accentInk }]} allowFontScaling={false}>{t.cta(LIFESTYLE.label)}</Text>
-                  </Pressable>
+                  <Animated.View style={rise(ctaA, 10)}>
+                    <CtaButton label={t.cta(LIFESTYLE.label)} bg={st.accent} fg={st.accentInk} glow />
+                  </Animated.View>
                 </>
               ) : heroNote ? (
-                <Text style={[styles.heroNote, { color: st.sub }]} allowFontScaling={false}>{heroNote}</Text>
+                <Animated.Text style={[styles.heroNote, { color: st.sub }, rise(nameA, 8)]} allowFontScaling={false}>
+                  {heroNote}
+                </Animated.Text>
               ) : null}
             </>
           )}
-        </LinearGradient>
+        </View>
 
         {/* ——— Delivery, for the ended-with-win states ——— */}
         {withDelivery ? (
@@ -435,13 +511,13 @@ export default function SchemeDetail() {
                       <Text style={[styles.stepTitle, stepStates[i] === 'todo' && { color: '#B5B5B5' }]} allowFontScaling={false}>
                         {label}
                       </Text>
-                      {stepDates[i] ? <Text style={styles.stepDate} allowFontScaling={false}>{stepDates[i]}</Text> : null}
+                      {stepDates[i] ? <Text style={[styles.stepDate, TABULAR]} allowFontScaling={false}>{stepDates[i]}</Text> : null}
                     </View>
                   </React.Fragment>
                 ))}
               </View>
               {s.state !== STATE.ENDED_PENDING ? (
-                <Text style={styles.orderNo} allowFontScaling={false}>{ORDER_NO}</Text>
+                <Text style={[styles.orderNo, TABULAR]} allowFontScaling={false}>{ORDER_NO}</Text>
               ) : null}
             </View>
 
@@ -456,7 +532,11 @@ export default function SchemeDetail() {
                 </View>
               ) : (
                 <View style={styles.addressActions}>
-                  <Pressable style={[styles.confirmBtn, { backgroundColor: st.grad[0] }]} onPress={() => setAddressConfirmed(true)} android_ripple={{ color: '#ffffff33' }}>
+                  <Pressable
+                    style={({ pressed }) => [styles.confirmBtn, { backgroundColor: st.ground2 }, pressed && { transform: [{ scale: 0.96 }] }]}
+                    onPress={() => setAddressConfirmed(true)}
+                    android_ripple={{ color: '#ffffff33' }}
+                  >
                     <Text style={styles.confirmBtnText} allowFontScaling={false}>{t.confirm}</Text>
                   </Pressable>
                   <Pressable style={styles.changeBtn}>
@@ -479,13 +559,8 @@ export default function SchemeDetail() {
 
             if (isTop && !isWon) {
               return (
-                <LinearGradient
-                  key={tier.at}
-                  colors={st.grad}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.topCard}
-                >
+                <View key={tier.at} style={styles.topCard}>
+                  <StageScene stage={st} festive={festive} focusY={0.55} />
                   <View style={styles.topLabelRow}>
                     {festive ? <GiftGlyph kind="sparkle" size={14} color={st.accent} /> : null}
                     <Text style={[styles.topLabel, { color: st.accent }]} allowFontScaling={false}>{t.topGift}</Text>
@@ -499,21 +574,24 @@ export default function SchemeDetail() {
                     )}
                   </View>
                   <Text style={[styles.topName, { color: st.ink }]} allowFontScaling={false}>{tier.name}</Text>
-                  <Text style={[styles.topAt, { color: st.accent }]} allowFontScaling={false}>{slab(tier.at)}</Text>
-                </LinearGradient>
+                  <Text style={[styles.topAt, TABULAR, { color: st.accent }]} allowFontScaling={false}>{slab(tier.at)}</Text>
+                </View>
               );
             }
 
             return (
-              <View key={tier.at} style={[styles.row, i > 0 && styles.rowDivider, isPassed && { opacity: 0.35 }]}>
-                <Text style={[styles.rowAt, isNext && { color: st.accentDeep }]} allowFontScaling={false}>
+              <View
+                key={tier.at}
+                style={[styles.row, i > 0 && styles.rowDivider, isWon && styles.rowWon, isPassed && { opacity: 0.35 }]}
+              >
+                <Text style={[styles.rowAt, TABULAR, isNext && { color: st.accentDeep }]} allowFontScaling={false}>
                   {slab(tier.at)}
                 </Text>
                 <View style={styles.rowThumb}>
                   {tier.image ? (
-                    <Image source={tier.image} style={{ width: 40, height: 40 }} resizeMode="contain" />
+                    <Image source={tier.image} style={{ width: 34, height: 34 }} resizeMode="contain" />
                   ) : (
-                    <GiftGlyph kind={tier.icon} size={26} color={N.sub} strokeWidth={1.6} />
+                    <GiftGlyph kind={tier.icon} size={24} color={N.sub} strokeWidth={1.6} />
                   )}
                 </View>
                 <Text style={styles.rowName} numberOfLines={2} allowFontScaling={false}>{tier.name}</Text>
@@ -547,9 +625,9 @@ export default function SchemeDetail() {
       </ScrollView>
 
       {confetti ? (
-        <View style={styles.confetti} pointerEvents="none">
+        <Animated.View style={[styles.confetti, { opacity: confettiA }]} pointerEvents="none">
           <LottieView source={RIMG.ribbon} autoPlay loop={false} style={{ flex: 1 }} />
-        </View>
+        </Animated.View>
       ) : null}
 
       {/* Prototype panel, hidden behind a long-press on the scheme title. */}
@@ -590,54 +668,72 @@ export default function SchemeDetail() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: N.bg },
 
-  stage: { paddingBottom: 24 },
+  stage: { paddingBottom: 28, overflow: 'hidden' },
   topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 14 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 },
-  h1: { fontFamily: F.bold, fontSize: 21, lineHeight: 26 },
-  h2: { marginTop: 3, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 17 },
+  h1: { fontFamily: F.bold, fontSize: 22, lineHeight: 27, letterSpacing: 0.2 },
+  h2: { marginTop: 4, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 17 },
 
   pedestal: { height: 250, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
   sparkleL: { position: 'absolute', left: '20%', top: 64 },
   sparkleR: { position: 'absolute', right: '22%', top: 148 },
-  heroLabel: { position: 'absolute', top: 18, fontFamily: F.bold, fontSize: 11, lineHeight: 15, letterSpacing: 0.6 },
+  heroLabel: { position: 'absolute', top: 18, fontFamily: F.bold, fontSize: 11, lineHeight: 15, letterSpacing: 1.2 },
   tile: {
     width: 168,
     height: 168,
     marginTop: 16,
-    borderRadius: 22,
+    borderRadius: 24,
     backgroundColor: N.paper,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 10,
     shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
   },
   tileNotYet: { borderWidth: 2, borderStyle: 'dashed', backgroundColor: '#FFFDF7' },
-  tileImg: { width: 136, height: 136 },
-  giftName: { marginTop: 2, textAlign: 'center', fontFamily: F.bold, fontSize: 17, lineHeight: 22, paddingHorizontal: 24 },
-  heroNote: { marginTop: 12, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: 40 },
+  tileImg: { width: 128, height: 128, borderRadius: 12 },
+  giftName: { marginTop: 2, textAlign: 'center', fontFamily: F.bold, fontSize: 17, lineHeight: 22, paddingHorizontal: 24, letterSpacing: 0.1 },
+  heroNote: { marginTop: 12, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: 44 },
 
-  barZone: { marginTop: 20, marginHorizontal: 32, height: 44, justifyContent: 'center' },
-  barTrack: { height: 10, borderRadius: 5, marginRight: 22, overflow: 'hidden' },
+  barZone: { marginTop: 22, marginHorizontal: 32, height: 48, justifyContent: 'center' },
+  barTrack: { height: 10, borderRadius: 5, marginRight: 26, overflow: 'hidden' },
   barFill: { height: 10, borderRadius: 5 },
+  knob: {
+    position: 'absolute',
+    top: 24 - 7,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#fff',
+    borderWidth: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+  },
   barGift: {
     position: 'absolute',
     right: 0,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     backgroundColor: N.paper,
-    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
-  barEnds: { marginTop: 6, marginHorizontal: 32, marginRight: 54, flexDirection: 'row', justifyContent: 'space-between' },
+  barEnds: { marginTop: 8, marginHorizontal: 32, marginRight: 58, flexDirection: 'row', justifyContent: 'space-between' },
   barEnd: { fontFamily: F.medium, fontSize: 11, lineHeight: 15 },
 
-  bigMore: { marginTop: 14, textAlign: 'center', fontFamily: F.bold, fontSize: 26, lineHeight: 32 },
+  bigMore: { marginTop: 16, textAlign: 'center', fontFamily: F.bold, fontSize: 30, lineHeight: 36 },
+  bigMoreWord: { fontFamily: F.medium, fontSize: 17, lineHeight: 36 },
   bigRest: { marginTop: 2, textAlign: 'center', fontFamily: F.medium, fontSize: 14, lineHeight: 19, paddingHorizontal: 24 },
   bought: { marginTop: 12, textAlign: 'center', fontFamily: F.regular, fontSize: 11, lineHeight: 15 },
 
@@ -649,53 +745,106 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
+  ctaSheen: { position: 'absolute', left: 0, right: 0, top: 0, height: 26 },
   ctaGlow: {
     shadowOpacity: 0.35,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 5 },
     elevation: 6,
   },
-  ctaPressed: { transform: [{ scale: 0.98 }], opacity: 0.92 },
   ctaText: { fontFamily: F.bold, fontSize: 15, lineHeight: 19, letterSpacing: 0.2 },
 
-  missedBlock: { alignItems: 'center', paddingTop: 28, paddingBottom: 4, alignSelf: 'stretch' },
+  missedBlock: { alignItems: 'center', paddingTop: 30, paddingBottom: 6, alignSelf: 'stretch' },
   missedTitle: { fontFamily: F.bold, fontSize: 17, lineHeight: 22 },
-  missedNote: { marginTop: 6, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: 40 },
+  missedNote: { marginTop: 6, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: 44 },
+  missedCta: { alignSelf: 'stretch', marginTop: 4 },
 
-  listLabel: { marginTop: 20, marginHorizontal: 16, fontFamily: F.bold, fontSize: 11, lineHeight: 15, color: N.sub, letterSpacing: 0.6 },
-  list: { marginTop: 8, marginHorizontal: 16, backgroundColor: N.paper, borderRadius: 14, borderWidth: 1, borderColor: N.line, paddingHorizontal: 14, overflow: 'hidden' },
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 12 },
-  rowDivider: { borderTopWidth: 1, borderTopColor: N.line },
-  rowAt: { width: 52, fontFamily: F.bold, fontSize: 15, lineHeight: 19, color: N.ink },
-  rowThumb: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  listLabel: { marginTop: 20, marginHorizontal: 16, fontFamily: F.bold, fontSize: 11, lineHeight: 15, color: N.sub, letterSpacing: 1 },
+  list: {
+    marginTop: 8,
+    marginHorizontal: 16,
+    backgroundColor: N.paper,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(17,24,39,0.06)',
+    paddingHorizontal: 14,
+    overflow: 'hidden',
+    shadowColor: '#0B1B33',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
+  },
+  row: { flexDirection: 'row', alignItems: 'center', minHeight: 62, paddingVertical: 8, gap: 12 },
+  rowDivider: { borderTopWidth: 1, borderTopColor: '#F2F3F5' },
+  rowWon: { backgroundColor: '#F3FAF5', marginHorizontal: -14, paddingHorizontal: 14 },
+  rowAt: { width: 54, fontFamily: F.bold, fontSize: 15, lineHeight: 19, color: N.ink },
+  rowThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: N.paper,
+    borderWidth: 1,
+    borderColor: PHOTO_EDGE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
   rowName: { flex: 1, fontFamily: F.regular, fontSize: 13, lineHeight: 17, color: N.ink },
-  wonChip: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
-  wonChipText: { fontFamily: F.bold, fontSize: 10, lineHeight: 13 },
-  nextText: { fontFamily: F.medium, fontSize: 12, lineHeight: 16 },
+  wonChip: { height: 22, borderRadius: 11, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
+  wonChipText: { fontFamily: F.bold, fontSize: 10, lineHeight: 13, letterSpacing: 0.4 },
+  nextText: { fontFamily: F.bold, fontSize: 10, lineHeight: 13, letterSpacing: 0.6 },
 
-  topCard: { marginVertical: 10, marginHorizontal: -14, paddingHorizontal: 14, paddingVertical: 16, alignItems: 'center' },
+  topCard: { marginVertical: 10, marginHorizontal: -14, paddingHorizontal: 14, paddingVertical: 16, alignItems: 'center', overflow: 'hidden' },
   topLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  topLabel: { fontFamily: F.bold, fontSize: 11, lineHeight: 15, letterSpacing: 0.6 },
-  topStage: { marginTop: 12, alignSelf: 'stretch', height: 132, borderRadius: 10, backgroundColor: N.paper, alignItems: 'center', justifyContent: 'center' },
+  topLabel: { fontFamily: F.bold, fontSize: 11, lineHeight: 15, letterSpacing: 1.2 },
+  topStage: { marginTop: 12, alignSelf: 'stretch', height: 132, borderRadius: 12, backgroundColor: N.paper, alignItems: 'center', justifyContent: 'center' },
   topImage: { width: 150, height: 114 },
   topName: { marginTop: 10, textAlign: 'center', fontFamily: F.bold, fontSize: 15, lineHeight: 19 },
   topAt: { marginTop: 2, fontFamily: F.bold, fontSize: 13, lineHeight: 17 },
 
-  facts: { marginTop: 12, marginHorizontal: 16, backgroundColor: N.paper, borderRadius: 14, borderWidth: 1, borderColor: N.line, paddingHorizontal: 14 },
+  facts: {
+    marginTop: 12,
+    marginHorizontal: 16,
+    backgroundColor: N.paper,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(17,24,39,0.06)',
+    paddingHorizontal: 14,
+    shadowColor: '#0B1B33',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
+  },
   factRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11 },
   factText: { flex: 1, fontFamily: F.regular, fontSize: 13, lineHeight: 18, color: N.ink },
 
-  card: { marginHorizontal: 16, marginTop: 12, backgroundColor: N.paper, borderRadius: 14, borderWidth: 1, borderColor: N.line, padding: 16 },
+  card: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    backgroundColor: N.paper,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(17,24,39,0.06)',
+    padding: 16,
+    shadowColor: '#0B1B33',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
+  },
   cardTitle: { fontFamily: F.bold, fontSize: 14, lineHeight: 18, color: N.ink, marginBottom: 8 },
   stepper: { flexDirection: 'row', alignItems: 'flex-start' },
   step: { alignItems: 'center', width: 66 },
-  stepDot: { width: 30, height: 30, borderRadius: 15, borderWidth: 1.5, borderColor: '#DDD', backgroundColor: N.paper, alignItems: 'center', justifyContent: 'center' },
+  stepDot: { width: 32, height: 32, borderRadius: 16, borderWidth: 1.5, borderColor: '#DDDFE3', backgroundColor: N.paper, alignItems: 'center', justifyContent: 'center' },
   stepDone: { backgroundColor: N.green, borderColor: N.green },
   stepNow: { backgroundColor: '#FDF3E0' },
   stepTitle: { marginTop: 6, fontFamily: F.medium, fontSize: 11, lineHeight: 14, color: N.ink, textAlign: 'center' },
   stepDate: { marginTop: 1, fontFamily: F.regular, fontSize: 10, lineHeight: 13, color: N.sub },
-  connector: { flex: 1, height: 2, backgroundColor: '#E4E4E4', marginTop: 14 },
+  connector: { flex: 1, height: 2, borderRadius: 1, backgroundColor: '#E7E9EC', marginTop: 15 },
   connectorDone: { backgroundColor: N.green },
   orderNo: { marginTop: 12, textAlign: 'center', fontFamily: F.regular, fontSize: 11, lineHeight: 14, color: N.sub },
   shopName: { fontFamily: F.medium, fontSize: 14, lineHeight: 18, color: N.ink },

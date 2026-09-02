@@ -13,7 +13,7 @@
 //   over      after the festival closes: gift on the way, one missed
 //   empty     no schemes for this member
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, Animated } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconBack } from '../../src/icons';
@@ -133,6 +133,15 @@ export default function SolvSchemes() {
   const initialTab = Number(params.tab) === 1 ? 1 : 0;
   const [tab, setTab] = useState(initialTab);
   const [pageW, setPageW] = useState(0);
+  // The tab indicator glides to the active tab with a spring. Programmatic
+  // scrolls do not emit onScroll on RN-web, so the indicator tracks `tab`, which
+  // both a tap (goToTab) and a swipe (onMomentumScrollEnd) update.
+  const indA = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (pageW > 0) {
+      Animated.spring(indA, { toValue: tab * (pageW / 2), speed: 16, bounciness: 4, useNativeDriver: false }).start();
+    }
+  }, [tab, pageW, indA]);
   const goToTab = (i) => {
     setTab(i);
     pager.current?.scrollTo({ x: i * pageW, animated: true });
@@ -142,6 +151,7 @@ export default function SolvSchemes() {
   useEffect(() => {
     if (pageW > 0 && initialTab === 1) {
       pager.current?.scrollTo({ x: pageW, animated: false });
+      indA.setValue(pageW / 2);
     }
   }, [pageW, initialTab]);
 
@@ -179,9 +189,19 @@ export default function SolvSchemes() {
         {['RUNNING', 'COMPLETED'].map((t, i) => (
           <Pressable key={t} style={styles.tab} onPress={() => goToTab(i)} android_ripple={{ color: '#ffffff26' }}>
             <TabLabel label={t} />
-            {tab === i ? <View style={styles.indicator} /> : null}
           </Pressable>
         ))}
+        {pageW > 0 ? (
+          <Animated.View
+            style={[
+              styles.indicator,
+              {
+                width: pageW / 2,
+                transform: [{ translateX: indA }],
+              },
+            ]}
+          />
+        ) : null}
       </View>
 
       <ScrollView
@@ -221,7 +241,7 @@ const styles = StyleSheet.create({
   toolbarTitle: { marginLeft: 12, color: '#fff', fontFamily: F.medium, fontSize: 18, lineHeight: 22 },
   tabBar: { height: 44, backgroundColor: SOLV.blue, flexDirection: 'row' },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
-  indicator: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, backgroundColor: '#fff' },
+  indicator: { position: 'absolute', bottom: 0, left: 0, height: 3, borderTopLeftRadius: 2, borderTopRightRadius: 2, backgroundColor: '#fff' },
 
   list: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 20 },
 

@@ -1,21 +1,22 @@
 // Solv app scheme-card system.
 //
 // One card anatomy for every scheme, so the list reads as one page:
-//   [festive header band]  only a themed scheme wears it (gradient + motif + title)
+//   [festive header band]  only a themed scheme wears it (crafted scene, motif)
 //   [plain title row]      the default scheme's title + days chip
 //   gift row               the gift won (YOU WON) or the top gift (TOP GIFT)
 //   one sentence           what to do, or what happened
 //   the bar                current leg, next gift's photo on the bar's end
 //   the gift strip         "8 gifts • up to the iPhone 17" with mini photos
-// The card BODY is always white; a theme only paints the band, the fill and the
-// accents. Themes live in src/gifts/themes.js, picked at scheme creation.
+// The card BODY is always white; a theme paints the band and the bar's fill.
+// Body text accents stay Solv blue on every card so the list reads as one page.
 //
 // SOLV.blue is an assumption: replace with the real Solv brand tokens at build.
 //
 // The bar carries a scale. A fill with no numbers on it cannot be read: the card
-// names where the buying is (value above the fill), what the leg costs (values
-// under each end) and the gift next up (photo at the bar's end). The bar measures
-// the CURRENT LEG (slab won to slab next), the distance the customer can act on.
+// names where the buying is (value above the fill, with a knob on the fill's
+// end), what the leg costs (values under each end) and the gift next up (photo
+// at the bar's end). The bar measures the CURRENT LEG (slab won to slab next),
+// the distance the customer can act on.
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Image, Pressable, StyleSheet, Animated, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,6 +24,7 @@ import { F } from '../theme';
 import GiftGlyph from './icons';
 import { STATE } from './state';
 import { themeOf } from './themes';
+import { BandScene } from './Scene';
 
 export const SOLV = {
   blue: '#0A66E8',        // assumption: Solv primary
@@ -38,8 +40,13 @@ export const SOLV = {
   red: '#C2410C',
 };
 
-const BAR_END_W = 30;   // the reward thumb sitting on the bar's end
-const BAR_GAP = 10;     // clear space between the track and that thumb
+// A 1px outline on photos, pure black at low alpha so it reads as the image's
+// edge on any surface (never a tinted grey).
+const PHOTO_EDGE = 'rgba(0,0,0,0.08)';
+const TABULAR = { fontVariant: ['tabular-nums'] };
+
+const BAR_END_W = 32;   // the reward medallion sitting on the bar's end
+const BAR_GAP = 10;     // clear space between the track and that medallion
 
 // A voucher has no product photo; it renders as a small voucher card, never as a
 // line glyph. `gift.voucher` carries the amount label.
@@ -53,7 +60,7 @@ export function VoucherThumb({ amount, size = 40 }) {
       end={{ x: 1, y: 1 }}
       style={{ width: w, height: h, borderRadius: size * 0.13, alignItems: 'center', justifyContent: 'center' }}
     >
-      <Text style={{ color: '#fff', fontFamily: F.bold, fontSize: size * 0.26, lineHeight: size * 0.32 }} allowFontScaling={false}>
+      <Text style={[{ color: '#fff', fontFamily: F.bold, fontSize: size * 0.26, lineHeight: size * 0.32 }, TABULAR]} allowFontScaling={false}>
         {amount}
       </Text>
       <Text
@@ -92,7 +99,18 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 // Headless capture (navigator.webdriver) renders the final state directly: the
 // screenshot pipeline must not race the entrance and fill animations.
-const STATIC = typeof navigator !== 'undefined' && navigator.webdriver === true;
+const STATIC =
+  typeof navigator !== 'undefined' &&
+  (navigator.webdriver === true || /HeadlessChrome/.test(navigator.userAgent || ''));
+
+// A spring-driven press scale. A style swap snaps between frames; the spring
+// makes both the press and the release read as one continuous motion.
+export function usePressScale(to = 0.98) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const pressIn = () => Animated.spring(scale, { toValue: to, speed: 40, bounciness: 0, useNativeDriver: false }).start();
+  const pressOut = () => Animated.spring(scale, { toValue: 1, speed: 24, bounciness: 5, useNativeDriver: false }).start();
+  return { scale, pressIn, pressOut };
+}
 
 // One scheme card. `card` comes from solvSchemeCard():
 //   theme, title, line, lineTone: 'default'|'accent'|'good'|'urgent'|'muted'
@@ -106,10 +124,8 @@ export function SchemeCard({ card, onPress, index = 0 }) {
   const th = themeOf(card.theme);
   const festive = Boolean(th.motif);
   const [barW, setBarW] = useState(0);
+  const press = usePressScale(0.98);
 
-  // The white body is APP chrome: its text accents stay Solv blue on every card,
-  // so a festive card and a plain card read as one list. The theme paints only
-  // the band and the bar's fill.
   const accentText = SOLV.blue;
   const fill = festive ? th.stage.accent : SOLV.blue;
 
@@ -128,12 +144,6 @@ export function SchemeCard({ card, onPress, index = 0 }) {
     good: { bg: SOLV.greenBg, fg: SOLV.green },
     muted: festive ? { bg: 'rgba(255,255,255,0.16)', fg: '#fff' } : { bg: '#F0F0F0', fg: SOLV.sub },
   }[card.chip?.tone || 'time'];
-  // On a plain title row a muted chip must not wear the band's white-on-dark look.
-  const chipOnWhite = card.chip?.tone === 'muted' && !festive
-    ? chipStyle
-    : card.chip?.tone === 'muted'
-    ? { bg: '#F0F0F0', fg: SOLV.sub }
-    : chipStyle;
 
   const leg = card.leg;
   const span = leg ? Math.max(1, leg.to - leg.from) : 1;
@@ -145,7 +155,7 @@ export function SchemeCard({ card, onPress, index = 0 }) {
   const fillAnim = useRef(new Animated.Value(STATIC ? 1 : 0)).current;
   useEffect(() => {
     if (STATIC) return;
-    Animated.timing(enter, { toValue: 1, duration: 320, delay: index * 70, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+    Animated.timing(enter, { toValue: 1, duration: 320, delay: index * 70, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
   }, [enter, index]);
   useEffect(() => {
     if (STATIC) return;
@@ -155,28 +165,42 @@ export function SchemeCard({ card, onPress, index = 0 }) {
   }, [barW, pct, fillAnim, index]);
 
   const chip = card.chip ? (
-    <View style={[styles.chip, { backgroundColor: festive ? chipStyle.bg : chipOnWhite.bg }]}>
-      <Text style={[styles.chipText, { color: festive ? chipStyle.fg : chipOnWhite.fg }]} allowFontScaling={false}>
+    <View style={[styles.chip, { backgroundColor: chipStyle.bg }]}>
+      <Text style={[styles.chipText, TABULAR, { color: chipStyle.fg }]} allowFontScaling={false}>
         {card.chip.text}
       </Text>
     </View>
   ) : null;
 
+  const knobLeft = fillAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-5, Math.max(-5, pct * trackW - 5)],
+  });
+
   return (
     <Animated.View
       style={{
         opacity: enter,
-        transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
+        transform: [
+          { translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) },
+          { scale: press.scale },
+        ],
       }}
     >
-      <Pressable onPress={onPress} style={({ pressed }) => [pressed && onPress ? { transform: [{ scale: 0.98 }] } : null]}>
+      <Pressable onPress={onPress} onPressIn={onPress ? press.pressIn : undefined} onPressOut={onPress ? press.pressOut : undefined}>
         <View style={[styles.card, card.dim && { opacity: 0.72 }]}>
           {festive ? (
-            <LinearGradient colors={th.stage.grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.band}>
-              <GiftGlyph kind={th.motif} size={16} color={th.stage.accent} strokeWidth={1.7} />
+            <View style={styles.band}>
+              <BandScene stage={th.stage} />
+              {/* The wrapper View is positioned (RN default), so the glyph paints
+                  ABOVE the absolutely-positioned scene; a bare svg is static and
+                  would paint underneath it. */}
+              <View>
+                <GiftGlyph kind={th.motif} size={16} color={th.stage.accent} strokeWidth={1.7} />
+              </View>
               <Text style={styles.bandTitle} numberOfLines={1} allowFontScaling={false}>{card.title}</Text>
               {chip}
-            </LinearGradient>
+            </View>
           ) : (
             <View style={styles.titleRow}>
               <Text style={styles.title} numberOfLines={1} allowFontScaling={false}>{card.title}</Text>
@@ -204,7 +228,7 @@ export function SchemeCard({ card, onPress, index = 0 }) {
               </View>
             ) : null}
 
-            <Text style={[styles.line, { color: lineColor }]} numberOfLines={2} allowFontScaling={false}>
+            <Text style={[styles.line, TABULAR, { color: lineColor }]} numberOfLines={2} allowFontScaling={false}>
               {card.line}
             </Text>
 
@@ -214,7 +238,7 @@ export function SchemeCard({ card, onPress, index = 0 }) {
                 <View style={styles.currentRow}>
                   {barW > 0 && leg.current > leg.from ? (
                     <Text
-                      style={[styles.currentValue, { color: accentText, left: clamp(pct * trackW - 18, 0, Math.max(0, trackW - 44)) }]}
+                      style={[styles.currentValue, TABULAR, { color: accentText, left: clamp(pct * trackW - 18, 0, Math.max(0, trackW - 44)) }]}
                       allowFontScaling={false}
                     >
                       {leg.fmt(leg.current)}
@@ -234,16 +258,20 @@ export function SchemeCard({ card, onPress, index = 0 }) {
                       ]}
                     />
                   </View>
-                  <View style={[styles.barEnd, festive && { borderColor: th.stage.accent }]}>
-                    <GiftThumb gift={card.reward} size={24} accent={accentText} />
+                  {/* The knob marks the fill's end so the floating value has an anchor. */}
+                  {barW > 0 && leg.current > leg.from ? (
+                    <Animated.View style={[styles.knob, { borderColor: fill, left: knobLeft }]} />
+                  ) : null}
+                  <View style={styles.barEnd}>
+                    <GiftThumb gift={card.reward} size={26} accent={accentText} />
                   </View>
                 </View>
 
                 {/* What the leg costs, and the gift waiting at the far end. */}
                 <View style={[styles.legRow, { marginRight: BAR_END_W + BAR_GAP }]}>
-                  <Text style={styles.legValue} allowFontScaling={false}>{leg.fmt(leg.from)}</Text>
+                  <Text style={[styles.legValue, TABULAR]} allowFontScaling={false}>{leg.fmt(leg.from)}</Text>
                   <View style={styles.legRight}>
-                    <Text style={styles.legValue} allowFontScaling={false}>{leg.fmt(leg.to)}</Text>
+                    <Text style={[styles.legValue, TABULAR]} allowFontScaling={false}>{leg.fmt(leg.to)}</Text>
                     <Text style={styles.legNext} numberOfLines={1} allowFontScaling={false}>
                       {card.reward?.short || card.reward?.name}
                     </Text>
@@ -256,23 +284,23 @@ export function SchemeCard({ card, onPress, index = 0 }) {
               <View style={styles.strip}>
                 <View style={styles.stripThumbs}>
                   {card.strip.gifts.slice(0, 5).map((g, i) => (
-                    <View key={g.at} style={[styles.stripThumb, i > 0 && { marginLeft: -7 }]}>
+                    <View key={g.at} style={[styles.stripThumb, i > 0 && { marginLeft: -6 }]}>
                       {g.voucher ? (
                         <Text style={{ color: SOLV.blue, fontFamily: F.bold, fontSize: 10 }} allowFontScaling={false}>₹</Text>
                       ) : g.image ? (
-                        <Image source={g.image} style={{ width: 17, height: 17 }} resizeMode="contain" />
+                        <Image source={g.image} style={{ width: 16, height: 16 }} resizeMode="contain" />
                       ) : (
                         <GiftGlyph kind={g.icon || 'gift'} size={13} color={SOLV.sub} strokeWidth={1.7} />
                       )}
                     </View>
                   ))}
                   {card.strip.count > 5 ? (
-                    <View style={[styles.stripThumb, styles.stripMore, { marginLeft: -7 }]}>
-                      <Text style={styles.stripMoreText} allowFontScaling={false}>+{card.strip.count - 5}</Text>
+                    <View style={[styles.stripThumb, styles.stripMore, { marginLeft: -6 }]}>
+                      <Text style={[styles.stripMoreText, TABULAR]} allowFontScaling={false}>+{card.strip.count - 5}</Text>
                     </View>
                   ) : null}
                 </View>
-                <Text style={styles.stripText} numberOfLines={1} allowFontScaling={false}>
+                <Text style={[styles.stripText, TABULAR]} numberOfLines={1} allowFontScaling={false}>
                   {card.strip.count} gifts • up to the {card.strip.topShort}
                 </Text>
               </View>
@@ -286,68 +314,85 @@ export function SchemeCard({ card, onPress, index = 0 }) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
+    borderRadius: 16,
     backgroundColor: SOLV.paper,
     borderWidth: 1,
-    borderColor: SOLV.line,
+    borderColor: 'rgba(17,24,39,0.06)',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    shadowColor: '#0B1B33',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
-  band: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10 },
-  bandTitle: { flex: 1, color: '#fff', fontFamily: F.bold, fontSize: 14, lineHeight: 18 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingTop: 12 },
-  title: { flex: 1, color: SOLV.ink, fontFamily: F.bold, fontSize: 14, lineHeight: 18 },
-  chip: { borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 },
-  chipText: { fontFamily: F.bold, fontSize: 10, lineHeight: 13 },
+  band: { height: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, overflow: 'hidden' },
+  bandTitle: { flex: 1, color: '#fff', fontFamily: F.bold, fontSize: 14, lineHeight: 18, letterSpacing: 0.1 },
+  titleRow: { height: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingTop: 6 },
+  title: { flex: 1, color: SOLV.ink, fontFamily: F.bold, fontSize: 14, lineHeight: 18, letterSpacing: 0.1 },
+  chip: { height: 22, borderRadius: 11, paddingHorizontal: 9, alignItems: 'center', justifyContent: 'center' },
+  chipText: { fontFamily: F.bold, fontSize: 10, lineHeight: 13, letterSpacing: 0.4 },
 
   body: { paddingHorizontal: 14, paddingBottom: 14 },
-  giftRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
-  thumb: { width: 46, height: 46, borderRadius: 10, backgroundColor: SOLV.paper, borderWidth: 1, borderColor: SOLV.line, alignItems: 'center', justifyContent: 'center' },
-  giftCaption: { fontFamily: F.bold, fontSize: 10, lineHeight: 13, letterSpacing: 0.5 },
+  giftRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 },
+  thumb: { width: 46, height: 46, borderRadius: 10, backgroundColor: SOLV.paper, borderWidth: 1, borderColor: PHOTO_EDGE, alignItems: 'center', justifyContent: 'center' },
+  giftCaption: { fontFamily: F.bold, fontSize: 10, lineHeight: 13, letterSpacing: 0.6 },
   giftName: { marginTop: 1, color: SOLV.ink, fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
   line: { marginTop: 10, fontFamily: F.medium, fontSize: 13, lineHeight: 18 },
 
   currentRow: { height: 16, marginTop: 10 },
   currentValue: { position: 'absolute', fontFamily: F.bold, fontSize: 11, lineHeight: 14 },
   barZone: { height: BAR_END_W, justifyContent: 'center' },
-  barTrack: { height: 6, borderRadius: 3, backgroundColor: '#EFEFEF', marginRight: BAR_END_W + BAR_GAP, overflow: 'hidden' },
+  barTrack: { height: 6, borderRadius: 3, backgroundColor: '#EEF0F3', marginRight: BAR_END_W + BAR_GAP, overflow: 'hidden' },
   barFill: { height: 6, borderRadius: 3 },
+  knob: {
+    position: 'absolute',
+    top: BAR_END_W / 2 - 5,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#fff',
+    borderWidth: 2.5,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+  },
   barEnd: {
     position: 'absolute',
     right: 0,
     width: BAR_END_W,
     height: BAR_END_W,
-    borderRadius: BAR_END_W / 2,
+    borderRadius: 11,
     backgroundColor: SOLV.paper,
-    borderWidth: 1.5,
-    borderColor: '#E5E5E5',
+    borderWidth: 1,
+    borderColor: PHOTO_EDGE,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
   },
   legRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: 2 },
   legRight: { alignItems: 'flex-end' },
   legValue: { color: SOLV.sub, fontFamily: F.medium, fontSize: 11, lineHeight: 14 },
   legNext: { color: SOLV.sub, fontFamily: F.bold, fontSize: 11, lineHeight: 14 },
 
-  strip: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#F2F2F2' },
+  strip: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#F2F3F5' },
   stripThumbs: { flexDirection: 'row', alignItems: 'center' },
   stripThumb: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: 7,
     backgroundColor: SOLV.paper,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: PHOTO_EDGE,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  stripMore: { backgroundColor: '#F4F4F4' },
+  stripMore: { backgroundColor: '#F4F5F7' },
   stripMoreText: { color: SOLV.sub, fontFamily: F.bold, fontSize: 8.5, lineHeight: 11 },
   stripText: { flex: 1, color: SOLV.sub, fontFamily: F.medium, fontSize: 11.5, lineHeight: 15 },
 });

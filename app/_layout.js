@@ -11,6 +11,14 @@ import { C } from '../src/theme';
 const PHONE_W = 412;
 const PHONE_H = 915;
 
+// Crisper text on macOS browsers; native ignores this.
+if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getElementById('font-smoothing')) {
+  const s = document.createElement('style');
+  s.id = 'font-smoothing';
+  s.textContent = 'body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}';
+  document.head.appendChild(s);
+}
+
 function PhoneFrame({ children }) {
   const { width, height } = useWindowDimensions();
   if (Platform.OS !== 'web') return children;
