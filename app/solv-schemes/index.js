@@ -1,97 +1,164 @@
-// Solv "My Schemes": several schemes run in parallel, each as one card.
-// Reference (Mobbin, Aug 2026): Grab Challenges (Current/Past tabs, days-left per
-// card), Wolt Rewards (row anatomy: icon, one condition line, reward, slim bar).
+// Solv "My Schemes": the app's own list paradigm — blue toolbar, RUNNING and
+// COMPLETED tabs, a swipeable pager — with one coherent card anatomy for every
+// scheme. A festive scheme differs only by its header band (theme set at scheme
+// creation, src/gifts/themes.js); every card body is the same white layout.
 //
-// The screen is Solv app chrome (blue). Only the Mega Diwali card wears the
-// festival skin; regular schemes wear the default skin. Scheme types shown:
-//   - Festival gift ladder (Mega Diwali): campaign skin, gift photos, several slabs.
-//   - Single-gift trade scheme (oil): the commonest slab-scheme shape, 1 slab.
-//   - Brand-funded voucher scheme: the payout is a Solv voucher, not a gift.
-//   - An ended scheme, terminal state, in the Ended section.
+// Every card is built by solvSchemeCard() from schemeState(), including the
+// single-slab trade schemes (a single-slab scheme is a one-tier ladder), so no
+// card can drift from the state machine.
 //
-// The Mega Diwali card is built from schemeState(), the same derivation the My Targets
-// cards use, so the two flows cannot report different gifts for the same member.
-// Single-slab schemes have no ladder, so their leg runs from ₹0 to the one slab.
-import React from 'react';
+// The page has view scenarios (?view=) so every list state can be inspected:
+//   typical   mid-season: three running schemes, two completed
+//   start     season opening: one scheduled, one just live, nothing completed
+//   over      after the festival closes: gift on the way, one missed
+//   empty     no schemes for this member
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconBack } from '../../src/icons';
+import TabLabel from '../../src/components/TabLabel';
 import { F } from '../../src/theme';
+import GiftGlyph from '../../src/gifts/icons';
 import { SchemeCard, solvSchemeCard, SOLV } from '../../src/gifts/solv';
 import { schemeState } from '../../src/gifts/state';
-import { LADDERS, lakh, NOW } from '../../src/gifts/data';
+import { LADDERS, lakh } from '../../src/gifts/data';
 import { indianPrice } from '../../src/data';
 
+const L = 100000;
 const LIFESTYLE = LADDERS[0];
+const IMG_MIXER = require('../../assets/gifts/mixer.jpg');
+const IMG_KETTLE = require('../../assets/gifts/kettle.jpg');
 
-// The Mega Diwali member state, read once and rendered by the card.
-const diwali = schemeState({
-  tiers: LIFESTYLE.tiers,
-  currentValue: LIFESTYLE.currentValue,
-  startTime: Date.UTC(2026, 9, 1),
-  endTime: Date.UTC(2026, 10, 9),
-  now: NOW,
-});
+// One-tier ladders for the trade schemes. Rewards carry real photos; the voucher
+// renders as a voucher card (VoucherThumb), never as a line glyph.
+const OIL_TIER = [{ at: 50000, name: 'NutriPro Juicer Mixer Grinder', shortName: 'Mixer', icon: 'mixer', image: IMG_MIXER }];
+const KETTLE_TIER = [{ at: 40000, name: 'Pigeon Amaze Plus Electric Kettle', shortName: 'Kettle', icon: 'kettle', image: IMG_KETTLE }];
+const VOUCHER_TIER = [{ at: 80000, name: '₹2,000 Solv voucher', shortName: '₹2,000 voucher', icon: 'voucher', voucher: '₹2,000' }];
 
-const diwaliCard = solvSchemeCard(diwali, {
-  title: 'Mega Diwali Gifts',
-  fmt: lakh,
-  money: indianPrice,
-});
+const D = (m, d, y = 2026) => Date.UTC(y, m - 1, d);
 
-// A single-slab scheme: nothing is secured until the one slab is crossed, so the leg
-// runs from zero and the left thumb shows the reward the customer is working towards.
-function singleSlab({ title, rewardName, rewardShort, icon, target, current, days, tone = 'accent' }) {
-  return {
-    skin: 'light',
-    title,
-    held: null,
-    reward: { name: rewardName, short: rewardShort, icon },
-    line: `${indianPrice(target - current)} more and the ${rewardShort.toLowerCase()} is yours`,
-    lineTone: tone,
-    chip: { text: `${days} DAYS LEFT` },
-    leg: { from: 0, to: target, current, fmt: indianPrice },
-  };
+function mk({ tiers, cur, start, end, now, fulfilment, startLabel, endLabel }) {
+  return schemeState({ tiers, currentValue: cur, startTime: start, endTime: end, now, fulfilment, startLabel, endLabel });
 }
 
-const RUNNING = [
-  diwaliCard,
-  singleSlab({
-    title: 'Sunflower Oil Scheme',
-    rewardName: 'Steel dinner set, 24 pieces',
-    rewardShort: 'Dinner set',
-    icon: 'dinnerset',
-    target: 50000,
-    current: 31200,
-    days: 9,
-  }),
-  singleSlab({
-    title: 'Britannia Diwali Scheme',
-    rewardName: '₹2,000 Solv voucher',
-    rewardShort: '₹2,000 voucher',
-    icon: 'voucher',
-    target: 80000,
-    current: 16000,
-    days: 21,
-  }),
-];
+// Card builders per scheme. `now` is the scenario's clock.
+const diwali = (now, cur, fulfilment) =>
+  solvSchemeCard(
+    mk({ tiers: LIFESTYLE.tiers, cur, start: D(10, 1), end: D(11, 9), now, fulfilment, startLabel: '1 Oct 2026', endLabel: '9 Nov 2026' }),
+    { title: 'Mega Diwali Scheme', theme: 'diwali', fmt: lakh, money: indianPrice }
+  );
 
-const ENDED = [
-  {
-    skin: 'light',
-    dim: true,
-    title: 'September Oil Scheme',
-    held: { name: 'Steel dinner set, 24 pieces', short: 'Dinner set', icon: 'dinnerset' },
-    reward: { name: 'Steel dinner set, 24 pieces', short: 'Dinner set', icon: 'dinnerset' },
-    line: 'Delivered on 6 Oct',
-    lineTone: 'good',
-    chip: { text: 'DONE', tone: 'good' },
+const oil = (now, cur, { start = D(9, 20), end = D(10, 28) } = {}) =>
+  solvSchemeCard(
+    mk({ tiers: OIL_TIER, cur, start, end, now, startLabel: '20 Sep 2026', endLabel: '28 Oct 2026' }),
+    { title: 'Fortune Sunflower Oil Scheme', theme: 'default', fmt: indianPrice, money: indianPrice }
+  );
+
+const voucher = (now, cur, { end = D(11, 9) } = {}) =>
+  solvSchemeCard(
+    mk({ tiers: VOUCHER_TIER, cur, start: D(10, 1), end, now, startLabel: '1 Oct 2026', endLabel: '9 Nov 2026' }),
+    { title: 'Britannia Diwali Stock-Up', theme: 'default', fmt: indianPrice, money: indianPrice }
+  );
+
+const onam = (now, fulfilment) =>
+  solvSchemeCard(
+    mk({ tiers: LIFESTYLE.tiers, cur: 7.1 * L, start: D(8, 15), end: D(9, 12), now, fulfilment, startLabel: '15 Aug 2026', endLabel: '12 Sep 2026' }),
+    { title: 'Onam Mega Scheme', theme: 'onam', fmt: lakh, money: indianPrice }
+  );
+
+const kettleSept = (now) =>
+  solvSchemeCard(
+    mk({ tiers: KETTLE_TIER, cur: 47000, start: D(8, 20), end: D(9, 20), now, fulfilment: { orderedAt: D(9, 24), deliveredAt: D(10, 6) }, startLabel: '20 Aug 2026', endLabel: '20 Sep 2026' }),
+    { title: 'Saffola September Scheme', theme: 'default', fmt: indianPrice, money: indianPrice }
+  );
+
+// The Mega Diwali card opens the detail page in the matching state and theme.
+const open = (state) => `/mega-diwali?state=${state}&theme=diwali`;
+
+const VIEWS = {
+  typical: {
+    label: 'Typical',
+    running: [
+      { card: diwali(D(10, 19), 6.4 * L), href: open('earned') },
+      { card: oil(D(10, 19), 31200) },
+      { card: voucher(D(10, 19), 16000) },
+    ],
+    completed: [
+      { card: onam(D(10, 19), { orderedAt: D(9, 16), deliveredAt: D(9, 24) }) },
+      { card: kettleSept(D(10, 19)) },
+    ],
   },
-];
+  start: {
+    label: 'Season start',
+    running: [
+      { card: diwali(D(9, 26), 0), href: open('scheduled') },
+      { card: oil(D(9, 26), 0) },
+    ],
+    completed: [],
+  },
+  over: {
+    label: 'Season over',
+    running: [{ card: voucher(D(11, 14), 76000, { end: D(11, 20) }) }],
+    completed: [
+      { card: diwali(D(11, 14), 11.4 * L, { orderedAt: D(11, 12) }), href: open('ordered') },
+      { card: oil(D(11, 14), 22000) },
+      { card: kettleSept(D(11, 14)) },
+    ],
+  },
+  empty: { label: 'Empty', running: [], completed: [] },
+};
+
+function Empty({ label }) {
+  return (
+    <View style={styles.empty}>
+      <View style={styles.emptyBadge}>
+        <GiftGlyph kind="gift" size={30} color={SOLV.blue} strokeWidth={1.5} />
+      </View>
+      <Text style={styles.emptyTitle} allowFontScaling={false}>{label}</Text>
+      <Text style={styles.emptyLine} allowFontScaling={false}>
+        When a scheme starts for your shop, it shows here.
+      </Text>
+    </View>
+  );
+}
 
 export default function SolvSchemes() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const viewKey = VIEWS[params.view] ? params.view : 'typical';
+  const view = VIEWS[viewKey];
+
+  const pager = useRef(null);
+  const [tab, setTab] = useState(0);
+  const [pageW, setPageW] = useState(0);
+  const goToTab = (i) => {
+    setTab(i);
+    pager.current?.scrollTo({ x: i * pageW, animated: true });
+  };
+
+  // A view change re-renders the pager content; snap back to the Running tab.
+  useEffect(() => {
+    setTab(0);
+    pager.current?.scrollTo({ x: 0, animated: false });
+  }, [viewKey]);
+
+  const renderList = (rows, emptyLabel) => (
+    <View style={{ width: pageW, flex: 1 }}>
+      {rows.length === 0 ? (
+        <Empty label={emptyLabel} />
+      ) : (
+        <ScrollView contentContainerStyle={styles.list}>
+          {rows.map(({ card, href }, i) => (
+            <View key={card.title} style={{ marginBottom: 12 }}>
+              <SchemeCard card={card} index={i} onPress={href ? () => router.push(href) : undefined} />
+            </View>
+          ))}
+        </ScrollView>
+      )}
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <View style={styles.toolbar}>
@@ -100,26 +167,42 @@ export default function SolvSchemes() {
         </Pressable>
         <Text style={styles.toolbarTitle} allowFontScaling={false}>My Schemes</Text>
       </View>
-
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-        <Text style={styles.section} allowFontScaling={false}>RUNNING</Text>
-        {RUNNING.map((c) => (
-          <View key={c.title} style={styles.cardHost}>
-            <SchemeCard card={c} onPress={c.title === 'Mega Diwali Gifts' ? () => router.push('/mega-diwali') : undefined} />
-          </View>
+      <View style={styles.tabBar}>
+        {['RUNNING', 'COMPLETED'].map((t, i) => (
+          <Pressable key={t} style={styles.tab} onPress={() => goToTab(i)} android_ripple={{ color: '#ffffff26' }}>
+            <TabLabel label={t} />
+            {tab === i ? <View style={styles.indicator} /> : null}
+          </Pressable>
         ))}
+      </View>
 
-        <Text style={styles.section} allowFontScaling={false}>ENDED</Text>
-        {ENDED.map((c) => (
-          <View key={c.title} style={styles.cardHost}>
-            <SchemeCard card={c} />
-          </View>
-        ))}
-
-        <Pressable style={styles.protoLink} onPress={() => router.push('/solv-schemes/states')}>
-          <Text style={styles.protoText} allowFontScaling={false}>Prototype: card states, start to end</Text>
-        </Pressable>
+      <ScrollView
+        ref={pager}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onLayout={(e) => setPageW(e.nativeEvent.layout.width)}
+        onMomentumScrollEnd={(e) => (pageW ? setTab(Math.round(e.nativeEvent.contentOffset.x / pageW)) : null)}
+        style={{ flex: 1 }}
+      >
+        {renderList(view.running, 'No running schemes')}
+        {renderList(view.completed, 'No completed schemes')}
       </ScrollView>
+
+      {/* Prototype chrome: view scenarios and the states gallery. Not app UI. */}
+      <View style={styles.demoBar}>
+        <View style={styles.demoRow}>
+          <Text style={styles.demoLabel} allowFontScaling={false}>View as:</Text>
+          {Object.entries(VIEWS).map(([key, v]) => (
+            <Pressable key={key} onPress={() => router.replace(`/solv-schemes?view=${key}`)} hitSlop={6}>
+              <Text style={[styles.demoChip, viewKey === key && styles.demoChipActive]} allowFontScaling={false}>{v.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Pressable onPress={() => router.push('/solv-schemes/states')} hitSlop={6}>
+          <Text style={styles.demoLink} allowFontScaling={false}>Card states and themes gallery</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
@@ -128,8 +211,21 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: SOLV.bg },
   toolbar: { height: 48, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, backgroundColor: SOLV.blue },
   toolbarTitle: { marginLeft: 12, color: '#fff', fontFamily: F.medium, fontSize: 18, lineHeight: 22 },
-  section: { marginTop: 18, marginBottom: 8, marginHorizontal: 16, fontFamily: F.bold, fontSize: 11, lineHeight: 14, color: SOLV.sub },
-  cardHost: { marginHorizontal: 16, marginBottom: 10 },
-  protoLink: { marginTop: 16, alignItems: 'center' },
-  protoText: { fontFamily: F.medium, fontSize: 12, lineHeight: 15, color: SOLV.sub, textDecorationLine: 'underline' },
+  tabBar: { height: 44, backgroundColor: SOLV.blue, flexDirection: 'row' },
+  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
+  indicator: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, backgroundColor: '#fff' },
+
+  list: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 20 },
+
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40, paddingBottom: 48 },
+  emptyBadge: { width: 64, height: 64, borderRadius: 32, backgroundColor: SOLV.blueBg, alignItems: 'center', justifyContent: 'center' },
+  emptyTitle: { marginTop: 14, fontFamily: F.bold, fontSize: 15, lineHeight: 19, color: SOLV.ink },
+  emptyLine: { marginTop: 4, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 18, color: SOLV.sub },
+
+  demoBar: { borderTopWidth: 1, borderTopColor: SOLV.line, backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 10, gap: 6 },
+  demoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
+  demoLabel: { fontFamily: F.medium, fontSize: 11, lineHeight: 14, color: SOLV.sub },
+  demoChip: { fontFamily: F.medium, fontSize: 12, lineHeight: 15, color: SOLV.sub },
+  demoChipActive: { color: SOLV.blue, fontFamily: F.bold },
+  demoLink: { fontFamily: F.medium, fontSize: 11, lineHeight: 14, color: SOLV.sub, textDecorationLine: 'underline' },
 });
