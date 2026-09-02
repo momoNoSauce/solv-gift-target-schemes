@@ -130,17 +130,25 @@ export default function SolvSchemes() {
   const view = VIEWS[viewKey];
 
   const pager = useRef(null);
-  const [tab, setTab] = useState(0);
+  const initialTab = Number(params.tab) === 1 ? 1 : 0;
+  const [tab, setTab] = useState(initialTab);
   const [pageW, setPageW] = useState(0);
   const goToTab = (i) => {
     setTab(i);
     pager.current?.scrollTo({ x: i * pageW, animated: true });
   };
 
+  // ?tab=1 deep-links the Completed tab; the pager can only honour it once measured.
+  useEffect(() => {
+    if (pageW > 0 && initialTab === 1) {
+      pager.current?.scrollTo({ x: pageW, animated: false });
+    }
+  }, [pageW, initialTab]);
+
   // A view change re-renders the pager content; snap back to the Running tab.
   useEffect(() => {
-    setTab(0);
-    pager.current?.scrollTo({ x: 0, animated: false });
+    setTab(initialTab);
+    pager.current?.scrollTo({ x: initialTab * pageW, animated: false });
   }, [viewKey]);
 
   const renderList = (rows, emptyLabel) => (

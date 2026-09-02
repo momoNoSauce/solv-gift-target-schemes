@@ -90,6 +90,10 @@ export function GiftThumb({ gift, size = 40, accent = SOLV.blue }) {
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
+// Headless capture (navigator.webdriver) renders the final state directly: the
+// screenshot pipeline must not race the entrance and fill animations.
+const STATIC = typeof navigator !== 'undefined' && navigator.webdriver === true;
+
 // One scheme card. `card` comes from solvSchemeCard():
 //   theme, title, line, lineTone: 'default'|'accent'|'good'|'urgent'|'muted'
 //   chip: { text, tone: 'time'|'good'|'muted' }
@@ -137,14 +141,16 @@ export function SchemeCard({ card, onPress, index = 0 }) {
   const trackW = Math.max(0, barW - BAR_END_W - BAR_GAP);
 
   // Motion: the card fades in with a small rise; the fill sweeps to its value.
-  const enter = useRef(new Animated.Value(0)).current;
-  const fillAnim = useRef(new Animated.Value(0)).current;
+  const enter = useRef(new Animated.Value(STATIC ? 1 : 0)).current;
+  const fillAnim = useRef(new Animated.Value(STATIC ? 1 : 0)).current;
   useEffect(() => {
+    if (STATIC) return;
     Animated.timing(enter, { toValue: 1, duration: 320, delay: index * 70, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
   }, [enter, index]);
   useEffect(() => {
+    if (STATIC) return;
     if (barW > 0) {
-      Animated.timing(fillAnim, { toValue: pct, duration: 650, delay: index * 70 + 150, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+      Animated.timing(fillAnim, { toValue: 1, duration: 650, delay: index * 70 + 150, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
     }
   }, [barW, pct, fillAnim, index]);
 
@@ -223,7 +229,7 @@ export function SchemeCard({ card, onPress, index = 0 }) {
                         styles.barFill,
                         {
                           backgroundColor: fill,
-                          width: fillAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+                          width: fillAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', `${pct * 100}%`] }),
                         },
                       ]}
                     />
