@@ -19,6 +19,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Image, Pressable, StyleSheet, Animated, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path } from 'react-native-svg';
 import { F } from '../theme';
 import GiftGlyph from './icons';
 import { STATE } from './state';
@@ -171,6 +172,17 @@ export function SchemeCard({ card, onPress, index = 0 }) {
 
   const h = card.headline;
 
+  // A tappable card must SAY it opens (Norman: perceivable signifier); a card
+  // with no detail page shows nothing and does not pretend. The View wrapper is
+  // positioned (RN default), so the glyph paints above the band's absolute scene.
+  const chevron = onPress ? (
+    <View>
+      <Svg width={18} height={18} viewBox="0 0 24 24">
+        <Path fill={festive ? 'rgba(255,255,255,0.75)' : '#A9AEB8'} d="M8.59,16.58L13.17,12L8.59,7.41L10,6l6,6l-6,6L8.59,16.58z" />
+      </Svg>
+    </View>
+  ) : null;
+
   return (
     <Animated.View
       style={{
@@ -194,11 +206,13 @@ export function SchemeCard({ card, onPress, index = 0 }) {
               </View>
               <Text style={styles.bandTitle} numberOfLines={1} allowFontScaling={false}>{card.title}</Text>
               {chip}
+              {chevron}
             </View>
           ) : (
             <View style={styles.titleRow}>
               <Text style={styles.title} numberOfLines={1} allowFontScaling={false}>{card.title}</Text>
               {chip}
+              {chevron}
             </View>
           )}
 

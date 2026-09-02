@@ -115,10 +115,11 @@ const T = {
     topGift: 'TOP GIFT',
     wonTop: 'YOU WON THE TOP GIFT',
     securedRow: (name) => `You won the ${name}`,
-    boughtLabel: (ladder) => `${ladder.toUpperCase()} BOUGHT SO FAR`,
+    boughtLabel: (ladder) => `BOUGHT SO FAR \u2022 ${ladder.toUpperCase()} ONLY`,
     morePrefix: '', moreSuffix: ' more',
     onlyPrefix: 'Only ', onlySuffix: ' left',
     rest: (next) => `to win the ${next}`,
+    finalBought: (amt) => `Final buying: ${amt}`,
     cta: (ladder) => `Shop ${ladder} products`,
     ctaEnded: 'See running schemes',
     startsNote: (d, ladder) => `Buy ${ladder} products from ${d}. The highest slab you cross is your gift.`,
@@ -155,6 +156,7 @@ const T = {
     morePrefix: '', moreSuffix: ' और चाहिए',
     onlyPrefix: 'सिर्फ़ ', onlySuffix: ' और',
     rest: (next) => `और ${next} जीतें`,
+    finalBought: (amt) => `कुल ख़रीदारी: ${amt}`,
     cta: (ladder) => `${ladder} प्रोडक्ट ख़रीदें`,
     ctaEnded: 'चल रही स्कीमें देखें',
     startsNote: (d, ladder) => `${d} से ${ladder} प्रोडक्ट ख़रीदें। जो सबसे ऊँचा स्लैब पार करें, वही गिफ़्ट आपका।`,
@@ -331,7 +333,7 @@ export default function SchemeDetail() {
 
   // Delight: a short confetti burst greets a page that holds a won gift. It
   // fades out; it never loops or cuts.
-  const celebrate = s.earned && !s.ended && !STATIC;
+  const celebrate = (s.earned && !s.ended && !STATIC) || (s.state === STATE.DELIVERED && !STATIC);
   const [confetti, setConfetti] = useState(false);
   const confettiA = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -544,9 +546,16 @@ export default function SchemeDetail() {
                   </Animated.View>
                 </>
               ) : heroNote ? (
-                <Animated.Text style={[styles.heroNote, { color: st.sub }, rise(nameA, 8)]} allowFontScaling={false}>
-                  {heroNote}
-                </Animated.Text>
+                <Animated.View style={rise(nameA, 8)}>
+                  <Text style={[styles.heroNote, { color: st.sub }]} allowFontScaling={false}>{heroNote}</Text>
+                  {/* The meter is gone once nothing is next, but the retailer still
+                      reconciles the counted total against their own books. */}
+                  {s.earned ? (
+                    <Text style={[styles.finalBought, TABULAR, { color: st.ink }]} allowFontScaling={false}>
+                      {t.finalBought(indianPrice(s.currentValue))}
+                    </Text>
+                  ) : null}
+                </Animated.View>
               ) : null}
             </>
           )}
@@ -617,9 +626,12 @@ export default function SchemeDetail() {
           </>
         ) : null}
 
-        {/* ——— The gift list ——— */}
+        {/* ——— The gift list. A missed scheme does not end on a page of lost
+            gifts (peak-end); the stage's redirect to running schemes closes it. */}
+        {missed ? null : (
+        <>
         <Text style={styles.listLabel} allowFontScaling={false}>{t.giftList}</Text>
-        <View style={[styles.list, missed && { opacity: 0.6 }]}>
+        <View style={styles.list}>
           {s.ladder.map((tier, i) => {
             const isTop = tier.at === s.top.at;
             const isWon = s.secured && tier.at === s.secured.at;
@@ -676,6 +688,8 @@ export default function SchemeDetail() {
             );
           })}
         </View>
+        </>
+        )}
 
         {/* Three facts. The whole rulebook on this page. */}
         {!s.ended ? (
@@ -788,6 +802,7 @@ const styles = StyleSheet.create({
   tileImg: { width: 128, height: 128, borderRadius: 12 },
   giftName: { marginTop: 2, textAlign: 'center', fontFamily: F.bold, fontSize: 17, lineHeight: 22, paddingHorizontal: 24, letterSpacing: 0.1 },
   heroNote: { marginTop: 12, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: 44 },
+  finalBought: { marginTop: 8, textAlign: 'center', fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
 
   // The label belongs to the meter, so it anchors at the track's left edge and
   // holds still while the value tag moves with the knob.
@@ -821,12 +836,12 @@ const styles = StyleSheet.create({
   barEnds: { marginTop: 6, marginHorizontal: 32, flexDirection: 'row', justifyContent: 'space-between' },
   barEnd: { fontFamily: F.medium, fontSize: 11, lineHeight: 15 },
 
-  bigMore: { marginTop: 18, textAlign: 'center', fontFamily: F.bold, fontSize: 30, lineHeight: 36 },
+  bigMore: { marginTop: 24, textAlign: 'center', fontFamily: F.bold, fontSize: 30, lineHeight: 36 },
   bigMoreWord: { fontFamily: F.medium, fontSize: 17, lineHeight: 36 },
   bigRest: { marginTop: 2, textAlign: 'center', fontFamily: F.medium, fontSize: 14, lineHeight: 19, paddingHorizontal: 24 },
 
   cta: {
-    marginTop: 14,
+    marginTop: 10,
     marginHorizontal: 32,
     height: 52,
     borderRadius: 26,
