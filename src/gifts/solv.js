@@ -121,7 +121,7 @@ export function SchemeCard({ card, onPress, index = 0 }) {
   const th = themeOf(card.theme);
   const festive = Boolean(th.motif);
   const [barW, setBarW] = useState(0);
-  const [tagW, setTagW] = useState(76);
+  const [tagW, setTagW] = useState(96);
   const press = usePressScale(0.98);
 
   const fill = festive ? th.stage.accent : SOLV.blue;
@@ -243,7 +243,12 @@ export function SchemeCard({ card, onPress, index = 0 }) {
                     )}
                   </View>
                   {card.showcase.caption ? (
-                    <Text style={[styles.showcaseCaption, { color: capColor }]} allowFontScaling={false}>
+                    // One meaning per color: a won caption is green, a goal caption
+                    // wears the theme's deep accent.
+                    <Text
+                      style={[styles.showcaseCaption, { color: card.showcase.caption === 'YOU WON' ? SOLV.green : capColor }]}
+                      allowFontScaling={false}
+                    >
                       {card.showcase.caption}
                     </Text>
                   ) : null}
@@ -265,7 +270,7 @@ export function SchemeCard({ card, onPress, index = 0 }) {
                       onLayout={(e) => setTagW(e.nativeEvent.layout.width)}
                     >
                       <View style={styles.tag}>
-                        <Text style={[styles.tagText, TABULAR]} allowFontScaling={false}>
+                        <Text style={[styles.tagText, TABULAR]} numberOfLines={1} allowFontScaling={false}>
                           {leg.fmt(leg.current)} bought
                         </Text>
                       </View>

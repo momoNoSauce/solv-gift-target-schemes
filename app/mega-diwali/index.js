@@ -5,15 +5,15 @@
 // Member (the next tier sits on the end of the progress bar), Temu (rules behind
 // a link), foodpanda Kongsi Rezeki (one headline, days-left urgency).
 //
-// Structure of the stage, top to bottom:
-//   1. The hero: the largest object is the gift the customer WON (label "YOU WON").
-//      Certainty first: retailers doubt that schemes pay out, and the won gift is
-//      the one fact that cannot be taken away. Before the first slab the hero is
-//      the FIRST gift on a dashed tile: the goal, marked as not yet won.
-//   2. The action cluster: the bar, the next gift on the bar's end, the slab
-//      values, and the "₹X more" line DIRECTLY UNDER the bar. Proximity groups
-//      the amount with the next gift it buys, not with the won gift above.
-//   3. The close: one CTA into the eligible catalog.
+// Structure of the stage, top to bottom, a timeline the customer reads down:
+//   1. The pedestal holds the NEXT gift: the goal, large and lit. When nothing
+//      is left to chase (top reached, ended) it holds the WON gift instead.
+//   2. The meter: BOUGHT SO FAR label at the track's left, the bought amount as
+//      a value tag riding the knob, slab values at the ends.
+//   3. Below the progress: the secured capsule ("You won the X", green check),
+//      a settled receipt, never dressed as a prize.
+//   4. The ask in the accent: "₹X more / to win the Y", then one CTA.
+// Color roles are strict: white/ink = measured, accent = the ask, green = won.
 //
 // The stage surface is a lit scene (src/gifts/Scene.js), not a plain gradient:
 // a solid ground with vertical falloff, a key glow behind the pedestal, an
@@ -111,7 +111,6 @@ const T = {
     daysLeft: (days) => `${days} days left`,
     endedLine: (d) => `Ended ${d}`,
     youWon: 'YOU WON',
-    firstGift: 'FIRST GIFT',
     nextGift: 'NEXT GIFT',
     topGift: 'TOP GIFT',
     wonTop: 'YOU WON THE TOP GIFT',
@@ -148,7 +147,6 @@ const T = {
     daysLeft: (days) => `${days} दिन बाक़ी`,
     endedLine: (d) => `${d} को ख़त्म`,
     youWon: 'आपने जीता',
-    firstGift: 'पहला गिफ़्ट',
     nextGift: 'अगला गिफ़्ट',
     topGift: 'टॉप गिफ़्ट',
     wonTop: 'आपने टॉप गिफ़्ट जीता',
@@ -259,14 +257,17 @@ export default function SchemeDetail() {
   // The won gift during a running scheme is a settled fact, not a goal, so it
   // moves to the secured capsule above the pedestal: small, green-checked,
   // banked. Two categories, two treatments.
+  // One term per concept: the goal on the pedestal is always NEXT GIFT (the
+  // gift list marks the same tier NEXT). Won labels are green; goal labels
+  // wear the accent.
   const runningWithNext = s.started && !s.ended && s.next;
   const hero = missed
     ? null
     : s.state === STATE.SCHEDULED
-    ? { gift: s.top, label: t.topGift }
+    ? { gift: s.top, label: t.topGift, tone: 'goal' }
     : runningWithNext
-    ? { gift: s.next, label: s.earned ? t.nextGift : t.firstGift }
-    : { gift: s.secured, label: s.state === STATE.TOP_REACHED ? t.wonTop : t.youWon };
+    ? { gift: s.next, label: t.nextGift, tone: 'goal' }
+    : { gift: s.secured, label: s.state === STATE.TOP_REACHED ? t.wonTop : t.youWon, tone: 'won' };
   const securedCapsule = runningWithNext && s.earned ? s.secured : null;
 
   const showBar = running && s.next;
@@ -405,7 +406,10 @@ export default function SchemeDetail() {
                     </Animated.View>
                   </>
                 ) : null}
-                <Animated.Text style={[styles.heroLabel, { color: st.accent, opacity: labelA }]} allowFontScaling={false}>
+                <Animated.Text
+                  style={[styles.heroLabel, { color: hero.tone === 'won' ? st.good : st.accent, opacity: labelA }]}
+                  allowFontScaling={false}
+                >
                   {hero.label}
                 </Animated.Text>
                 <Animated.View
@@ -449,7 +453,7 @@ export default function SchemeDetail() {
                         onLayout={(e) => setDTagW(e.nativeEvent.layout.width)}
                       >
                         <View style={styles.dTag}>
-                          <Text style={[styles.dTagText, TABULAR]} allowFontScaling={false}>
+                          <Text style={[styles.dTagText, TABULAR]} numberOfLines={1} allowFontScaling={false}>
                             {indianPrice(s.currentValue)}
                           </Text>
                         </View>
@@ -633,7 +637,7 @@ export default function SchemeDetail() {
             return (
               <View
                 key={tier.at}
-                style={[styles.row, i > 0 && styles.rowDivider, isWon && styles.rowWon, isPassed && { opacity: 0.35 }]}
+                style={[styles.row, i > 0 && styles.rowDivider, isWon && styles.rowWon, isPassed && { opacity: 0.45 }]}
               >
                 <Text style={[styles.rowAt, TABULAR, isNext && { color: st.accentDeep }]} allowFontScaling={false}>
                   {slab(tier.at)}
@@ -647,10 +651,9 @@ export default function SchemeDetail() {
                 </View>
                 <Text style={styles.rowName} numberOfLines={2} allowFontScaling={false}>{tier.name}</Text>
                 {isWon ? (
-                  // The list card is white, so the chip wears the CARD accent tokens:
-                  // the stage accent can be white (default theme) and would vanish here.
-                  <View style={[styles.wonChip, { backgroundColor: th.card.accent }]}>
-                    <Text style={[styles.wonChipText, { color: th.card.accentInk }]} allowFontScaling={false}>{t.youWon}</Text>
+                  // One meaning per color: won is always green, in every theme.
+                  <View style={[styles.wonChip, { backgroundColor: N.green }]}>
+                    <Text style={[styles.wonChipText, { color: '#fff' }]} allowFontScaling={false}>{t.youWon}</Text>
                   </View>
                 ) : isNext ? (
                   <Text style={[styles.nextText, { color: st.accentDeep }]} allowFontScaling={false}>{t.next}</Text>
@@ -770,7 +773,9 @@ const styles = StyleSheet.create({
   giftName: { marginTop: 2, textAlign: 'center', fontFamily: F.bold, fontSize: 17, lineHeight: 22, paddingHorizontal: 24, letterSpacing: 0.1 },
   heroNote: { marginTop: 12, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: 44 },
 
-  boughtBlock: { marginTop: 18, alignItems: 'center' },
+  // The label belongs to the meter, so it anchors at the track's left edge and
+  // holds still while the value tag moves with the knob.
+  boughtBlock: { marginTop: 18, marginHorizontal: 32, alignItems: 'flex-start' },
   boughtLabel: { fontFamily: F.bold, fontSize: 10, lineHeight: 13, letterSpacing: 1.2 },
 
   dTagRow: { height: 34, marginTop: 6 },
