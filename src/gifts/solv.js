@@ -121,6 +121,7 @@ export function SchemeCard({ card, onPress, index = 0 }) {
   const th = themeOf(card.theme);
   const festive = Boolean(th.motif);
   const [barW, setBarW] = useState(0);
+  const [tagW, setTagW] = useState(76);
   const press = usePressScale(0.98);
 
   const fill = festive ? th.stage.accent : SOLV.blue;
@@ -204,15 +205,6 @@ export function SchemeCard({ card, onPress, index = 0 }) {
           <View style={styles.body}>
             <View style={styles.contentRow}>
               <View style={styles.leftCol}>
-                {card.won ? (
-                  <View style={styles.wonRow}>
-                    <GiftGlyph kind="check" size={14} color={SOLV.green} strokeWidth={2} />
-                    <Text style={styles.wonText} numberOfLines={1} allowFontScaling={false}>
-                      You won the {card.won.short}
-                    </Text>
-                  </View>
-                ) : null}
-
                 {h ? (
                   h.text ? (
                     <Text style={styles.headlineText} numberOfLines={2} allowFontScaling={false}>{h.text}</Text>
@@ -261,6 +253,26 @@ export function SchemeCard({ card, onPress, index = 0 }) {
 
             {leg ? (
               <View style={styles.meter} onLayout={(e) => setBarW(e.nativeEvent.layout.width)}>
+                {/* The bought amount rides the knob as a value tag: the number and
+                    its position on the journey are one object. */}
+                {barW > 0 && leg.current > leg.from ? (
+                  <View style={styles.tagRow}>
+                    <Animated.View
+                      style={[
+                        styles.tagWrap,
+                        { opacity: fillAnim, left: clamp(pct * barW - tagW / 2, 0, Math.max(0, barW - tagW)) },
+                      ]}
+                      onLayout={(e) => setTagW(e.nativeEvent.layout.width)}
+                    >
+                      <View style={styles.tag}>
+                        <Text style={[styles.tagText, TABULAR]} allowFontScaling={false}>
+                          {leg.fmt(leg.current)} bought
+                        </Text>
+                      </View>
+                      <View style={styles.tagCaret} />
+                    </Animated.View>
+                  </View>
+                ) : null}
                 <View style={styles.meterZone}>
                   <View style={styles.meterTrack}>
                     <Animated.View
@@ -289,6 +301,17 @@ export function SchemeCard({ card, onPress, index = 0 }) {
                   <Text style={[styles.legValue, TABULAR]} allowFontScaling={false}>{leg.fmt(leg.from)}</Text>
                   <Text style={[styles.legValue, TABULAR]} allowFontScaling={false}>{leg.fmt(leg.to)}</Text>
                 </View>
+              </View>
+            ) : null}
+
+            {/* The won gift sits BELOW the progress: a settled fact under the
+                meter, anchored at the slab where it was won. */}
+            {card.won ? (
+              <View style={styles.wonRow}>
+                <GiftGlyph kind="check" size={14} color={SOLV.green} strokeWidth={2} />
+                <Text style={styles.wonText} numberOfLines={1} allowFontScaling={false}>
+                  You won the {card.won.short}
+                </Text>
               </View>
             ) : null}
 
@@ -348,8 +371,14 @@ const styles = StyleSheet.create({
   contentRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 12 },
   leftCol: { flex: 1, justifyContent: 'center' },
 
-  wonRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 6 },
+  wonRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 10 },
   wonText: { color: SOLV.green, fontFamily: F.medium, fontSize: 12, lineHeight: 15 },
+
+  tagRow: { height: 30, marginBottom: 2 },
+  tagWrap: { position: 'absolute', alignItems: 'center' },
+  tag: { backgroundColor: '#1F2430', borderRadius: 7, paddingHorizontal: 8, height: 22, justifyContent: 'center' },
+  tagText: { color: '#fff', fontFamily: F.bold, fontSize: 10.5, lineHeight: 13 },
+  tagCaret: { width: 8, height: 8, marginTop: -5, backgroundColor: '#1F2430', transform: [{ rotate: '45deg' }] },
 
   headlineVal: { color: SOLV.ink, fontFamily: F.bold, fontSize: 22, lineHeight: 28 },
   headlineWord: { color: SOLV.sub, fontFamily: F.medium, fontSize: 14, lineHeight: 28 },

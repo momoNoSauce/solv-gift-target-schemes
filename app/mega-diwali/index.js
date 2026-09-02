@@ -112,12 +112,14 @@ const T = {
     endedLine: (d) => `Ended ${d}`,
     youWon: 'YOU WON',
     firstGift: 'FIRST GIFT',
+    nextGift: 'NEXT GIFT',
     topGift: 'TOP GIFT',
     wonTop: 'YOU WON THE TOP GIFT',
+    securedRow: (name) => `You won the ${name}`,
+    boughtLabel: (ladder) => `${ladder.toUpperCase()} BOUGHT SO FAR`,
     morePrefix: '', moreSuffix: ' more',
     onlyPrefix: 'Only ', onlySuffix: ' left',
     rest: (next) => `to win the ${next}`,
-    bought: (amt, ladder) => `Bought so far: ${amt} • ${ladder} products`,
     cta: (ladder) => `Shop ${ladder} products`,
     ctaEnded: 'See running schemes',
     startsNote: (d, ladder) => `Buy ${ladder} products from ${d}. The highest slab you cross is your gift.`,
@@ -147,12 +149,14 @@ const T = {
     endedLine: (d) => `${d} को ख़त्म`,
     youWon: 'आपने जीता',
     firstGift: 'पहला गिफ़्ट',
+    nextGift: 'अगला गिफ़्ट',
     topGift: 'टॉप गिफ़्ट',
     wonTop: 'आपने टॉप गिफ़्ट जीता',
+    securedRow: (name) => `आपने ${name} जीता`,
+    boughtLabel: () => 'अब तक की ख़रीदारी',
     morePrefix: '', moreSuffix: ' और चाहिए',
     onlyPrefix: 'सिर्फ़ ', onlySuffix: ' और',
     rest: (next) => `और ${next} जीतें`,
-    bought: (amt, ladder) => `अब तक की ख़रीदारी: ${amt} • ${ladder}`,
     cta: (ladder) => `${ladder} प्रोडक्ट ख़रीदें`,
     ctaEnded: 'चल रही स्कीमें देखें',
     startsNote: (d, ladder) => `${d} से ${ladder} प्रोडक्ट ख़रीदें। जो सबसे ऊँचा स्लैब पार करें, वही गिफ़्ट आपका।`,
@@ -249,20 +253,27 @@ export default function SchemeDetail() {
   const withDelivery = s.state === STATE.ENDED_PENDING || s.state === STATE.GIFT_ORDERED || s.state === STATE.DELIVERED;
   const missed = s.state === STATE.ENDED_MISSED;
 
-  // The hero: the won gift once one exists; the first gift (dashed) before that;
-  // the top gift while the scheme is only announced.
+  // The pedestal holds the gift the page is ABOUT: the NEXT gift while the
+  // scheme runs (the object of desire, the reason to buy), the TOP gift while
+  // it is only announced, and the WON gift when nothing is left to chase.
+  // The won gift during a running scheme is a settled fact, not a goal, so it
+  // moves to the secured capsule above the pedestal: small, green-checked,
+  // banked. Two categories, two treatments.
+  const runningWithNext = s.started && !s.ended && s.next;
   const hero = missed
     ? null
     : s.state === STATE.SCHEDULED
-    ? { gift: s.top, label: t.topGift, dashed: false }
-    : !s.earned
-    ? { gift: s.next, label: t.firstGift, dashed: true }
-    : { gift: s.secured, label: s.state === STATE.TOP_REACHED ? t.wonTop : t.youWon, dashed: false };
+    ? { gift: s.top, label: t.topGift }
+    : runningWithNext
+    ? { gift: s.next, label: s.earned ? t.nextGift : t.firstGift }
+    : { gift: s.secured, label: s.state === STATE.TOP_REACHED ? t.wonTop : t.youWon };
+  const securedCapsule = runningWithNext && s.earned ? s.secured : null;
 
   const showBar = running && s.next;
   const prevAt = s.secured ? s.secured.at : 0;
   const localPct = s.next ? Math.min(1, (s.currentValue - prevAt) / (s.next.at - prevAt)) : 1;
   const [trackW, setTrackW] = useState(0);
+  const [dTagW, setDTagW] = useState(84);
 
   // The one line under the hero for the states with no bar.
   const heroNote =
@@ -275,8 +286,8 @@ export default function SchemeDetail() {
 
   // Staged entrance: label, tile, name, bar sweep, amount, CTA. 90ms apart,
   // re-run when the scenario or the theme changes.
-  const intro = useRef([...Array(6)].map(() => new Animated.Value(STATIC ? 1 : 0))).current;
-  const [labelA, tileA, nameA, barA, amountA, ctaA] = intro;
+  const intro = useRef([...Array(7)].map(() => new Animated.Value(STATIC ? 1 : 0))).current;
+  const [labelA, tileA, nameA, boughtA, barA, amountA, ctaA] = intro;
   useEffect(() => {
     if (STATIC) return;
     intro.forEach((v) => v.setValue(0));
@@ -284,6 +295,7 @@ export default function SchemeDetail() {
       Animated.timing(labelA, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
       Animated.spring(tileA, { toValue: 1, friction: 7, tension: 60, useNativeDriver: false }),
       Animated.timing(nameA, { toValue: 1, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+      Animated.timing(boughtA, { toValue: 1, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
       Animated.timing(barA, { toValue: 1, duration: 700, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
       Animated.timing(amountA, { toValue: 1, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
       Animated.timing(ctaA, { toValue: 1, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
@@ -399,7 +411,6 @@ export default function SchemeDetail() {
                 <Animated.View
                   style={[
                     styles.tile,
-                    hero.dashed && [styles.tileNotYet, { borderColor: st.accent }],
                     { opacity: tileA, transform: [{ scale: tileA.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] },
                   ]}
                 >
@@ -416,8 +427,37 @@ export default function SchemeDetail() {
 
               {showBar ? (
                 <>
-                  {/* The action cluster: bar, next gift on its end, slab values, and the
-                      amount UNDER the bar so it groups with the next gift, not the hero. */}
+                  {/* The measured fact: what the shop has bought, as a value tag
+                      riding the knob, so the number and its position on the
+                      journey read as one object. */}
+                  <Animated.View style={[styles.boughtBlock, rise(boughtA, 8)]}>
+                    <Text style={[styles.boughtLabel, { color: st.sub }]} allowFontScaling={false}>
+                      {t.boughtLabel(LIFESTYLE.label)}
+                    </Text>
+                  </Animated.View>
+
+                  {trackW > 0 && localPct > 0 ? (
+                    <View style={styles.dTagRow}>
+                      <Animated.View
+                        style={[
+                          styles.tagWrap,
+                          {
+                            opacity: barA,
+                            left: 32 + Math.min(Math.max(localPct * trackW - dTagW / 2, 0), Math.max(0, trackW - dTagW)),
+                          },
+                        ]}
+                        onLayout={(e) => setDTagW(e.nativeEvent.layout.width)}
+                      >
+                        <View style={styles.dTag}>
+                          <Text style={[styles.dTagText, TABULAR]} allowFontScaling={false}>
+                            {indianPrice(s.currentValue)}
+                          </Text>
+                        </View>
+                        <View style={styles.dTagCaret} />
+                      </Animated.View>
+                    </View>
+                  ) : null}
+
                   <View style={styles.barZone}>
                     <View
                       style={[styles.barTrack, { backgroundColor: st.track }]}
@@ -437,24 +477,38 @@ export default function SchemeDetail() {
                           {
                             borderColor: st.accent,
                             opacity: barA,
-                            left: barA.interpolate({ inputRange: [0, 1], outputRange: [-6, localPct * trackW - 6] }),
+                            left: barA.interpolate({ inputRange: [0, 1], outputRange: [-7, localPct * trackW - 7] }),
                           },
                         ]}
                       />
                     ) : null}
-                    <View style={styles.barGift}>
-                      {s.next.image ? (
-                        <Image source={s.next.image} style={{ width: 36, height: 36 }} resizeMode="contain" />
-                      ) : (
-                        <GiftGlyph kind={s.next.icon} size={24} color={st.accentDeep} strokeWidth={1.6} />
-                      )}
-                    </View>
                   </View>
                   <Animated.View style={[styles.barEnds, { opacity: barA }]}>
                     <Text style={[styles.barEnd, TABULAR, { color: st.sub }]} allowFontScaling={false}>{slab(prevAt)}</Text>
                     <Text style={[styles.barEnd, TABULAR, { color: st.sub }]} allowFontScaling={false}>{slab(s.next.at)}</Text>
                   </Animated.View>
 
+                  {/* The won gift sits BELOW the progress: a settled receipt under
+                      the slab it was won at, never dressed as a prize. */}
+                  {securedCapsule ? (
+                    <Animated.View style={[styles.securedWrap, rise(amountA, 6)]}>
+                      <View style={styles.secured}>
+                        <View style={styles.securedThumb}>
+                          {securedCapsule.image ? (
+                            <Image source={securedCapsule.image} style={{ width: 22, height: 22 }} resizeMode="contain" />
+                          ) : (
+                            <GiftGlyph kind={securedCapsule.icon} size={16} color={st.accentDeep} strokeWidth={1.7} />
+                          )}
+                        </View>
+                        <Text style={[styles.securedText, { color: st.ink }]} allowFontScaling={false}>
+                          {t.securedRow(securedCapsule.shortName)}
+                        </Text>
+                        <GiftGlyph kind="check" size={15} color={st.good} strokeWidth={2} />
+                      </View>
+                    </Animated.View>
+                  ) : null}
+
+                  {/* The ask, in the accent: what is left, and what it wins. */}
                   <Animated.View style={rise(amountA, 10)}>
                     <Text style={[styles.bigMore, TABULAR, { color: amountParts.color }]} allowFontScaling={false}>
                       {amountParts.pre ? <Text style={styles.bigMoreWord}>{amountParts.pre}</Text> : null}
@@ -462,10 +516,7 @@ export default function SchemeDetail() {
                       <Text style={styles.bigMoreWord}>{amountParts.post}</Text>
                     </Text>
                     <Text style={[styles.bigRest, { color: st.sub }]} allowFontScaling={false}>
-                      {t.rest(s.next.shortName, s.secured ? s.secured.shortName : null)}
-                    </Text>
-                    <Text style={[styles.bought, TABULAR, { color: st.sub }]} allowFontScaling={false}>
-                      {t.bought(indianPrice(s.currentValue), LIFESTYLE.label)}
+                      {t.rest(s.next.shortName)}
                     </Text>
                   </Animated.View>
 
@@ -674,7 +725,30 @@ const styles = StyleSheet.create({
   h1: { fontFamily: F.bold, fontSize: 22, lineHeight: 27, letterSpacing: 0.2 },
   h2: { marginTop: 4, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 17 },
 
-  pedestal: { height: 250, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  secured: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+    borderRadius: 20,
+    paddingLeft: 6,
+    paddingRight: 12,
+    height: 40,
+  },
+  securedThumb: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  securedText: { fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
+
+  pedestal: { height: 236, alignItems: 'center', justifyContent: 'center', marginTop: 0 },
   sparkleL: { position: 'absolute', left: '20%', top: 64 },
   sparkleR: { position: 'absolute', right: '22%', top: 148 },
   heroLabel: { position: 'absolute', top: 18, fontFamily: F.bold, fontSize: 11, lineHeight: 15, letterSpacing: 1.2 },
@@ -692,17 +766,27 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 12 },
   },
-  tileNotYet: { borderWidth: 2, borderStyle: 'dashed', backgroundColor: '#FFFDF7' },
   tileImg: { width: 128, height: 128, borderRadius: 12 },
   giftName: { marginTop: 2, textAlign: 'center', fontFamily: F.bold, fontSize: 17, lineHeight: 22, paddingHorizontal: 24, letterSpacing: 0.1 },
   heroNote: { marginTop: 12, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: 44 },
 
-  barZone: { marginTop: 22, marginHorizontal: 32, height: 48, justifyContent: 'center' },
-  barTrack: { height: 10, borderRadius: 5, marginRight: 26, overflow: 'hidden' },
+  boughtBlock: { marginTop: 18, alignItems: 'center' },
+  boughtLabel: { fontFamily: F.bold, fontSize: 10, lineHeight: 13, letterSpacing: 1.2 },
+
+  dTagRow: { height: 34, marginTop: 6 },
+  tagWrap: { position: 'absolute', alignItems: 'center' },
+  dTag: { backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 10, height: 26, justifyContent: 'center' },
+  dTagText: { color: N.ink, fontFamily: F.bold, fontSize: 13, lineHeight: 16 },
+  dTagCaret: { width: 9, height: 9, marginTop: -6, backgroundColor: '#fff', transform: [{ rotate: '45deg' }] },
+
+  securedWrap: { alignItems: 'center', marginTop: 14 },
+
+  barZone: { marginTop: 0, marginHorizontal: 32, height: 24, justifyContent: 'center' },
+  barTrack: { height: 10, borderRadius: 5, overflow: 'hidden' },
   barFill: { height: 10, borderRadius: 5 },
   knob: {
     position: 'absolute',
-    top: 24 - 7,
+    top: 12 - 7,
     width: 14,
     height: 14,
     borderRadius: 7,
@@ -713,29 +797,12 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },
   },
-  barGift: {
-    position: 'absolute',
-    right: 0,
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: N.paper,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-  },
-  barEnds: { marginTop: 8, marginHorizontal: 32, marginRight: 58, flexDirection: 'row', justifyContent: 'space-between' },
+  barEnds: { marginTop: 6, marginHorizontal: 32, flexDirection: 'row', justifyContent: 'space-between' },
   barEnd: { fontFamily: F.medium, fontSize: 11, lineHeight: 15 },
 
-  bigMore: { marginTop: 16, textAlign: 'center', fontFamily: F.bold, fontSize: 30, lineHeight: 36 },
+  bigMore: { marginTop: 18, textAlign: 'center', fontFamily: F.bold, fontSize: 30, lineHeight: 36 },
   bigMoreWord: { fontFamily: F.medium, fontSize: 17, lineHeight: 36 },
   bigRest: { marginTop: 2, textAlign: 'center', fontFamily: F.medium, fontSize: 14, lineHeight: 19, paddingHorizontal: 24 },
-  bought: { marginTop: 12, textAlign: 'center', fontFamily: F.regular, fontSize: 11, lineHeight: 15 },
 
   cta: {
     marginTop: 18,
