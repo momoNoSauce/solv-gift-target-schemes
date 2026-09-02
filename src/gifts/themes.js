@@ -41,6 +41,7 @@ export const THEMES = {
     },
     card: {
       dark: false,
+      tint: '#EEF4FE',
       ink: '#1A1A1A',
       sub: '#6B6B6B',
       accent: '#0A66E8',
@@ -74,6 +75,7 @@ export const THEMES = {
     },
     card: {
       dark: true,
+      tint: '#FBF2DF',
       ink: '#FFFFFF',
       sub: '#B9ACDF',
       accent: '#F2B84B',
@@ -107,6 +109,7 @@ export const THEMES = {
     },
     card: {
       dark: true,
+      tint: '#EDF7F0',
       ink: '#FFFFFF',
       sub: '#A9CFBB',
       accent: '#F5C04E',
@@ -140,6 +143,7 @@ export const THEMES = {
     },
     card: {
       dark: true,
+      tint: '#F8EEF6',
       ink: '#FFFFFF',
       sub: '#E3B8D9',
       accent: '#FFC93C',
