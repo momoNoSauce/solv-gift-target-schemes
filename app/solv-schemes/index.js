@@ -180,7 +180,11 @@ export default function SolvSchemes() {
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <View style={styles.toolbar}>
-        <Pressable onPress={() => router.back()} android_ripple={{ color: '#ffffff33', borderless: true }}>
+        <Pressable
+          onPress={() => router.back()}
+          style={{ padding: 10, margin: -10 }}
+          android_ripple={{ color: '#ffffff33', borderless: true }}
+        >
           <IconBack size={24} color="#fff" />
         </Pressable>
         <Text style={styles.toolbarTitle} allowFontScaling={false}>My Schemes</Text>

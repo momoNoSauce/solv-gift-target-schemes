@@ -13,7 +13,7 @@ import Svg, { Defs, LinearGradient, RadialGradient, Stop, Rect, Circle } from 'r
 // Fixed speck field (viewBox 412 x 480): position, radius, opacity. Kept away
 // from the centre so the pedestal and the copy stay clean.
 const SPECKS = [
-  [38, 84, 1.6, 0.5], [86, 190, 1.1, 0.32], [58, 320, 1.4, 0.4],
+  [36, 142, 1.6, 0.5], [86, 190, 1.1, 0.32], [58, 320, 1.4, 0.4],
   [128, 52, 1.2, 0.35], [170, 132, 1.0, 0.26], [352, 74, 1.6, 0.5],
   [312, 168, 1.1, 0.3], [376, 250, 1.4, 0.42], [330, 340, 1.2, 0.32],
   [250, 44, 1.0, 0.3], [390, 140, 1.0, 0.28], [24, 236, 1.0, 0.3],

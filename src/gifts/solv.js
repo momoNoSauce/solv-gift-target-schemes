@@ -34,7 +34,7 @@ export const SOLV = {
   line: '#ECECEC',
   paper: '#FFFFFF',
   bg: '#F5F7FA',
-  green: '#1E8E3E',
+  green: '#177E36',
   greenBg: '#E9F5EC',
   red: '#C2410C',
 };
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
     borderColor: PHOTO_EDGE,
     overflow: 'hidden',
   },
-  showcaseCaption: { marginTop: 6, fontFamily: F.bold, fontSize: 9, lineHeight: 12, letterSpacing: 0.8 },
+  showcaseCaption: { marginTop: 6, fontFamily: F.bold, fontSize: 10, lineHeight: 13, letterSpacing: 0.8 },
   showcaseFrame: {
     width: 74,
     height: 74,

@@ -57,7 +57,7 @@ const N = {
   line: '#ECECEC',
   paper: '#FFFFFF',
   bg: '#F7F7F7',
-  green: '#1E8E3E',
+  green: '#177E36',
 };
 const PHOTO_EDGE = 'rgba(0,0,0,0.08)';
 const TABULAR = { fontVariant: ['tabular-nums'] };
@@ -359,7 +359,13 @@ export default function SchemeDetail() {
         <View style={styles.stage}>
           <StageScene stage={st} festive={festive} focusY={missed ? 0.2 : 0.44} />
           <View style={styles.topBar}>
-            <Pressable onPress={() => router.back()} hitSlop={12} android_ripple={{ color: '#ffffff33', borderless: true }}>
+            {/* hitSlop is unreliable on RN-web; padding+negative margin gives a
+                real 44px target without moving the icon. */}
+            <Pressable
+              onPress={() => router.back()}
+              style={styles.backHit}
+              android_ripple={{ color: '#ffffff33', borderless: true }}
+            >
               <IconBack size={24} color="#fff" />
             </Pressable>
           </View>
@@ -367,8 +373,16 @@ export default function SchemeDetail() {
           {/* Long-press the title for the prototype's state/theme panel. */}
           <Pressable onLongPress={() => setDemoOpen((v) => !v)} delayLongPress={450}>
             <View style={styles.titleRow}>
-              {th.motif ? <GiftGlyph kind={th.motif} size={22} color={st.accent} strokeWidth={1.5} /> : null}
-              <Text style={[styles.h1, { color: st.ink }]} allowFontScaling={false}>{title}</Text>
+              {/* The motif hangs OUTSIDE the centered text, so the title shares
+                  one axis with every centered block below it. */}
+              <View>
+                {th.motif ? (
+                  <View style={styles.motifHang}>
+                    <GiftGlyph kind={th.motif} size={22} color={st.accent} strokeWidth={1.5} />
+                  </View>
+                ) : null}
+                <Text style={[styles.h1, { color: st.ink }]} allowFontScaling={false}>{title}</Text>
+              </View>
             </View>
             {h2}
           </Pressable>
@@ -553,7 +567,7 @@ export default function SchemeDetail() {
                         style={[
                           styles.stepDot,
                           stepStates[i] === 'done' && styles.stepDone,
-                          stepStates[i] === 'now' && [styles.stepNow, { borderColor: st.accentDeep }],
+                          stepStates[i] === 'now' && [styles.stepNow, { borderColor: st.accentDeep, backgroundColor: th.card.tint }],
                         ]}
                       >
                         <GiftGlyph
@@ -724,7 +738,9 @@ const styles = StyleSheet.create({
 
   stage: { paddingBottom: 28, overflow: 'hidden' },
   topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 14 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 },
+  backHit: { padding: 10, margin: -10 },
+  titleRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 8 },
+  motifHang: { position: 'absolute', right: '100%', marginRight: 8, top: 3 },
   h1: { fontFamily: F.bold, fontSize: 22, lineHeight: 27, letterSpacing: 0.2 },
   h2: { marginTop: 4, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 17 },
 
@@ -810,7 +826,7 @@ const styles = StyleSheet.create({
   bigRest: { marginTop: 2, textAlign: 'center', fontFamily: F.medium, fontSize: 14, lineHeight: 19, paddingHorizontal: 24 },
 
   cta: {
-    marginTop: 18,
+    marginTop: 14,
     marginHorizontal: 32,
     height: 52,
     borderRadius: 26,
@@ -913,7 +929,7 @@ const styles = StyleSheet.create({
   step: { alignItems: 'center', width: 66 },
   stepDot: { width: 32, height: 32, borderRadius: 16, borderWidth: 1.5, borderColor: '#DDDFE3', backgroundColor: N.paper, alignItems: 'center', justifyContent: 'center' },
   stepDone: { backgroundColor: N.green, borderColor: N.green },
-  stepNow: { backgroundColor: '#FDF3E0' },
+  stepNow: {},
   stepTitle: { marginTop: 6, fontFamily: F.medium, fontSize: 11, lineHeight: 14, color: N.ink, textAlign: 'center' },
   stepDate: { marginTop: 1, fontFamily: F.regular, fontSize: 10, lineHeight: 13, color: N.sub },
   connector: { flex: 1, height: 2, borderRadius: 1, backgroundColor: '#E7E9EC', marginTop: 15 },
