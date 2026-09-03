@@ -94,10 +94,12 @@ const SCEN_LABELS = {
 // theme demo so a repainted page does not say "Diwali" in Onam colors.
 const DEMO_TITLES = { default: 'Solv Growth Scheme', diwali: 'Mega Diwali Scheme', onam: 'Onam Mega Scheme', holi: 'Holi Bumper Scheme' };
 
-// SchemeItemRules for the demo scheme, the shape the app's createTable() flattens.
+// SchemeItemRules for the demo scheme, the shape the app's createTable()
+// flattens. All rows are one type (trade categories); the exclusions follow
+// the app's own real pattern ("All Products excluding Sugar & Edible Oil").
 const RULES = {
-  included: ['Lifestyle products'],
-  excluded: ['Consumer Electronics'],
+  included: ['Packaged Foods', 'Beverages', 'Personal Care', 'Home Care'],
+  excluded: ['Sugar', 'Edible Oil'],
 };
 
 const DELIVER_BY = '21 Nov 2026';
@@ -128,7 +130,7 @@ const T = {
     finalBought: (amt) => `Final buying: ${amt}`,
     cta: () => 'View Eligible Products',
     ctaEnded: 'See running schemes',
-    startsNote: (d, ladder) => `Buy ${ladder} products from ${d}. The highest slab you cross is your gift.`,
+    startsNote: (d) => `Buy eligible products from ${d}. The highest slab you cross is your gift.`,
     topNote: (d) => `Nothing is left to win. We order your gift after ${d}.`,
     missedTitle: 'The scheme ended',
     missedNote: 'No slab was crossed this time. New schemes show in My Schemes.',
@@ -168,7 +170,7 @@ const T = {
     finalBought: (amt) => `कुल ख़रीदारी: ${amt}`,
     cta: () => 'एलिजिबल प्रोडक्ट देखें',
     ctaEnded: 'चल रही स्कीमें देखें',
-    startsNote: (d, ladder) => `${d} से ${ladder} प्रोडक्ट ख़रीदें। जो सबसे ऊँचा स्लैब पार करें, वही गिफ़्ट आपका।`,
+    startsNote: (d) => `${d} से एलिजिबल प्रोडक्ट ख़रीदें। जो सबसे ऊँचा स्लैब पार करें, वही गिफ़्ट आपका।`,
     topNote: (d) => `जीतने को और कुछ नहीं बचा। ${d} के बाद हम आपका ऑर्डर करेंगे।`,
     missedTitle: 'स्कीम ख़त्म हो गई',
     missedNote: 'इस बार कोई स्लैब पार नहीं हुआ। नई स्कीमें My Schemes में दिखेंगी।',
@@ -292,7 +294,7 @@ export default function SchemeDetail() {
 
   // The one line under the hero for the states with no bar.
   const heroNote =
-    s.state === STATE.SCHEDULED ? t.startsNote(s.startLabel, LIFESTYLE.label)
+    s.state === STATE.SCHEDULED ? t.startsNote(s.startLabel)
     : s.state === STATE.TOP_REACHED ? t.topNote(s.endLabel)
     : s.state === STATE.ENDED_PENDING ? t.pendingNote
     : s.state === STATE.GIFT_ORDERED ? t.orderedNote(DELIVER_BY)
