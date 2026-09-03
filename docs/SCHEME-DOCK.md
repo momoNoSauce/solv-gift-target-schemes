@@ -11,8 +11,13 @@ closer match to the reference video.
 ## Version B: the sheet and the arc
 
 The scheme page is a floating card: 14 px side margins, 24 px corners, from 10 px
-below the status bar to the top of the dock zone. Below it, on the theme's night
-colour (one shade darker, a 35 % black veil), the schemes sit on an arc.
+below the status bar to the top of the dock zone. Below it the schemes sit on an arc.
+
+The ground is one cool near-black (`#0B0A14`) with 18 % of the active theme's night
+mixed in, blending as the pager crosses. The card carries the theme; the floor
+recedes (Apple HIG: deference, materials). The earlier ground, the theme's night at
+full strength, put a blue card on a blue field and recoloured the screen on every
+swipe.
 
 Geometry, measured from the reference at 592 px and scaled to 412 px:
 

@@ -3,10 +3,13 @@
 # mid-swipe positions. Deterministic: ?static=1 renders every animated value
 # settled, ?pos= pins the pager at a fractional page.
 #
-# Usage: scripts/capture-pager.sh [base-url]   (default http://localhost:8099)
+# Usage: scripts/capture-pager.sh [base-url] [only]
+#   base-url  default http://localhost:8099
+#   only      "pager" (version A) or "arc" (version B); default both
 # Output: exploration-screenshots/pager-*.png, 824 x 1830 (412 x 915 at 2x).
 set -euo pipefail
 BASE="${1:-http://localhost:8099}"
+ONLY="${2:-}"
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 OUT="$(cd "$(dirname "$0")/.." && pwd)/exploration-screenshots"
 mkdir -p "$OUT"
@@ -14,6 +17,10 @@ mkdir -p "$OUT"
 # shot NAME QUERY [ROUTE]   ROUTE defaults to /schemes (version A); /schemes/arc is version B.
 shot() {
   local name="$1" query="$2" route="${3:-schemes}"
+  case "$ONLY" in
+    pager) [[ "$name" == pager-* ]] || return 0 ;;
+    arc) [[ "$name" == arc-* ]] || return 0 ;;
+  esac
   local tmp="$OUT/.tmp-$name.png"
   # Headless lays the 412 x 915 frame centred in a 512 x 1015 window; the
   # centre crop is the frame. Metro can take longer than the virtual-time

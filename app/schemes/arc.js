@@ -31,6 +31,20 @@ const SHEET_MARGIN = 14;
 const SHEET_RADIUS = 24;
 const SHEET_TOP = 10;   // below the safe area
 
+// The ground: one cool near-black for every page, with a whisper (18 %) of the
+// active theme's night mixed in. The card carries the colour; the floor
+// recedes. A full theme flood behind a blue card lost the card's edge and
+// recoloured the whole screen on every swipe.
+const INK = '#0B0A14';
+const TINT = 0.18;
+const hex = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+const mix = (a, b, t) => {
+  const [r1, g1, b1] = hex(a);
+  const [r2, g2, b2] = hex(b);
+  const ch = (x, y) => Math.round(x + (y - x) * t).toString(16).padStart(2, '0');
+  return `#${ch(r1, r2)}${ch(g1, g2)}${ch(b1, b2)}`;
+};
+
 export default function MySchemesArc() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -60,12 +74,10 @@ export default function MySchemesArc() {
   const [demoOpen, setDemoOpen] = useState(params.demo === '1');
   const [listOpen, setListOpen] = useState(false);
 
-  // The ground under everything: the theme's night, one shade darker so the
-  // card and the arc read as lit objects on it.
-  const grounds = schemes.map((x) => themeOf(x.theme).stage.ground2);
+  const grounds = schemes.map((x) => mix(INK, themeOf(x.theme).stage.ground2, TINT));
   const ground = n > 1
     ? pos.interpolate({ inputRange: schemes.map((_, i) => i), outputRange: grounds, extrapolate: 'clamp' })
-    : grounds[0] || '#0847A6';
+    : grounds[0] || INK;
 
   const zoneH = ZONE_H + insets.bottom;
   const sheetTop = insets.top + SHEET_TOP;
@@ -77,7 +89,6 @@ export default function MySchemesArc() {
     <View style={{ flex: 1 }}>
       <StatusBar style="light" />
       <Animated.View style={[styles.screen, { backgroundColor: ground }]} onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
-        <View style={styles.shade} pointerEvents="none" />
 
         {n === 0 ? (
           <View style={[styles.empty, { paddingBottom: zoneH }]}>
@@ -165,8 +176,6 @@ export default function MySchemesArc() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, overflow: 'hidden' },
-  // A 35 % black veil over the theme night: the ground, darker than any stage.
-  shade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
   strip: { position: 'absolute', left: 0, flexDirection: 'row' },
   sheet: {
     flex: 1,
