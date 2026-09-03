@@ -116,12 +116,11 @@ const T = {
     topGift: 'TOP GIFT',
     wonTop: 'YOU WON THE TOP GIFT',
     securedRow: (name) => `You've qualified for the ${name}`,
-    boughtLabel: (ladder) => `BOUGHT SO FAR \u2022 ${ladder.toUpperCase()} ONLY`,
     morePrefix: '', moreSuffix: ' more',
     onlyPrefix: 'Only ', onlySuffix: ' left',
     rest: (next) => `to win the ${next}`,
     finalBought: (amt) => `Final buying: ${amt}`,
-    cta: (ladder) => `Shop ${ladder} products`,
+    cta: () => 'View Eligible Products',
     ctaEnded: 'See running schemes',
     startsNote: (d, ladder) => `Buy ${ladder} products from ${d}. The highest slab you cross is your gift.`,
     topNote: (d) => `Nothing is left to win. We order your gift after ${d}.`,
@@ -154,12 +153,11 @@ const T = {
     topGift: 'टॉप गिफ़्ट',
     wonTop: 'आपने टॉप गिफ़्ट जीता',
     securedRow: (name) => `आपने ${name} के लिए क्वालिफ़ाई किया`,
-    boughtLabel: () => 'अब तक की ख़रीदारी',
     morePrefix: '', moreSuffix: ' और चाहिए',
     onlyPrefix: 'सिर्फ़ ', onlySuffix: ' और',
     rest: (next) => `और ${next} जीतें`,
     finalBought: (amt) => `कुल ख़रीदारी: ${amt}`,
-    cta: (ladder) => `${ladder} प्रोडक्ट ख़रीदें`,
+    cta: () => 'एलिजिबल प्रोडक्ट देखें',
     ctaEnded: 'चल रही स्कीमें देखें',
     startsNote: (d, ladder) => `${d} से ${ladder} प्रोडक्ट ख़रीदें। जो सबसे ऊँचा स्लैब पार करें, वही गिफ़्ट आपका।`,
     topNote: (d) => `जीतने को और कुछ नहीं बचा। ${d} के बाद हम आपका ऑर्डर करेंगे।`,
@@ -197,7 +195,7 @@ const STEP_DATES = {
 
 // The primary pill: a top sheen for depth, a soft glow in its own color, and a
 // spring press to 0.96 that can be interrupted mid-motion.
-function CtaButton({ label, bg, fg, glow = false, onPress }) {
+function CtaButton({ label, bg, fg, glow = false, onPress, containerStyle }) {
   const p = usePressScale(0.96);
   return (
     <Animated.View style={{ transform: [{ scale: p.scale }] }}>
@@ -206,7 +204,7 @@ function CtaButton({ label, bg, fg, glow = false, onPress }) {
         onPressIn={p.pressIn}
         onPressOut={p.pressOut}
         android_ripple={{ color: '#00000022' }}
-        style={[styles.cta, { backgroundColor: bg }, glow && [styles.ctaGlow, { shadowColor: bg }]]}
+        style={[styles.cta, containerStyle, { backgroundColor: bg }, glow && [styles.ctaGlow, { shadowColor: bg }]]}
       >
         <LinearGradient
           colors={['rgba(255,255,255,0.30)', 'rgba(255,255,255,0)']}
@@ -449,15 +447,8 @@ export default function SchemeDetail() {
 
               {showBar ? (
                 <>
-                  {/* The measured fact: what the shop has bought, as a value tag
-                      riding the knob, so the number and its position on the
-                      journey read as one object. */}
-                  <Animated.View style={[styles.boughtBlock, rise(boughtA, 8)]}>
-                    <Text style={[styles.boughtLabel, { color: st.sub }]} allowFontScaling={false}>
-                      {t.boughtLabel(LIFESTYLE.label)}
-                    </Text>
-                  </Animated.View>
-
+                  {/* The measured fact: the bought amount rides the runner as a
+                      value tag; the number and its position read as one object. */}
                   {trackW > 0 && localPct > 0 ? (
                     <View style={styles.dTagRow}>
                       <Animated.View
@@ -521,10 +512,22 @@ export default function SchemeDetail() {
                     <Text style={[styles.barEnd, TABULAR, { color: st.sub }]} allowFontScaling={false}>{slab(s.next.at)}</Text>
                   </Animated.View>
 
-                  {/* The won gift sits BELOW the progress: a settled receipt under
-                      the slab it was won at, never dressed as a prize. */}
+                  {/* The ask, in the accent: what is left, and what it wins. */}
+                  <Animated.View style={rise(amountA, 10)}>
+                    <Text style={[styles.bigMore, TABULAR, { color: amountParts.color }]} allowFontScaling={false}>
+                      {amountParts.pre ? <Text style={styles.bigMoreWord}>{amountParts.pre}</Text> : null}
+                      {amountParts.amt}
+                      <Text style={styles.bigMoreWord}>{amountParts.post}</Text>
+                    </Text>
+                    <Text style={[styles.bigRest, { color: st.sub }]} allowFontScaling={false}>
+                      {t.rest(s.next.shortName)}
+                    </Text>
+                  </Animated.View>
+
+                  {/* Below the ask: what is already qualified, a settled receipt,
+                      never dressed as a prize. */}
                   {securedCapsule ? (
-                    <Animated.View style={[styles.securedWrap, rise(amountA, 6)]}>
+                    <Animated.View style={[styles.securedWrap, rise(ctaA, 6)]}>
                       <View style={styles.secured}>
                         <View style={styles.securedThumb}>
                           {securedCapsule.image ? (
@@ -540,23 +543,6 @@ export default function SchemeDetail() {
                       </View>
                     </Animated.View>
                   ) : null}
-
-                  {/* The ask, in the accent: what is left, and what it wins. */}
-                  <Animated.View style={rise(amountA, 10)}>
-                    <Text style={[styles.bigMore, TABULAR, { color: amountParts.color }]} allowFontScaling={false}>
-                      {amountParts.pre ? <Text style={styles.bigMoreWord}>{amountParts.pre}</Text> : null}
-                      {amountParts.amt}
-                      <Text style={styles.bigMoreWord}>{amountParts.post}</Text>
-                    </Text>
-                    <Text style={[styles.bigRest, { color: st.sub }]} allowFontScaling={false}>
-                      {t.rest(s.next.shortName)}
-                    </Text>
-                  </Animated.View>
-
-                  {/* The close: into the eligible catalog */}
-                  <Animated.View style={rise(ctaA, 10)}>
-                    <CtaButton label={t.cta(LIFESTYLE.label)} bg={st.accent} fg={st.accentInk} glow />
-                  </Animated.View>
                 </>
               ) : heroNote ? (
                 <Animated.View style={rise(nameA, 8)}>
@@ -708,6 +694,21 @@ export default function SchemeDetail() {
         </>
         )}
 
+        {/* The close, at the page's end: under the top gift, above the terms.
+            The light zone uses the CARD accent tokens (the stage accent can be
+            white on the default theme and would vanish here). */}
+        {showBar ? (
+          <Animated.View style={rise(ctaA, 10)}>
+            <CtaButton
+              label={t.cta()}
+              bg={th.card.accent}
+              fg={th.card.accentInk}
+              glow
+              containerStyle={styles.bottomCta}
+            />
+          </Animated.View>
+        ) : null}
+
         {/* Three facts. The whole rulebook on this page. */}
         {!s.ended ? (
           <View style={styles.facts}>
@@ -823,10 +824,7 @@ const styles = StyleSheet.create({
 
   // The label belongs to the meter, so it anchors at the track's left edge and
   // holds still while the value tag moves with the knob.
-  boughtBlock: { marginTop: 18, marginHorizontal: 32, alignItems: 'flex-start' },
-  boughtLabel: { fontFamily: F.bold, fontSize: 10, lineHeight: 13, letterSpacing: 1.2 },
-
-  dTagRow: { height: 34, marginTop: 6 },
+  dTagRow: { height: 34, marginTop: 14 },
   tagWrap: { position: 'absolute', alignItems: 'center' },
   dTag: { backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 10, height: 26, justifyContent: 'center' },
   dTagText: { color: N.ink, fontFamily: F.bold, fontSize: 13, lineHeight: 16 },
@@ -869,6 +867,7 @@ const styles = StyleSheet.create({
   missedTitle: { fontFamily: F.bold, fontSize: 17, lineHeight: 22 },
   missedNote: { marginTop: 6, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: 44 },
   missedCta: { alignSelf: 'stretch', marginTop: 4 },
+  bottomCta: { marginTop: 16, marginHorizontal: 16 },
 
   listLabel: { marginTop: 20, marginHorizontal: 16, fontFamily: F.bold, fontSize: 11, lineHeight: 15, color: N.sub, letterSpacing: 1 },
   list: {
