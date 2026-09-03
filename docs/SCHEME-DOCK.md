@@ -1,9 +1,61 @@
-# My Schemes: the scheme pager and the dock
+# My Schemes: the scheme pager, the dock and the arc
 
-Date: 3 Sep 2026. Route: `/schemes`. Input: founder feedback on the list page, and a
+Date: 3 Sep 2026. Routes: `/schemes` (version A, the dock bar) and `/schemes/arc`
+(version B, the sheet and the arc). Input: founder feedback on the list page, and a
 reference video of a B2C grocery app (`Video_20260903_150940_379_1.mp4`).
 
-## The change
+Both versions share one engine, one page component, one registry and one artwork
+set. They differ in how the schemes are arranged near the thumb. Version B is the
+closer match to the reference video.
+
+## Version B: the sheet and the arc
+
+The scheme page is a floating card: 14 px side margins, 24 px corners, from 10 px
+below the status bar to the top of the dock zone. Below it, on the theme's night
+colour (one shade darker, a 35 % black veil), the schemes sit on an arc.
+
+Geometry, measured from the reference at 592 px and scaled to 412 px:
+
+| Token | Value |
+|---|---|
+| Arc radius | 520 px (1.26 screen widths), centre below the screen |
+| Pitch | 86 px at the apex, one page per 0.1654 rad |
+| Apex thumb | 76 px, white 2 px ring at a 3 px gap (86 px ring) |
+| Neighbour thumbs | 58 px at one page, 50 px at two, then constant |
+| Drops from the apex | 7 px at one page, 24 px at two |
+| Opacity | 1.0, 0.85 at one page, 0.5 at two, 0 at three |
+| Veil on non-apex thumbs | night colour at 55 %, lifting to 0 at the apex |
+| Dock zone | 161 px plus the bottom safe area |
+| Name under the apex | 15 px Medium white, status 12 px at 72 % (accent while running) |
+
+The whole arc turns with the pager: every thumb's x, y, scale and opacity are
+functions of its angular distance from `pos`, sampled every quarter page. The
+focused scheme's name and status cross-fade under the apex; each label is fully
+gone at the halfway point, so two names never overlap.
+
+Recognition: a thumb is the scheme's own art, never a gift photo. Festive schemes
+carry an illustration of the festival (a diya in a plum night, a pookalam, Holi
+colour clouds), drawn as deterministic SVG in `src/schemes/SchemeArt.js`. Brand
+schemes carry the brand's mark on a white disc, from `assets/brands/`. A wide
+wordmark takes 82 % of the disc, a compact mark 66 %. Completed schemes dim to
+70 % and carry the green check when a gift was won.
+
+Too many schemes: a "N schemes" pill in the fixed chrome opens every scheme as a
+bottom sheet (`src/schemes/AllSchemesSheet.js`): a handle, the count, RUNNING and
+COMPLETED groups, one row per scheme (art, full name, status line, chevron), the
+scheme on screen marked "Viewing". Tapping a row springs the pager there and closes
+the sheet. The scrim fades in 200 ms and the sheet springs up (stiffness 300,
+damping 32); both leave faster, easing out.
+
+Press feedback: every thumb springs to 0.96 on press and back on release, and the
+release reverses a press mid-motion.
+
+Categories: Solv sells beyond grocery (apparel, footwear, home furnishing, small
+electronics, toys), so the brand schemes are Bata, Prestige, Havells, Bombay Dyeing
+and Funskool. The campaign schemes (Diwali, Onam, Holi) keep the Lifestyle gift
+ladder.
+
+## Version A: the dock bar
 
 The list page (`/solv-schemes`) is gone from the path. "My Schemes" opens the main
 scheme's own page (the Mega Diwali detail). Every other scheme of the member sits in
@@ -12,9 +64,10 @@ thumb moves to another scheme.
 
 The reference video shows a product page that swipes horizontally, with a strip of
 round thumbnails at the bottom that tracks the swipe. The focused thumbnail is larger
-and ringed. This design keeps that pattern and adds what the brief asked for: each
-thumb shows the scheme's gift photo and its short name, so a scheme is recognisable
-by image and by name.
+and ringed. This design keeps that pattern in a glass pill and adds what the brief
+asked for: each thumb shows the scheme's own art and its short name, so a scheme is
+recognisable by image and by name. The founder's read: it feels like a nav bar. That
+read led to version B.
 
 ## Files
 
@@ -27,7 +80,11 @@ by image and by name.
 | [src/schemes/registry.js](../src/schemes/registry.js) | The member's schemes and the view scenarios |
 | [src/schemes/copy.js](../src/schemes/copy.js) | UI strings, English and Hindi |
 | [src/schemes/motion.js](../src/schemes/motion.js) | The motion policy: capture, reduced motion |
-| [scripts/capture-pager.sh](../scripts/capture-pager.sh) | Deterministic screenshots of every scenario and mid-swipe frame |
+| [app/schemes/arc.js](../app/schemes/arc.js) | Version B: the sheet, the arc, the schemes pill |
+| [src/schemes/ArcDock.js](../src/schemes/ArcDock.js) | The arc: geometry, sampling, labels |
+| [src/schemes/AllSchemesSheet.js](../src/schemes/AllSchemesSheet.js) | The list of every scheme, as a bottom sheet |
+| [src/schemes/SchemeArt.js](../src/schemes/SchemeArt.js) | Scheme identity art: festival SVGs, brand marks |
+| [scripts/capture-pager.sh](../scripts/capture-pager.sh) | Deterministic screenshots of both versions, every scenario and mid-swipe frame |
 
 The state machine (`src/gifts/state.js`), the themes (`src/gifts/themes.js`) and the
 stage scene (`src/gifts/Scene.js`) are unchanged. The old routes still work.

@@ -189,7 +189,8 @@ deviations found and fixed, and the ones that remain.
 | `/` | drawer rows (My Targets, My Rewards, Jumbocash, SuperClub) plus links to the surfaces that live inside other screens |
 | `/targets` | My Targets, Running and Completed tabs |
 | `/scheme/[id]` | Scheme details |
-| `/schemes` | My Schemes, new direction (3 Sep 2026): the main scheme's page opens first; every scheme sits in a dock near the thumb; swipe the page or the dock, or tap a thumb. `?view=typical\|start\|over\|many\|empty`, `?i=`, `?pos=`, `?static=1`. See [docs/SCHEME-DOCK.md](docs/SCHEME-DOCK.md) |
+| `/schemes/arc` | My Schemes, version B (3 Sep 2026): the scheme page is a floating sheet that ends above an ARC of scheme thumbs (the reference video's arrangement); the focused scheme's name and status read under the apex; a "N schemes" button opens the full list. Same `?view=`, `?i=`, `?pos=`, `?static=1`. See [docs/SCHEME-DOCK.md](docs/SCHEME-DOCK.md) |
+| `/schemes` | My Schemes, version A (3 Sep 2026): the main scheme's page opens first; every scheme sits in a dock near the thumb; swipe the page or the dock, or tap a thumb. `?view=typical\|start\|over\|many\|empty`, `?i=`, `?pos=`, `?static=1`. See [docs/SCHEME-DOCK.md](docs/SCHEME-DOCK.md) |
 | `/history/[smtId]` | Target scheme transaction history |
 | `/targets/pdp-offer` | Product page offer row and the offers bottom sheet |
 | `/targets/cart` | Cart suggestion strip and the target schemes dialog |

@@ -18,17 +18,18 @@
 //   - The ring's colour is the ACTIVE THEME'S ACCENT, blending across pages.
 //
 // Groups: running schemes first, then completed ones behind a hairline. A
-// completed thumb dims its photo to 70% and carries the green check when a
-// gift was won (the medallion system's one badge). A festive scheme wears its
-// motif as a small accent badge, so "Diwali" is recognisable before the label
-// is read.
+// completed thumb dims its art to 70% and carries the green check when a gift
+// was won (the medallion system's one badge). The thumb is the SCHEME'S OWN
+// ART (a festival illustration, a brand mark), never a gift photo, so "Diwali"
+// is recognisable before the label is read.
 import React, { useEffect, useMemo, useRef } from 'react';
-import { View, Text, Image, Pressable, StyleSheet, Animated, Platform } from 'react-native';
+import { View, Pressable, StyleSheet, Animated, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { F } from '../theme';
 import GiftGlyph from '../gifts/icons';
 import { themeOf } from '../gifts/themes';
-import { STATE } from '../gifts/state';
+import SchemeArt from './SchemeArt';
+import { usePressScale } from '../gifts/solv';
 import { SETTLED } from './motion';
 
 export const PITCH = 64;
@@ -56,45 +57,24 @@ if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getEle
   document.head.appendChild(s);
 }
 
-// The gift a scheme is recognised by: what its pedestal shows.
-function heroGift(scheme) {
-  const s = scheme.s;
-  if (s.state === STATE.SCHEDULED) return s.top;
-  if (s.started && !s.ended && s.next) return s.next;
-  return s.secured || s.top;
-}
-
 function Thumb({ scheme, i, pos, onPress, first }) {
-  const gift = heroGift(scheme);
-  const th = themeOf(scheme.theme);
   const done = scheme.group === 'completed';
   const won = done && Boolean(scheme.s.secured);
   const range = [i - 1, i, i + 1];
   const scale = pos.interpolate({ inputRange: range, outputRange: [THUMB_MIN / THUMB, 1, THUMB_MIN / THUMB], extrapolate: 'clamp' });
   const label = pos.interpolate({ inputRange: range, outputRange: [0.55, 1, 0.55], extrapolate: 'clamp' });
+  const press = usePressScale(0.96);
 
   return (
     <View style={styles.col}>
       {first ? <View style={styles.groupLine} /> : null}
-      <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={scheme.title} style={styles.hit}>
-        <Animated.View style={[styles.ringBox, { transform: [{ scale }] }]}>
-          <View style={[styles.thumb, done && styles.thumbDone]}>
-            {gift.voucher ? (
-              <LinearGradient colors={['#0A66E8', '#0847A6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.voucher}>
-                <Text style={styles.voucherText} allowFontScaling={false}>₹</Text>
-              </LinearGradient>
-            ) : gift.image ? (
-              <Image source={gift.image} style={[styles.photo, done && { opacity: 0.7 }]} resizeMode="contain" />
-            ) : (
-              <GiftGlyph kind={gift.icon || 'gift'} size={24} color="#6B6B6B" strokeWidth={1.6} />
-            )}
+      <Pressable onPress={onPress} onPressIn={press.pressIn} onPressOut={press.pressOut} accessibilityRole="button" accessibilityLabel={scheme.title} style={styles.hit}>
+        <Animated.View style={[styles.ringBox, { transform: [{ scale: Animated.multiply(scale, press.scale) }] }]}>
+          <View style={styles.thumb}>
+            <SchemeArt scheme={scheme} size={THUMB} dim={done} />
             <View pointerEvents="none" style={styles.photoEdge} />
           </View>
-          {th.motif ? (
-            <View style={[styles.badge, { backgroundColor: th.stage.accent }]}>
-              <GiftGlyph kind={th.motif} size={10} color={th.stage.accentInk} strokeWidth={2} />
-            </View>
-          ) : won ? (
+          {won ? (
             <View style={[styles.badge, { backgroundColor: '#177E36' }]}>
               <GiftGlyph kind="check" size={9} color="#fff" strokeWidth={2.4} />
             </View>
@@ -195,12 +175,8 @@ const styles = StyleSheet.create({
   hit: { alignItems: 'center', width: PITCH },
   ringBox: { width: RING, height: RING, alignItems: 'center', justifyContent: 'center' },
   thumb: { width: THUMB, height: THUMB, borderRadius: THUMB / 2, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  thumbDone: { backgroundColor: '#ECECEC' },
-  photo: { width: THUMB - 10, height: THUMB - 10 },
   // The image's own edge: pure black at low alpha, never a tinted grey.
   photoEdge: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, borderRadius: THUMB / 2, borderWidth: 1, borderColor: 'rgba(0,0,0,0.10)' },
-  voucher: { width: THUMB - 12, height: THUMB - 12, borderRadius: (THUMB - 12) / 2, alignItems: 'center', justifyContent: 'center' },
-  voucherText: { color: '#fff', fontFamily: F.bold, fontSize: 18, lineHeight: 22 },
   badge: {
     position: 'absolute',
     right: 1,

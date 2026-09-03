@@ -1,27 +1,49 @@
 // The member's schemes, in dock order: running schemes first (the main scheme
-// leads), then completed ones. One builder, so the pager, the dock and the old
-// list can never disagree about a scheme.
+// leads), then completed ones. One builder, so both pagers, both docks, the
+// list sheet and the old list can never disagree about a scheme.
+//
+// Solv sells beyond grocery: apparel, footwear, home furnishing, small
+// electronics and toys (YourStory, Inc42, Mar 2025). The brand schemes here
+// live in those categories: Bata (footwear), Prestige (kitchen appliances),
+// Havells (small electronics), Bombay Dyeing (home furnishing), Funskool (toys).
+// Brand marks: the brands' own logos from their Wikipedia pages, rasterised to
+// 512 px in assets/brands/. Festive schemes carry an illustration of their
+// festival (src/schemes/SchemeArt.js).
 //
 // Every scheme carries what the page needs to render it on its own:
-//   id, title, dockName (short, for the dock label), theme, tiers, currentValue,
-//   startTime, endTime, now, fulfilment, startLabel, endLabel, fmt (slab labels),
-//   money (gap amounts), rules {included, excluded}, deliverBy, orderNo,
-//   and `s`, the derived schemeState().
+//   id, title (full, "Bata Scheme"), dockName (short, for a 64 px column),
+//   theme, art ({ logo } for a brand), tiers, currentValue, startTime, endTime,
+//   now, fulfilment, startLabel, endLabel, fmt (slab labels), money (gap
+//   amounts), rules {included, excluded}, deliverBy, orderNo, and `s`, the
+//   derived schemeState().
 //
-// View scenarios (?view=) mirror the old list page so every dock state can be
-// inspected: typical, start, over, empty.
-import { schemeState } from '../gifts/state';
+// View scenarios (?view=): typical, start, over, many, empty.
+import { schemeState, STATE } from '../gifts/state';
 import { LADDERS, lakh } from '../gifts/data';
 import { indianPrice } from '../data';
 
 const L = 100000;
 const LIFESTYLE = LADDERS[0];
-const IMG_MIXER = require('../../assets/gifts/mixer.jpg');
-const IMG_KETTLE = require('../../assets/gifts/kettle.jpg');
+const IMG = {
+  mixer: require('../../assets/gifts/mixer.jpg'),
+  kettle: require('../../assets/gifts/kettle.jpg'),
+  watch: require('../../assets/gifts/watch.jpg'),
+  microwave: require('../../assets/gifts/microwave.jpg'),
+};
+const BRAND = {
+  bata: require('../../assets/brands/bata.png'),
+  prestige: require('../../assets/brands/prestige.png'),
+  havells: require('../../assets/brands/havells.png'),
+  bombaydyeing: require('../../assets/brands/bombaydyeing.png'),
+  funskool: require('../../assets/brands/funskool.png'),
+};
 
-const OIL_TIER = [{ at: 50000, name: 'NutriPro Juicer Mixer Grinder', shortName: 'Mixer', icon: 'mixer', image: IMG_MIXER }];
-const KETTLE_TIER = [{ at: 40000, name: 'Pigeon Amaze Plus Electric Kettle', shortName: 'Kettle', icon: 'kettle', image: IMG_KETTLE }];
-const VOUCHER_TIER = [{ at: 80000, name: '₹2,000 Solv voucher', shortName: '₹2,000 voucher', icon: 'voucher', voucher: '₹2,000' }];
+const TIER_WATCH = [{ at: 60000, name: 'Fire-Boltt Brillia Smart Watch', shortName: 'Watch', icon: 'watch', image: IMG.watch }];
+const TIER_KETTLE = [{ at: 40000, name: 'Pigeon Amaze Plus Electric Kettle', shortName: 'Kettle', icon: 'kettle', image: IMG.kettle }];
+const TIER_MIXER = [{ at: 50000, name: 'NutriPro Juicer Mixer Grinder', shortName: 'Mixer', icon: 'mixer', image: IMG.mixer }];
+const TIER_MICROWAVE = [{ at: 120000, name: 'Godrej 20 L Solo Microwave Oven', shortName: 'Microwave', icon: 'microwave', image: IMG.microwave }];
+const TIER_V2000 = [{ at: 80000, name: '₹2,000 Solv voucher', shortName: '₹2,000 voucher', icon: 'voucher', voucher: '₹2,000' }];
+const TIER_V1000 = [{ at: 30000, name: '₹1,000 Solv voucher', shortName: '₹1,000 voucher', icon: 'voucher', voucher: '₹1,000' }];
 
 const D = (m, d, y = 2026) => Date.UTC(y, m - 1, d);
 const DAY = 24 * 60 * 60 * 1000;
@@ -32,11 +54,13 @@ export const ddMMM = (ms) => {
 };
 const ddMMMyyyy = (ms) => `${ddMMM(ms)} ${new Date(ms).getUTCFullYear()}`;
 
-// Trade-category rules per scheme, the shape the app's createTable() flattens.
-const RULES_CAMPAIGN = { included: ['Packaged Foods', 'Beverages', 'Personal Care', 'Home Care'], excluded: ['Sugar', 'Edible Oil'] };
-const RULES_FORTUNE = { included: ['Fortune Sunflower Oil (all packs)'], excluded: ['Fortune Rice Bran Oil'] };
-const RULES_BRITANNIA = { included: ['Britannia Biscuits', 'Britannia Cakes', 'Britannia Rusk'], excluded: [] };
-const RULES_SAFFOLA = { included: ['Saffola Gold', 'Saffola Active'], excluded: ['Saffola Oats'] };
+// Eligible products per scheme, the shape the app's createTable() flattens.
+const RULES_CAMPAIGN = { included: ['Footwear', 'Home Furnishing', 'Small Appliances', 'Toys'], excluded: ['Grocery', 'Mobile Phones'] };
+const RULES_BATA = { included: ['Bata Comfit', 'Power', 'Hush Puppies'], excluded: ['Bata school shoes'] };
+const RULES_PRESTIGE = { included: ['Prestige pressure cookers', 'Prestige cookware', 'Prestige mixer grinders'], excluded: ['Prestige gas stoves'] };
+const RULES_HAVELLS = { included: ['Havells fans', 'Havells water heaters', 'Havells irons and kettles'], excluded: ['Havells wires and cables'] };
+const RULES_BOMBAY = { included: ['Bed sheets', 'Towels', 'Comforters and blankets'], excluded: [] };
+const RULES_FUNSKOOL = { included: ['Funskool board games', 'Play-Doh', 'Giggles'], excluded: [] };
 
 // A stable mock Amazon order number per scheme id.
 function orderNoFor(id) {
@@ -48,7 +72,7 @@ function orderNoFor(id) {
   return `Amazon order ${a}-${b}-${c}`;
 }
 
-function scheme({ id, title, dockName, theme = 'default', tiers, currentValue, startTime, endTime, now, fulfilment = {}, fmt = indianPrice, rules }) {
+function scheme({ id, title, dockName, theme = 'default', art = null, tiers, currentValue, startTime, endTime, now, fulfilment = {}, fmt = indianPrice, rules }) {
   const startLabel = ddMMMyyyy(startTime);
   const endLabel = ddMMMyyyy(endTime);
   const s = schemeState({ tiers, currentValue, startTime, endTime, now, fulfilment, startLabel, endLabel });
@@ -57,6 +81,7 @@ function scheme({ id, title, dockName, theme = 'default', tiers, currentValue, s
     title,
     dockName,
     theme,
+    art,
     tiers,
     currentValue,
     startTime,
@@ -75,58 +100,73 @@ function scheme({ id, title, dockName, theme = 'default', tiers, currentValue, s
   };
 }
 
-// The five schemes of the mid-season member, parameterised by the clock.
+// One line that says where a scheme stands, for the dock label and the list.
+export function statusLine(sc) {
+  const s = sc.s;
+  switch (s.state) {
+    case STATE.SCHEDULED: return `Starts ${ddMMM(sc.startTime)}`;
+    case STATE.LIVE:
+    case STATE.EARNED:
+    case STATE.NEAR_SLAB: return `${s.daysLeft} days left`;
+    case STATE.TOP_REACHED: return 'Top gift won';
+    case STATE.ENDED_MISSED: return `Ended ${ddMMM(sc.endTime)}`;
+    case STATE.ENDED_PENDING: return 'Ended. Gift being confirmed';
+    case STATE.GIFT_ORDERED: return `On the way, by ${ddMMM(sc.endTime + 12 * DAY)}`;
+    case STATE.DELIVERED: return `Delivered ${sc.fulfilment.deliveredAt ? ddMMM(sc.fulfilment.deliveredAt) : ''}`.trim();
+    default: return '';
+  }
+}
+
+// The schemes, parameterised by the clock.
 const diwali = (now, currentValue, fulfilment) =>
   scheme({ id: 'diwali', title: 'Mega Diwali Scheme', dockName: 'Diwali', theme: 'diwali', tiers: LIFESTYLE.tiers, currentValue, startTime: D(10, 1), endTime: D(11, 9), now, fulfilment, fmt: lakh, rules: RULES_CAMPAIGN });
 
-const fortune = (now, currentValue, { start = D(9, 20), end = D(10, 28) } = {}) =>
-  scheme({ id: 'fortune', title: 'Fortune Sunflower Oil Scheme', dockName: 'Fortune Oil', tiers: OIL_TIER, currentValue, startTime: start, endTime: end, now, rules: RULES_FORTUNE });
+const bata = (now, currentValue, { start = D(9, 20), end = D(10, 28) } = {}) =>
+  scheme({ id: 'bata', title: 'Bata Scheme', dockName: 'Bata', art: { logo: BRAND.bata }, tiers: TIER_WATCH, currentValue, startTime: start, endTime: end, now, rules: RULES_BATA });
 
-const britannia = (now, currentValue, { end = D(11, 9) } = {}) =>
-  scheme({ id: 'britannia', title: 'Britannia Diwali Stock-Up', dockName: 'Britannia', tiers: VOUCHER_TIER, currentValue, startTime: D(10, 1), endTime: end, now, rules: RULES_BRITANNIA });
+const prestige = (now, currentValue, { end = D(11, 9) } = {}) =>
+  scheme({ id: 'prestige', title: 'Prestige Scheme', dockName: 'Prestige', art: { logo: BRAND.prestige }, tiers: TIER_V2000, currentValue, startTime: D(10, 1), endTime: end, now, rules: RULES_PRESTIGE });
+
+const bombay = (now, currentValue) =>
+  scheme({ id: 'bombaydyeing', title: 'Bombay Dyeing Scheme', dockName: 'B. Dyeing', art: { logo: BRAND.bombaydyeing, wide: true }, tiers: TIER_MIXER, currentValue, startTime: D(10, 5), endTime: D(11, 5), now, rules: RULES_BOMBAY });
+
+const funskool = (now, currentValue) =>
+  scheme({ id: 'funskool', title: 'Funskool Scheme', dockName: 'Funskool', art: { logo: BRAND.funskool }, tiers: TIER_V1000, currentValue, startTime: D(10, 10), endTime: D(10, 24), now, rules: RULES_FUNSKOOL });
 
 const onam = (now, fulfilment) =>
-  scheme({ id: 'onam', title: 'Onam Mega Scheme', dockName: 'Onam', theme: 'onam', tiers: LIFESTYLE.tiers, currentValue: 7.1 * L, startTime: D(8, 15), endTime: D(9, 12), now, fulfilment, fmt: lakh, rules: RULES_CAMPAIGN });
+  scheme({ id: 'onam', title: 'Onam Scheme', dockName: 'Onam', theme: 'onam', tiers: LIFESTYLE.tiers, currentValue: 7.1 * L, startTime: D(8, 15), endTime: D(9, 12), now, fulfilment, fmt: lakh, rules: RULES_CAMPAIGN });
 
-const saffola = (now) =>
-  scheme({ id: 'saffola', title: 'Saffola September Scheme', dockName: 'Saffola', tiers: KETTLE_TIER, currentValue: 47000, startTime: D(8, 20), endTime: D(9, 20), now, fulfilment: { orderedAt: D(9, 24), deliveredAt: D(10, 6) }, rules: RULES_SAFFOLA });
+const havells = (now) =>
+  scheme({ id: 'havells', title: 'Havells Scheme', dockName: 'Havells', art: { logo: BRAND.havells }, tiers: TIER_KETTLE, currentValue: 47000, startTime: D(8, 20), endTime: D(9, 20), now, fulfilment: { orderedAt: D(9, 24), deliveredAt: D(10, 6) }, rules: RULES_HAVELLS });
 
-// Extra schemes for the long-list scenario, so the dock's scrolling mode
-// (thumbs overflow the pill) can be inspected.
-const IMG_WATCH = require('../../assets/gifts/watch.jpg');
-const WATCH_TIER = [{ at: 60000, name: 'Fire-Boltt Brillia Smart Watch', shortName: 'Watch', icon: 'watch', image: IMG_WATCH }];
-const parle = (now, currentValue) =>
-  scheme({ id: 'parle', title: 'Parle Festive Push', dockName: 'Parle', tiers: WATCH_TIER, currentValue, startTime: D(10, 5), endTime: D(11, 5), now, rules: { included: ['Parle-G', 'Parle Hide & Seek'], excluded: [] } });
-const dabur = (now, currentValue) =>
-  scheme({ id: 'dabur', title: 'Dabur Health Week', dockName: 'Dabur', tiers: [{ at: 30000, name: '₹1,000 Solv voucher', shortName: '₹1,000 voucher', icon: 'voucher', voucher: '₹1,000' }], currentValue, startTime: D(10, 10), endTime: D(10, 24), now, rules: { included: ['Dabur Chyawanprash', 'Dabur Honey'], excluded: [] } });
 const holi = (now) =>
-  scheme({ id: 'holi', title: 'Holi Bumper Scheme', dockName: 'Holi', theme: 'holi', tiers: LIFESTYLE.tiers, currentValue: 5.6 * L, startTime: D(3, 1), endTime: D(3, 20), now, fulfilment: { orderedAt: D(3, 24), deliveredAt: D(4, 2) }, fmt: lakh, rules: RULES_CAMPAIGN });
+  scheme({ id: 'holi', title: 'Holi Scheme', dockName: 'Holi', theme: 'holi', tiers: LIFESTYLE.tiers, currentValue: 5.6 * L, startTime: D(3, 1), endTime: D(3, 20), now, fulfilment: { orderedAt: D(3, 24), deliveredAt: D(4, 2) }, fmt: lakh, rules: RULES_CAMPAIGN });
 
 export const VIEWS = {
   typical: {
     label: 'Typical',
-    running: [diwali(D(10, 19), 6.4 * L), fortune(D(10, 19), 31200), britannia(D(10, 19), 16000)],
-    completed: [onam(D(10, 19), { orderedAt: D(9, 16), deliveredAt: D(9, 24) }), saffola(D(10, 19))],
+    running: [diwali(D(10, 19), 6.4 * L), bata(D(10, 19), 31200), prestige(D(10, 19), 16000)],
+    completed: [onam(D(10, 19), { orderedAt: D(9, 16), deliveredAt: D(9, 24) }), havells(D(10, 19))],
   },
   start: {
     label: 'Season start',
-    running: [diwali(D(9, 26), 0), fortune(D(9, 26), 0)],
+    running: [diwali(D(9, 26), 0), bata(D(9, 26), 0)],
     completed: [],
   },
   over: {
     label: 'Season over',
-    running: [britannia(D(11, 14), 76000, { end: D(11, 20) })],
-    completed: [diwali(D(11, 14), 11.4 * L, { orderedAt: D(11, 12) }), fortune(D(11, 14), 22000), saffola(D(11, 14))],
+    running: [prestige(D(11, 14), 76000, { end: D(11, 20) })],
+    completed: [diwali(D(11, 14), 11.4 * L, { orderedAt: D(11, 12) }), bata(D(11, 14), 22000), havells(D(11, 14))],
   },
   many: {
     label: 'Many',
-    running: [diwali(D(10, 19), 6.4 * L), fortune(D(10, 19), 31200), britannia(D(10, 19), 16000), parle(D(10, 19), 12500), dabur(D(10, 19), 4000)],
-    completed: [onam(D(10, 19), { orderedAt: D(9, 16), deliveredAt: D(9, 24) }), saffola(D(10, 19)), holi(D(10, 19))],
+    running: [diwali(D(10, 19), 6.4 * L), bata(D(10, 19), 31200), prestige(D(10, 19), 16000), bombay(D(10, 19), 12500), funskool(D(10, 19), 4000)],
+    completed: [onam(D(10, 19), { orderedAt: D(9, 16), deliveredAt: D(9, 24) }), havells(D(10, 19)), holi(D(10, 19))],
   },
   empty: { label: 'Empty', running: [], completed: [] },
 };
 
-// The dock order: running, then completed. `group` tells the dock where the
+// The dock order: running, then completed. `group` tells the docks where the
 // divider goes and which thumbs read as past tense.
 export function schemesFor(viewKey) {
   const v = VIEWS[viewKey] || VIEWS.typical;
