@@ -1,0 +1,219 @@
+// The scheme dock. A floating glass pill near the thumb that holds every
+// scheme as a circular gift photo with its short name. It reads the pager's
+// `pos` directly, so it moves in the same frame as the page.
+//
+// Geometry, content-aware:
+//   - The pill hugs its thumbs and centres itself (like a dock), up to the
+//     screen width minus the margins.
+//   - When every thumb fits, the row stands still and ONE RING glides along it
+//     from thumb to thumb, one PITCH per page of swipe.
+//   - When the thumbs overflow, the row scrolls to keep the focused thumb
+//     centred, clamped at both ends so the pill never shows empty glass; the
+//     ring then holds the centre while the row moves under it. This is the
+//     reference behaviour (the B2C grocery pager) for long lists, and a tab bar
+//     for short ones, with no mode switch the eye can see: both are the same
+//     piecewise-linear map of pos.
+//   - Each thumb scales from 42 to 52 as pos approaches its index; its label
+//     fades from 55% to 100% white.
+//   - The ring's colour is the ACTIVE THEME'S ACCENT, blending across pages.
+//
+// Groups: running schemes first, then completed ones behind a hairline. A
+// completed thumb dims its photo to 70% and carries the green check when a
+// gift was won (the medallion system's one badge). A festive scheme wears its
+// motif as a small accent badge, so "Diwali" is recognisable before the label
+// is read.
+import React, { useEffect, useMemo, useRef } from 'react';
+import { View, Text, Image, Pressable, StyleSheet, Animated, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { F } from '../theme';
+import GiftGlyph from '../gifts/icons';
+import { themeOf } from '../gifts/themes';
+import { STATE } from '../gifts/state';
+import { SETTLED } from './motion';
+
+export const PITCH = 64;
+const PAD = 10;            // glass around the row, left and right
+const THUMB = 52;          // focused photo circle
+const THUMB_MIN = 42;      // resting photo circle
+const RING = THUMB + 8;    // 2px gap + 2px ring, concentric with the thumb
+const LABEL_H = 14;
+const ROW_TOP = 8;
+export const DOCK_H = ROW_TOP + RING + 3 + LABEL_H + 9;   // 94
+export const DOCK_MARGIN = 12;
+
+const GLASS = 'rgba(16,13,30,0.84)';
+const GLASS_EDGE = 'rgba(16,13,30,0)';
+
+// Backdrop blur is a web style RN-web does not compile; a data attribute picks
+// up the rule injected below. Native ignores both.
+if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getElementById('dock-glass')) {
+  const s = document.createElement('style');
+  s.id = 'dock-glass';
+  s.textContent =
+    '[data-glass]{backdrop-filter:blur(22px) saturate(1.35);-webkit-backdrop-filter:blur(22px) saturate(1.35);}' +
+    '[data-noselect]{user-select:none;-webkit-user-select:none;}' +
+    '[data-noselect] img{-webkit-user-drag:none;pointer-events:none;}';
+  document.head.appendChild(s);
+}
+
+// The gift a scheme is recognised by: what its pedestal shows.
+function heroGift(scheme) {
+  const s = scheme.s;
+  if (s.state === STATE.SCHEDULED) return s.top;
+  if (s.started && !s.ended && s.next) return s.next;
+  return s.secured || s.top;
+}
+
+function Thumb({ scheme, i, pos, onPress, first }) {
+  const gift = heroGift(scheme);
+  const th = themeOf(scheme.theme);
+  const done = scheme.group === 'completed';
+  const won = done && Boolean(scheme.s.secured);
+  const range = [i - 1, i, i + 1];
+  const scale = pos.interpolate({ inputRange: range, outputRange: [THUMB_MIN / THUMB, 1, THUMB_MIN / THUMB], extrapolate: 'clamp' });
+  const label = pos.interpolate({ inputRange: range, outputRange: [0.55, 1, 0.55], extrapolate: 'clamp' });
+
+  return (
+    <View style={styles.col}>
+      {first ? <View style={styles.groupLine} /> : null}
+      <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={scheme.title} style={styles.hit}>
+        <Animated.View style={[styles.ringBox, { transform: [{ scale }] }]}>
+          <View style={[styles.thumb, done && styles.thumbDone]}>
+            {gift.voucher ? (
+              <LinearGradient colors={['#0A66E8', '#0847A6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.voucher}>
+                <Text style={styles.voucherText} allowFontScaling={false}>₹</Text>
+              </LinearGradient>
+            ) : gift.image ? (
+              <Image source={gift.image} style={[styles.photo, done && { opacity: 0.7 }]} resizeMode="contain" />
+            ) : (
+              <GiftGlyph kind={gift.icon || 'gift'} size={24} color="#6B6B6B" strokeWidth={1.6} />
+            )}
+            <View pointerEvents="none" style={styles.photoEdge} />
+          </View>
+          {th.motif ? (
+            <View style={[styles.badge, { backgroundColor: th.stage.accent }]}>
+              <GiftGlyph kind={th.motif} size={10} color={th.stage.accentInk} strokeWidth={2} />
+            </View>
+          ) : won ? (
+            <View style={[styles.badge, { backgroundColor: '#177E36' }]}>
+              <GiftGlyph kind="check" size={9} color="#fff" strokeWidth={2.4} />
+            </View>
+          ) : null}
+        </Animated.View>
+        <Animated.Text style={[styles.label, { opacity: label }]} numberOfLines={1} allowFontScaling={false}>
+          {scheme.dockName}
+        </Animated.Text>
+      </Pressable>
+    </View>
+  );
+}
+
+export default function SchemeDock({ schemes, pos, onSelect, panHandlers, width, bottomInset = 0 }) {
+  const n = schemes.length;
+  const rowW = n * PITCH;
+  const pillW = Math.min(width - DOCK_MARGIN * 2, rowW + PAD * 2);
+  const inner = pillW - PAD * 2;
+
+  // rowX(pos) = clamp(centre - pos * PITCH, lo, hi), a piecewise-linear map.
+  // When the row fits, lo >= hi and the row stands still, centred.
+  const { rowX, ringX } = useMemo(() => {
+    let rx;
+    if (rowW <= inner) {
+      rx = new Animated.Value(PAD + (inner - rowW) / 2);
+    } else {
+      const centre = pillW / 2 - PITCH / 2;
+      const hi = PAD;
+      const lo = pillW - PAD - rowW;
+      const p1 = (centre - hi) / PITCH;
+      const p2 = (centre - lo) / PITCH;
+      rx = pos.interpolate({ inputRange: [p1, p2], outputRange: [hi, lo], extrapolate: 'clamp' });
+    }
+    // The ring sits over thumb `pos`: it glides when the row is still, and
+    // holds the centre while the row scrolls under it.
+    return { rowX: rx, ringX: Animated.add(Animated.add(rx, Animated.multiply(pos, PITCH)), (PITCH - RING) / 2) };
+  }, [pos, rowW, inner, pillW]);
+
+  const accents = schemes.map((x) => themeOf(x.theme).stage.accent);
+  const accent = n > 1
+    ? pos.interpolate({ inputRange: schemes.map((_, i) => i), outputRange: accents, extrapolate: 'clamp' })
+    : accents[0] || '#fff';
+
+  const firstDone = schemes.findIndex((x) => x.group === 'completed');
+
+  // The pill lifts in once, with the page.
+  const enter = useRef(new Animated.Value(SETTLED ? 1 : 0)).current;
+  useEffect(() => {
+    if (SETTLED) return;
+    Animated.spring(enter, { toValue: 1, stiffness: 200, damping: 26, mass: 1, delay: 140, useNativeDriver: false }).start();
+  }, [enter]);
+
+  return (
+    <Animated.View
+      pointerEvents="box-none"
+      style={[
+        styles.host,
+        { bottom: DOCK_MARGIN + bottomInset, opacity: enter, transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }] },
+      ]}
+    >
+      <View style={[styles.pill, { width: pillW }]} dataSet={{ glass: 'true', noselect: 'true' }} {...panHandlers}>
+        <View style={styles.hairline} pointerEvents="none" />
+        <Animated.View pointerEvents="none" style={[styles.ring, { borderColor: accent, transform: [{ translateX: ringX }] }]} />
+        <Animated.View style={[styles.row, { width: rowW, transform: [{ translateX: rowX }] }]}>
+          {schemes.map((sc, i) => (
+            <Thumb key={sc.id} scheme={sc} i={i} pos={pos} first={i === firstDone && firstDone > 0} onPress={() => onSelect(i)} />
+          ))}
+        </Animated.View>
+        {rowW > inner ? (
+          <>
+            <LinearGradient colors={[GLASS, GLASS_EDGE]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={[styles.fade, { left: 0 }]} pointerEvents="none" />
+            <LinearGradient colors={[GLASS_EDGE, GLASS]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={[styles.fade, { right: 0 }]} pointerEvents="none" />
+          </>
+        ) : null}
+      </View>
+    </Animated.View>
+  );
+}
+
+const styles = StyleSheet.create({
+  host: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+  pill: {
+    height: DOCK_H,
+    borderRadius: DOCK_H / 2,
+    backgroundColor: GLASS,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.28,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 12,
+  },
+  // A 1px light along the top edge: the refraction line a glass surface shows.
+  hairline: { position: 'absolute', left: 0, right: 0, top: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.10)' },
+  ring: { position: 'absolute', left: 0, top: ROW_TOP, width: RING, height: RING, borderRadius: RING / 2, borderWidth: 2 },
+  row: { position: 'absolute', left: 0, top: ROW_TOP, flexDirection: 'row' },
+  col: { width: PITCH, alignItems: 'center' },
+  hit: { alignItems: 'center', width: PITCH },
+  ringBox: { width: RING, height: RING, alignItems: 'center', justifyContent: 'center' },
+  thumb: { width: THUMB, height: THUMB, borderRadius: THUMB / 2, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  thumbDone: { backgroundColor: '#ECECEC' },
+  photo: { width: THUMB - 10, height: THUMB - 10 },
+  // The image's own edge: pure black at low alpha, never a tinted grey.
+  photoEdge: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, borderRadius: THUMB / 2, borderWidth: 1, borderColor: 'rgba(0,0,0,0.10)' },
+  voucher: { width: THUMB - 12, height: THUMB - 12, borderRadius: (THUMB - 12) / 2, alignItems: 'center', justifyContent: 'center' },
+  voucherText: { color: '#fff', fontFamily: F.bold, fontSize: 18, lineHeight: 22 },
+  badge: {
+    position: 'absolute',
+    right: 1,
+    top: 1,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: 'rgba(16,13,30,1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  label: { marginTop: 3, color: '#fff', fontFamily: F.medium, fontSize: 11, lineHeight: LABEL_H, letterSpacing: 0.1, maxWidth: PITCH - 4, textAlign: 'center' },
+  groupLine: { position: 'absolute', left: 0, top: 14, width: 1, height: RING - 14, backgroundColor: 'rgba(255,255,255,0.16)' },
+  fade: { position: 'absolute', top: 0, bottom: 0, width: 26 },
+});

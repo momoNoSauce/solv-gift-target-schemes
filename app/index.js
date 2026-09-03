@@ -57,6 +57,7 @@ const GIFT_FLOWS = [
   ['SHIP touchpoint: cart', '/ship/cart'],
   ['SHIP touchpoint: order confirmed', '/ship/order-confirmation'],
   ['SHIP touchpoint: order confirmed, slab crossed', '/ship/order-confirmation?win=1'],
+  ['D. My Schemes: scheme pager with the dock (new direction)', '/schemes'],
   ['A. Gift scheme in the current paradigm', '/gift-targets'],
   ['B. Solv My Schemes, Mega Diwali and parallel schemes', '/solv-schemes'],
   ['C. Entry points (banner, PDP, cart, push, WhatsApp)', '/mega-diwali/entries'],

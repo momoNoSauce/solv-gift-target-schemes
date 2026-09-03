@@ -11,6 +11,18 @@ import { C } from '../src/theme';
 const PHONE_W = 412;
 const PHONE_H = 915;
 
+// Capture aid, web only. A hidden tab (a background preview pane, a headless
+// capture) pauses requestAnimationFrame, which freezes every JS-driven Animated
+// value at its first frame. While the document is hidden, frames tick on a
+// 16ms timer instead, so a capture sees the same frames a visible tab would.
+// A visible tab is untouched.
+if (Platform.OS === 'web' && typeof window !== 'undefined' && !window.__rafShim) {
+  window.__rafShim = true;
+  const raf = window.requestAnimationFrame.bind(window);
+  window.requestAnimationFrame = (cb) =>
+    typeof document !== 'undefined' && document.hidden ? setTimeout(() => cb(performance.now()), 16) : raf(cb);
+}
+
 // Crisper text on macOS browsers; native ignores this.
 if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getElementById('font-smoothing')) {
   const s = document.createElement('style');
