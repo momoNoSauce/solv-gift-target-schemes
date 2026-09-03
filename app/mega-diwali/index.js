@@ -829,7 +829,7 @@ const styles = StyleSheet.create({
   dTagText: { color: N.ink, fontFamily: F.bold, fontSize: 13, lineHeight: 16 },
   dTagCaret: { width: 9, height: 9, marginTop: -6, backgroundColor: '#fff', transform: [{ rotate: '45deg' }] },
 
-  securedWrap: { alignItems: 'center', marginTop: 8 },
+  securedWrap: { alignItems: 'center', marginTop: 22 },
 
   barZone: { marginTop: 0, marginHorizontal: 32, height: 34, justifyContent: 'flex-end' },
   barTrack: { height: 10, borderRadius: 5, overflow: 'hidden' },
