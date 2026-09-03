@@ -31,8 +31,8 @@
 // both languages and the layout must survive translation. The app picks the
 // language from the account setting; no toggle renders on this page.
 //
-// Prototype controls are hidden: LONG-PRESS THE SCHEME TITLE to open the state
-// and theme panel. ?state= and ?theme= in the URL work as well.
+// Prototype controls are hidden: TAP THE SCHEME TITLE to toggle the state and
+// theme panel. ?state=, ?theme= and ?demo=1 in the URL work as well.
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Image, Pressable, ScrollView, StyleSheet, Animated, Easing } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -243,7 +243,7 @@ export default function SchemeDetail() {
   // The account's language; the prototype renders English. T.hi proves the fit.
   const t = T.en;
   const [addressConfirmed, setAddressConfirmed] = useState(false);
-  // ?demo=1 opens the state/theme panel on load; long-press the title toggles it.
+  // ?demo=1 opens the state/theme panel on load; tapping the title toggles it.
   const [demoOpen, setDemoOpen] = useState(params.demo === '1');
 
   const stateKey = SCEN[params.state] ? params.state : 'earned';
@@ -386,8 +386,8 @@ export default function SchemeDetail() {
             </Pressable>
           </View>
 
-          {/* Long-press the title for the prototype's state/theme panel. */}
-          <Pressable onLongPress={() => setDemoOpen((v) => !v)} delayLongPress={300}>
+          {/* Tap the title to toggle the prototype's state/theme panel. */}
+          <Pressable onPress={() => setDemoOpen((v) => !v)}>
             <View style={styles.titleRow}>
               {/* The motif hangs OUTSIDE the centered text, so the title shares
                   one axis with every centered block below it. */}
