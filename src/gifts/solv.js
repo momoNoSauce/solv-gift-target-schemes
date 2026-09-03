@@ -512,9 +512,9 @@ export function solvSchemeCard(s, { title, theme = 'default', fmt, money }) {
   // whole ladder of a single-slab scheme.
   const tail = `to win the ${s.next.shortName}`;
   const sentence = s.nearSlab
-    ? { pre: 'Only ', val: money(s.remaining), post: ' left', tail, tone: 'urgent' }
+    ? { pre: 'Buy just ', val: money(s.remaining), post: ' more', tail, tone: 'urgent' }
     : s.currentValue > 0
-    ? { val: money(s.remaining), post: ' more', tail }
+    ? { pre: 'Buy ', val: money(s.remaining), post: ' more', tail }
     : { pre: 'Buy for ', val: money(s.next.at), tail };
 
   return {

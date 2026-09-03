@@ -116,8 +116,8 @@ const T = {
     topGift: 'TOP GIFT',
     wonTop: 'YOU WON THE TOP GIFT',
     securedRow: (name) => `You've qualified for the ${name}`,
-    morePrefix: '', moreSuffix: ' more',
-    onlyPrefix: 'Only ', onlySuffix: ' left',
+    morePrefix: 'Buy ', moreSuffix: ' more',
+    onlyPrefix: 'Buy just ', onlySuffix: ' more',
     rest: (next) => `to win the ${next}`,
     finalBought: (amt) => `Final buying: ${amt}`,
     cta: () => 'View Eligible Products',
@@ -153,8 +153,8 @@ const T = {
     topGift: 'टॉप गिफ़्ट',
     wonTop: 'आपने टॉप गिफ़्ट जीता',
     securedRow: (name) => `आपने ${name} के लिए क्वालिफ़ाई किया`,
-    morePrefix: '', moreSuffix: ' और चाहिए',
-    onlyPrefix: 'सिर्फ़ ', onlySuffix: ' और',
+    morePrefix: '', moreSuffix: ' और ख़रीदें',
+    onlyPrefix: 'बस ', onlySuffix: ' और ख़रीदें',
     rest: (next) => `और ${next} जीतें`,
     finalBought: (amt) => `कुल ख़रीदारी: ${amt}`,
     cta: () => 'एलिजिबल प्रोडक्ट देखें',
@@ -289,8 +289,8 @@ export default function SchemeDetail() {
 
   // Staged entrance: label, tile, name, bar sweep, amount, CTA. 90ms apart,
   // re-run when the scenario or the theme changes.
-  const intro = useRef([...Array(7)].map(() => new Animated.Value(STATIC ? 1 : 0))).current;
-  const [labelA, tileA, nameA, boughtA, barA, amountA, ctaA] = intro;
+  const intro = useRef([...Array(6)].map(() => new Animated.Value(STATIC ? 1 : 0))).current;
+  const [labelA, tileA, nameA, barA, amountA, ctaA] = intro;
   useEffect(() => {
     if (STATIC) return;
     intro.forEach((v) => v.setValue(0));
@@ -298,7 +298,6 @@ export default function SchemeDetail() {
       Animated.timing(labelA, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
       Animated.spring(tileA, { toValue: 1, friction: 7, tension: 60, useNativeDriver: false }),
       Animated.timing(nameA, { toValue: 1, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
-      Animated.timing(boughtA, { toValue: 1, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
       Animated.timing(barA, { toValue: 1, duration: 700, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
       Animated.timing(amountA, { toValue: 1, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
       Animated.timing(ctaA, { toValue: 1, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
@@ -830,7 +829,7 @@ const styles = StyleSheet.create({
   dTagText: { color: N.ink, fontFamily: F.bold, fontSize: 13, lineHeight: 16 },
   dTagCaret: { width: 9, height: 9, marginTop: -6, backgroundColor: '#fff', transform: [{ rotate: '45deg' }] },
 
-  securedWrap: { alignItems: 'center', marginTop: 14 },
+  securedWrap: { alignItems: 'center', marginTop: 8 },
 
   barZone: { marginTop: 0, marginHorizontal: 32, height: 34, justifyContent: 'flex-end' },
   barTrack: { height: 10, borderRadius: 5, overflow: 'hidden' },
@@ -840,7 +839,7 @@ const styles = StyleSheet.create({
   barEnds: { marginTop: 6, marginHorizontal: 32, flexDirection: 'row', justifyContent: 'space-between' },
   barEnd: { fontFamily: F.medium, fontSize: 11, lineHeight: 15 },
 
-  bigMore: { marginTop: 24, textAlign: 'center', fontFamily: F.bold, fontSize: 30, lineHeight: 36 },
+  bigMore: { marginTop: 12, textAlign: 'center', fontFamily: F.bold, fontSize: 30, lineHeight: 36 },
   bigMoreWord: { fontFamily: F.medium, fontSize: 17, lineHeight: 36 },
   bigRest: { marginTop: 2, textAlign: 'center', fontFamily: F.medium, fontSize: 14, lineHeight: 19, paddingHorizontal: 24 },
 
