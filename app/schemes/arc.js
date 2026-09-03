@@ -116,6 +116,8 @@ export default function MySchemesArc() {
                     first={i === firstIndex}
                     offset={offsets[i]}
                     bottomPad={24}
+                    compact
+                    edge
                     onTitlePress={() => setDemoOpen((v) => !v)}
                     onSeeRunning={sc.group === 'completed' ? () => goTo(firstRunning) : null}
                   />

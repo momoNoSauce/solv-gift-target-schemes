@@ -178,6 +178,23 @@ eye sees no mode switch, because both are the same map.
 - The focused label is 100 % white; the others are 55 %.
 - Each thumb is a 64 px wide button with the scheme title as its accessibility label.
 
+## The fold (version B)
+
+The sheet's bottom edge must say "more below" without a hint label. Three moves:
+
+1. The stage is compact inside the sheet (pedestal 204 px, tile 148 px, tighter tag
+   and ask spacing), about 60 px shorter, so a row of the list is sliced at the fold
+   on every scheme type. A sliced row is the strongest signifier there is.
+2. The fold is a material. A 64 px band at the sheet's bottom dissolves the content
+   into the card's colour (on the web it also blurs what passes under it, 8 px under a
+   gradient mask). Its opacity tracks the scroll left below: full while there is
+   more, gone over the last 48 px. The edge tells the truth instead of hinting.
+3. On native the platform's own scroll indicator flashes once, 350 ms after arrival.
+
+Not done, on purpose: a pinned CTA bar (it stacks about 240 px of chrome above the
+arc and rewrites the page's ending), a chevron or "scroll for details" label, and a
+peek nudge on arrival.
+
 ## Gift list
 
 Every gift is one row: slab value, 44 px photo, name, and a label on the right. The

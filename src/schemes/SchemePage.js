@@ -16,7 +16,7 @@
 // The page draws no back button; the pager owns the fixed one. Tapping the
 // scheme title calls `onTitlePress` (the prototype's demo panel).
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Image, Pressable, ScrollView, StyleSheet, Animated, Easing } from 'react-native';
+import { View, Text, Image, Pressable, ScrollView, StyleSheet, Animated, Easing, Platform } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Ellipse } from 'react-native-svg';
@@ -77,7 +77,12 @@ const rise = (v, d = 10) => ({
   transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [d, 0] }) }],
 });
 
-export default function SchemePage({ scheme, active, first, offset, bottomPad, onTitlePress, onSeeRunning, lang = 'en' }) {
+// `compact` tightens the stage for a page that lives inside a sheet, so a row of
+// the list is always sliced at the sheet's fold. `edge` draws the fold as a
+// material: a 64 px band where content dissolves into the card's colour, whose
+// opacity tracks the scroll left below; it is full while there is more, and gone
+// at the end. On the web the band also blurs what passes under it.
+export default function SchemePage({ scheme, active, first, offset, bottomPad, onTitlePress, onSeeRunning, lang = 'en', compact = false, edge = false }) {
   const t = T[lang] || T.en;
   const th = themeOf(scheme.theme);
   const st = th.stage;
@@ -86,6 +91,23 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
   const slab = scheme.fmt;
   const money = scheme.money;
   const [addressConfirmed, setAddressConfirmed] = useState(false);
+
+  // The fold. scrollY drives the edge band; the sizes tell where the end is.
+  const scrollRef = useRef(null);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [scrollMax, setScrollMax] = useState(0);
+  const sizes = useRef({ content: 0, view: 0 });
+  const onSizes = () => setScrollMax(Math.max(0, sizes.current.content - sizes.current.view));
+  const edgeOpacity = scrollMax > 8
+    ? scrollY.interpolate({ inputRange: [Math.max(0, scrollMax - 48), scrollMax], outputRange: [1, 0], extrapolate: 'clamp' })
+    : 0;
+  // On arrival the platform's own indicator flashes once (native only).
+  useEffect(() => {
+    if (active && Platform.OS !== 'web') {
+      const id = setTimeout(() => scrollRef.current?.flashScrollIndicators?.(), 350);
+      return () => clearTimeout(id);
+    }
+  }, [active]);
 
   const running = s.started && !s.ended;
   const withDelivery = s.state === STATE.ENDED_PENDING || s.state === STATE.GIFT_ORDERED || s.state === STATE.DELIVERED;
@@ -210,10 +232,24 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
 
   return (
     <View style={[styles.page, missed && { backgroundColor: st.ground2 }]}>
-      <ScrollView contentContainerStyle={[{ paddingBottom: missed ? 0 : bottomPad }, missed && { flexGrow: 1 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={[{ paddingBottom: missed ? 0 : bottomPad }, missed && { flexGrow: 1 }]}
+        showsVerticalScrollIndicator={Platform.OS !== 'web'}
+        scrollEventThrottle={16}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+        onContentSizeChange={(_, h) => {
+          sizes.current.content = h;
+          onSizes();
+        }}
+        onLayout={(e) => {
+          sizes.current.view = e.nativeEvent.layout.height;
+          onSizes();
+        }}
+      >
         {/* ——— The stage. A missed scheme has nothing below it, so its stage
             fills the page: one dark room, one line, one way out. ——— */}
-        <View style={[styles.stage, missed && { flex: 1 }]}>
+        <View style={[styles.stage, compact && styles.stageCompact, missed && { flex: 1 }]}>
           <StageScene stage={st} festive={festive} focusY={missed ? 0.2 : 0.44} />
           <View style={styles.topBar} />
 
@@ -243,7 +279,7 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
             </View>
           ) : (
             <>
-              <Animated.View style={[styles.pedestal, lag]}>
+              <Animated.View style={[styles.pedestal, compact && styles.pedestalCompact, lag]}>
                 <Svg width="100%" height="100%" viewBox="0 0 412 250" preserveAspectRatio="xMidYMid slice" style={StyleSheet.absoluteFill} pointerEvents="none">
                   <Ellipse cx="206" cy="234" rx="76" ry="9" fill="#000" opacity="0.3" />
                 </Svg>
@@ -261,12 +297,12 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
                   {hero.label}
                 </Animated.Text>
                 <Animated.View
-                  style={[styles.tile, { opacity: tileA, transform: [{ scale: tileA.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}
+                  style={[styles.tile, compact && styles.tileCompact, { opacity: tileA, transform: [{ scale: tileA.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}
                 >
                   {hero.gift.voucher ? (
-                    <GiftThumb gift={hero.gift} size={128} />
+                    <GiftThumb gift={hero.gift} size={compact ? 112 : 128} />
                   ) : hero.gift.image ? (
-                    <Image source={hero.gift.image} style={styles.tileImg} resizeMode="contain" />
+                    <Image source={hero.gift.image} style={[styles.tileImg, compact && styles.tileImgCompact]} resizeMode="contain" />
                   ) : (
                     <GiftGlyph kind={hero.gift.icon} size={80} color={st.accentDeep} strokeWidth={1.2} />
                   )}
@@ -279,7 +315,7 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
               {showBar ? (
                 <>
                   {trackW > 0 && localPct > 0 ? (
-                    <View style={styles.dTagRow}>
+                    <View style={[styles.dTagRow, compact && { marginTop: 8 }]}>
                       <Animated.View
                         style={[
                           styles.tagWrap,
@@ -302,7 +338,7 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
                       </Animated.View>
                     </View>
                   ) : (
-                    <View style={styles.dTagRow} />
+                    <View style={[styles.dTagRow, compact && { marginTop: 8 }]} />
                   )}
 
                   <View style={styles.barZone}>
@@ -519,6 +555,13 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
         ) : null}
       </ScrollView>
 
+      {edge ? (
+        <Animated.View pointerEvents="none" style={[styles.edge, { opacity: edgeOpacity }]}>
+          <View style={styles.edgeBlur} dataSet={{ dissolve: 'true' }} />
+          <LinearGradient colors={['rgba(247,247,247,0)', 'rgba(247,247,247,0.88)', N.bg]} locations={[0, 0.6, 1]} style={StyleSheet.absoluteFill} />
+        </Animated.View>
+      ) : null}
+
       {confetti ? (
         <Animated.View style={[styles.confetti, { opacity: confettiA }]} pointerEvents="none">
           <LottieView source={RIMG.ribbon} autoPlay loop={false} style={{ flex: 1 }} />
@@ -545,6 +588,7 @@ const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: N.bg },
 
   stage: { paddingBottom: 28, overflow: 'hidden' },
+  stageCompact: { paddingBottom: 20 },
   // Room for the pager's fixed back button (44px hit, 14px from the top).
   topBar: { height: 14 + 44 - 10 },
   titleRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 0 },
@@ -568,6 +612,7 @@ const styles = StyleSheet.create({
   securedText: { fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
 
   pedestal: { height: 236, alignItems: 'center', justifyContent: 'center', marginTop: 0 },
+  pedestalCompact: { height: 204 },
   sparkleL: { position: 'absolute', left: '20%', top: 64 },
   sparkleR: { position: 'absolute', right: '22%', top: 148 },
   heroLabel: { position: 'absolute', top: 18, fontFamily: F.bold, fontSize: 11, lineHeight: 15, letterSpacing: 1.2 },
@@ -585,7 +630,9 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 12 },
   },
+  tileCompact: { width: 148, height: 148, marginTop: 14, borderRadius: 22 },
   tileImg: { width: 128, height: 128, borderRadius: 12 },
+  tileImgCompact: { width: 112, height: 112 },
   giftName: { marginTop: 2, textAlign: 'center', fontFamily: F.bold, fontSize: 17, lineHeight: 22, paddingHorizontal: 24, letterSpacing: 0.1 },
   heroNote: { marginTop: 12, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: 44 },
   finalBought: { marginTop: 8, textAlign: 'center', fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
@@ -670,4 +717,7 @@ const styles = StyleSheet.create({
   confirmedText: { fontFamily: F.medium, fontSize: 13, lineHeight: 16, color: N.green },
 
   confetti: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
+  // The fold as a material: content dissolves into the card over 64 px.
+  edge: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 64 },
+  edgeBlur: { ...StyleSheet.absoluteFillObject },
 });

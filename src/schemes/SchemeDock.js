@@ -53,7 +53,9 @@ if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getEle
   s.textContent =
     '[data-glass]{backdrop-filter:blur(22px) saturate(1.35);-webkit-backdrop-filter:blur(22px) saturate(1.35);}' +
     '[data-noselect]{user-select:none;-webkit-user-select:none;}' +
-    '[data-noselect] img{-webkit-user-drag:none;pointer-events:none;}';
+    '[data-noselect] img{-webkit-user-drag:none;pointer-events:none;}' +
+    '[data-dissolve]{backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);' +
+    'mask-image:linear-gradient(to bottom,rgba(0,0,0,0),rgba(0,0,0,1) 70%);-webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,0),rgba(0,0,0,1) 70%);}';
   document.head.appendChild(s);
 }
 
