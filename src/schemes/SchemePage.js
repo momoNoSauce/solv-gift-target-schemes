@@ -441,31 +441,17 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
                 const isPassed = s.secured && tier.at < s.secured.at;
                 const isNext = running && s.next && tier.at === s.next.at;
 
-                if (isTop && !isWon) {
-                  return (
-                    <View key={tier.at} style={styles.topCard}>
-                      <StageScene stage={st} festive={festive} focusY={0.55} />
-                      <View style={styles.topLabelRow}>
-                        {festive ? <GiftGlyph kind="sparkle" size={14} color={st.accent} /> : null}
-                        <Text style={[styles.topLabel, { color: st.accent }]} allowFontScaling={false}>{t.topGift}</Text>
-                        {festive ? <GiftGlyph kind="sparkle" size={14} color={st.accent} /> : null}
-                      </View>
-                      <View style={styles.topStage}>
-                        {tier.image ? (
-                          <Image source={tier.image} style={styles.topImage} resizeMode="contain" />
-                        ) : (
-                          <GiftGlyph kind={tier.icon} size={64} color={st.accentDeep} strokeWidth={1.3} />
-                        )}
-                      </View>
-                      <Text style={[styles.topName, { color: st.ink }]} allowFontScaling={false}>{tier.name}</Text>
-                      <Text style={[styles.topAt, TABULAR, { color: st.accent }]} allowFontScaling={false}>{slab(tier.at)}</Text>
-                    </View>
-                  );
-                }
-
+                // The top gift is a row like every other gift. Its rank shows as
+                // emphasis inside the same anatomy: the theme's tint behind the row,
+                // the slab value and label in the accent, a sparkle on a festive
+                // scheme. One component, one rhythm, no card inside the card.
+                const isTopOpen = isTop && !isWon;
                 return (
-                  <View key={tier.at} style={[styles.row, i > 0 && styles.rowDivider, isWon && styles.rowWon, isPassed && { opacity: 0.45 }]}>
-                    <Text style={[styles.rowAt, TABULAR, isNext && { color: st.accentDeep }]} allowFontScaling={false}>{slab(tier.at)}</Text>
+                  <View
+                    key={tier.at}
+                    style={[styles.row, i > 0 && styles.rowDivider, isWon && styles.rowWon, isTopOpen && [styles.rowTop, { backgroundColor: th.card.tint }], isPassed && { opacity: 0.45 }]}
+                  >
+                    <Text style={[styles.rowAt, TABULAR, (isNext || isTopOpen) && { color: st.accentDeep }]} allowFontScaling={false}>{slab(tier.at)}</Text>
                     <View style={styles.rowThumb}>
                       {tier.image ? (
                         <Image source={tier.image} style={{ width: 34, height: 34 }} resizeMode="contain" />
@@ -480,6 +466,11 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
                       </View>
                     ) : isNext ? (
                       <Text style={[styles.nextText, { color: st.accentDeep }]} allowFontScaling={false}>{t.next}</Text>
+                    ) : isTopOpen ? (
+                      <View style={styles.topLabelRow}>
+                        {festive ? <GiftGlyph kind="sparkle" size={12} color={st.accentDeep} /> : null}
+                        <Text style={[styles.nextText, { color: st.accentDeep }]} allowFontScaling={false}>{t.topGift}</Text>
+                      </View>
                     ) : null}
                   </View>
                 );
@@ -642,13 +633,9 @@ const styles = StyleSheet.create({
   wonChipText: { fontFamily: F.bold, fontSize: 10, lineHeight: 13, letterSpacing: 0.4 },
   nextText: { fontFamily: F.bold, fontSize: 10, lineHeight: 13, letterSpacing: 0.6 },
 
-  topCard: { marginVertical: 10, marginHorizontal: -14, paddingHorizontal: 14, paddingVertical: 16, alignItems: 'center', overflow: 'hidden' },
-  topLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  topLabel: { fontFamily: F.bold, fontSize: 11, lineHeight: 15, letterSpacing: 1.2 },
-  topStage: { marginTop: 12, alignSelf: 'stretch', height: 132, borderRadius: 12, backgroundColor: N.paper, alignItems: 'center', justifyContent: 'center' },
-  topImage: { width: 150, height: 114 },
-  topName: { marginTop: 10, textAlign: 'center', fontFamily: F.bold, fontSize: 15, lineHeight: 19 },
-  topAt: { marginTop: 2, fontFamily: F.bold, fontSize: 13, lineHeight: 17 },
+  // The top gift's row: the theme's tint, full-bleed inside the card like the won row.
+  rowTop: { marginHorizontal: -14, paddingHorizontal: 14 },
+  topLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 
   rulesCard: { ...CARD, marginTop: 8, paddingHorizontal: 14 },
   rulesDesc: { paddingVertical: 11, fontFamily: F.regular, fontSize: 12, lineHeight: 16, color: N.sub },

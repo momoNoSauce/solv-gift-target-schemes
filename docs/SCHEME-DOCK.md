@@ -173,6 +173,15 @@ eye sees no mode switch, because both are the same map.
 - The focused label is 100 % white; the others are 55 %.
 - Each thumb is a 64 px wide button with the scheme title as its accessibility label.
 
+## Gift list
+
+Every gift is one row: slab value, 44 px photo, name, and a label on the right. The
+top gift uses the same row. Its rank shows as emphasis inside that anatomy: the
+theme's tint behind the row (the way the won row is tinted green), the slab value and
+the label in the accent, and a sparkle before "TOP GIFT" on a festive scheme. The
+earlier top-gift card (a lit scene with a 150 px photo inside the list) is gone: it
+read as a second component inside the card.
+
 ## Page motion contract
 
 - The page that opens first plays the full staged intro (label, tile, name, bar
