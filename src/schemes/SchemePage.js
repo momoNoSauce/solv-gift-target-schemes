@@ -280,8 +280,14 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
           ) : (
             <>
               <Animated.View style={[styles.pedestal, compact && styles.pedestalCompact, lag]}>
-                <Svg width="100%" height="100%" viewBox="0 0 412 250" preserveAspectRatio="xMidYMid slice" style={StyleSheet.absoluteFill} pointerEvents="none">
-                  <Ellipse cx="206" cy="234" rx="76" ry="9" fill="#000" opacity="0.3" />
+                {/* The contact shadow sits 11 px under the tile's bottom edge in both
+                    stage sizes: 236/168 (full) and 204/148 (compact). */}
+                <Svg width="100%" height="100%" viewBox={compact ? '0 0 412 204' : '0 0 412 250'} preserveAspectRatio="xMidYMid slice" style={StyleSheet.absoluteFill} pointerEvents="none">
+                  {compact ? (
+                    <Ellipse cx="206" cy="194" rx="68" ry="8" fill="#000" opacity="0.3" />
+                  ) : (
+                    <Ellipse cx="206" cy="234" rx="76" ry="9" fill="#000" opacity="0.3" />
+                  )}
                 </Svg>
                 {festive ? (
                   <>
