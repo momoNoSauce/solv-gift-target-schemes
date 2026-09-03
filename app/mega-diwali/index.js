@@ -94,6 +94,12 @@ const SCEN_LABELS = {
 // theme demo so a repainted page does not say "Diwali" in Onam colors.
 const DEMO_TITLES = { default: 'Solv Growth Scheme', diwali: 'Mega Diwali Scheme', onam: 'Onam Mega Scheme', holi: 'Holi Bumper Scheme' };
 
+// SchemeItemRules for the demo scheme, the shape the app's createTable() flattens.
+const RULES = {
+  included: ['Lifestyle products'],
+  excluded: ['Consumer Electronics'],
+};
+
 const DELIVER_BY = '21 Nov 2026';
 const ADDRESS = { shop: 'Sri Lakshmi Stores', line: '12, Gandhi Bazaar Main Road, Basavanagudi, Bengaluru 560004' };
 const ORDER_NO = 'Amazon order 408-5561234-7789045';
@@ -130,6 +136,10 @@ const T = {
     orderedNote: (by) => `On the way to your shop. Arrives by ${by}.`,
     deliveredNote: (d) => `Delivered to your shop on ${d}.`,
     giftList: 'GIFT LIST',
+    rulesTitle: 'ELIGIBLE PRODUCTS',
+    rulesDesc: 'Following company/brand/category/products are eligible',
+    eligible: 'Eligible',
+    notEligible: 'Not eligible',
     next: 'NEXT',
     steps: ['Won', 'Ordered', 'On the way', 'Delivered'],
     shipsHere: 'Your gift ships here',
@@ -138,7 +148,6 @@ const T = {
     confirmed: 'Address confirmed',
     facts: (ladder, deliverBy) => [
       ['gift', 'One gift per shop: the highest slab you cross'],
-      ['check', `Only ${ladder} products count`],
       ['truck', `Amazon delivers to your shop by ${deliverBy}`],
     ],
   },
@@ -167,6 +176,10 @@ const T = {
     orderedNote: (by) => `आपकी दुकान की ओर रवाना। ${by} तक पहुँचेगा।`,
     deliveredNote: (d) => `${d} को आपकी दुकान पर डिलीवर हुआ।`,
     giftList: 'गिफ़्ट लिस्ट',
+    rulesTitle: 'एलिजिबल प्रोडक्ट',
+    rulesDesc: 'ये कंपनी/ब्रांड/कैटेगरी/प्रोडक्ट एलिजिबल हैं',
+    eligible: 'एलिजिबल',
+    notEligible: 'एलिजिबल नहीं',
     next: 'अगला',
     steps: ['जीता', 'ऑर्डर हुआ', 'रास्ते में', 'डिलीवर'],
     shipsHere: 'आपका गिफ़्ट यहाँ आएगा',
@@ -175,7 +188,6 @@ const T = {
     confirmed: 'पता कन्फ़र्म हो गया',
     facts: (ladder, deliverBy) => [
       ['gift', '1 दुकान, 1 गिफ़्ट: जो सबसे ऊँचा स्लैब पार करें'],
-      ['check', `सिर्फ़ ${ladder} प्रोडक्ट गिने जाएँगे`],
       ['truck', `Amazon से डिलीवरी, ${deliverBy} तक`],
     ],
   },
@@ -693,6 +705,29 @@ export default function SchemeDetail() {
         </>
         )}
 
+        {/* Eligible products: the app's target_scheme_rule table (name |
+            Eligible / Not eligible), restyled to this page's card language. */}
+        {missed ? null : (
+          <>
+            <Text style={styles.listLabel} allowFontScaling={false}>{t.rulesTitle}</Text>
+            <View style={styles.rulesCard}>
+              <Text style={styles.rulesDesc} allowFontScaling={false}>{t.rulesDesc}</Text>
+              {RULES.included.map((name) => (
+                <View key={name} style={styles.ruleRow}>
+                  <Text style={styles.ruleName} allowFontScaling={false}>{name}</Text>
+                  <Text style={[styles.ruleStatus, { color: N.green }]} allowFontScaling={false}>{t.eligible}</Text>
+                </View>
+              ))}
+              {RULES.excluded.map((name) => (
+                <View key={name} style={styles.ruleRow}>
+                  <Text style={styles.ruleName} allowFontScaling={false}>{name}</Text>
+                  <Text style={[styles.ruleStatus, { color: '#C2410C' }]} allowFontScaling={false}>{t.notEligible}</Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+
         {/* The close, at the page's end: under the top gift, above the terms.
             The light zone uses the CARD accent tokens (the stage accent can be
             white on the default theme and would vanish here). */}
@@ -911,6 +946,25 @@ const styles = StyleSheet.create({
   topImage: { width: 150, height: 114 },
   topName: { marginTop: 10, textAlign: 'center', fontFamily: F.bold, fontSize: 15, lineHeight: 19 },
   topAt: { marginTop: 2, fontFamily: F.bold, fontSize: 13, lineHeight: 17 },
+
+  rulesCard: {
+    marginTop: 8,
+    marginHorizontal: 16,
+    backgroundColor: N.paper,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(17,24,39,0.06)',
+    paddingHorizontal: 14,
+    shadowColor: '#0B1B33',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
+  },
+  rulesDesc: { paddingVertical: 11, fontFamily: F.regular, fontSize: 12, lineHeight: 16, color: N.sub },
+  ruleRow: { flexDirection: 'row', alignItems: 'center', minHeight: 44, gap: 12, borderTopWidth: 1, borderTopColor: '#F2F3F5' },
+  ruleName: { flex: 1, fontFamily: F.medium, fontSize: 13, lineHeight: 17, color: N.ink },
+  ruleStatus: { fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
 
   facts: {
     marginTop: 12,
