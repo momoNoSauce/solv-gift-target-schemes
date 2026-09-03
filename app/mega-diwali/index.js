@@ -41,7 +41,7 @@ import LottieView from 'lottie-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Ellipse } from 'react-native-svg';
 import { F } from '../../src/theme';
-import { IconBack } from '../../src/icons';
+import { IconBack, IconRunningMan, IconTargetFlag } from '../../src/icons';
 import GiftGlyph from '../../src/gifts/icons';
 import StageScene from '../../src/gifts/Scene';
 import { usePressScale } from '../../src/gifts/solv';
@@ -111,10 +111,11 @@ const T = {
     daysLeft: (days) => `${days} days left`,
     endedLine: (d) => `Ended ${d}`,
     youWon: 'YOU WON',
+    qualified: 'QUALIFIED',
     nextGift: 'NEXT GIFT',
     topGift: 'TOP GIFT',
     wonTop: 'YOU WON THE TOP GIFT',
-    securedRow: (name) => `You won the ${name}`,
+    securedRow: (name) => `You've qualified for the ${name}`,
     boughtLabel: (ladder) => `BOUGHT SO FAR \u2022 ${ladder.toUpperCase()} ONLY`,
     morePrefix: '', moreSuffix: ' more',
     onlyPrefix: 'Only ', onlySuffix: ' left',
@@ -148,10 +149,11 @@ const T = {
     daysLeft: (days) => `${days} दिन बाक़ी`,
     endedLine: (d) => `${d} को ख़त्म`,
     youWon: 'आपने जीता',
+    qualified: 'क्वालिफ़ाइड',
     nextGift: 'अगला गिफ़्ट',
     topGift: 'टॉप गिफ़्ट',
     wonTop: 'आपने टॉप गिफ़्ट जीता',
-    securedRow: (name) => `आपने ${name} जीता`,
+    securedRow: (name) => `आपने ${name} के लिए क्वालिफ़ाई किया`,
     boughtLabel: () => 'अब तक की ख़रीदारी',
     morePrefix: '', moreSuffix: ' और चाहिए',
     onlyPrefix: 'सिर्फ़ ', onlySuffix: ' और',
@@ -478,6 +480,8 @@ export default function SchemeDetail() {
                     </View>
                   ) : null}
 
+                  {/* The rail speaks the app's language: the runner is the shop
+                      (white: measured), the flag is the target (accent: the ask). */}
                   <View style={styles.barZone}>
                     <View
                       style={[styles.barTrack, { backgroundColor: st.track }]}
@@ -490,17 +494,26 @@ export default function SchemeDetail() {
                         ]}
                       />
                     </View>
-                    {trackW > 0 && localPct > 0 && localPct < 0.97 ? (
+                    {trackW > 0 ? (
+                      <View style={[styles.flagD, { left: trackW - 14 }]}>
+                        <IconTargetFlag width={12} height={22} color={st.accent} />
+                      </View>
+                    ) : null}
+                    {trackW > 0 && localPct > 0 ? (
                       <Animated.View
                         style={[
-                          styles.knob,
+                          styles.runnerD,
                           {
-                            borderColor: st.accent,
                             opacity: barA,
-                            left: barA.interpolate({ inputRange: [0, 1], outputRange: [-7, localPct * trackW - 7] }),
+                            left: barA.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [0, Math.min(Math.max(localPct * trackW - 11, 0), trackW - 26)],
+                            }),
                           },
                         ]}
-                      />
+                      >
+                        <IconRunningMan height={22} color="#fff" />
+                      </Animated.View>
                     ) : null}
                   </View>
                   <Animated.View style={[styles.barEnds, { opacity: barA }]}>
@@ -678,8 +691,12 @@ export default function SchemeDetail() {
                 <Text style={styles.rowName} numberOfLines={2} allowFontScaling={false}>{tier.name}</Text>
                 {isWon ? (
                   // One meaning per color: won is always green, in every theme.
+                  // Mid-scheme a higher slab can still replace this tier, so the
+                  // chip says QUALIFIED while running and YOU WON once it is final.
                   <View style={[styles.wonChip, { backgroundColor: N.green }]}>
-                    <Text style={[styles.wonChipText, { color: '#fff' }]} allowFontScaling={false}>{t.youWon}</Text>
+                    <Text style={[styles.wonChipText, { color: '#fff' }]} allowFontScaling={false}>
+                      {running ? t.qualified : t.youWon}
+                    </Text>
                   </View>
                 ) : isNext ? (
                   <Text style={[styles.nextText, { color: st.accentDeep }]} allowFontScaling={false}>{t.next}</Text>
@@ -817,22 +834,11 @@ const styles = StyleSheet.create({
 
   securedWrap: { alignItems: 'center', marginTop: 14 },
 
-  barZone: { marginTop: 0, marginHorizontal: 32, height: 24, justifyContent: 'center' },
+  barZone: { marginTop: 0, marginHorizontal: 32, height: 34, justifyContent: 'flex-end' },
   barTrack: { height: 10, borderRadius: 5, overflow: 'hidden' },
   barFill: { height: 10, borderRadius: 5 },
-  knob: {
-    position: 'absolute',
-    top: 12 - 7,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#fff',
-    borderWidth: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-  },
+  runnerD: { position: 'absolute', bottom: 8 },
+  flagD: { position: 'absolute', bottom: 8 },
   barEnds: { marginTop: 6, marginHorizontal: 32, flexDirection: 'row', justifyContent: 'space-between' },
   barEnd: { fontFamily: F.medium, fontSize: 11, lineHeight: 15 },
 

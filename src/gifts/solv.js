@@ -1,19 +1,17 @@
 // Solv app scheme-card system.
 //
-// The card is composed around two objects, because the scheme is about them:
-//   1. the AMOUNT, the largest text on the card (what the shop must still buy),
-//   2. the GIFT, a large photo on a tinted showcase tile (what they get for it).
-// Everything else supports those two: a one-line payoff under the amount, a
-// meter with a knob, the slab values, a "You won" confirmation once a slab is
-// crossed, and a strip that shows the whole ladder at a glance.
+// Hierarchy: the TITLE is the largest text on the card; the ask reads as one
+// sentence under it ("₹3,60,000 more to win the Soundbar", amount in bold).
+// Progress speaks the app's own language: a RUNNING MAN on the fill, a FLAG
+// planted at the target, the next gift as a small medallion above the flag,
+// and the bought amount as a value tag riding the runner.
 //
 // One anatomy for every scheme, so the list reads as one page:
 //   [festive header band]  only a themed scheme wears it (scene + motif)
 //   [plain title row]      the default scheme's title + days chip
-//   left: won row, amount, payoff   right: the gift showcase
-//   the meter, the slab values, the gift strip
-// The card BODY is always white; a theme paints the band, the meter's fill and
-// the showcase tint. Body text stays ink and grey on every card.
+//   the ask sentence, the rail (runner, flag, medallion), the slab values,
+//   the "You won" line BELOW the progress, the whole-ladder strip
+// The card BODY is always white; a theme paints the band and the rail's fill.
 //
 // SOLV.blue is an assumption: replace with the real Solv brand tokens at build.
 import React, { useEffect, useRef, useState } from 'react';
@@ -21,6 +19,7 @@ import { View, Text, Image, Pressable, StyleSheet, Animated, Easing } from 'reac
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { F } from '../theme';
+import { IconRunningMan, IconTargetFlag } from '../icons';
 import GiftGlyph from './icons';
 import { STATE } from './state';
 import { themeOf } from './themes';
@@ -44,6 +43,11 @@ export const SOLV = {
 // edge on any surface (never a tinted grey).
 const PHOTO_EDGE = 'rgba(0,0,0,0.08)';
 const TABULAR = { fontVariant: ['tabular-nums'] };
+
+// Rail geometry: the flag (the target) plants RAIL_END px in from the right so
+// the medallion above it stays inside the card.
+const RAIL_END = 18;
+const MEDAL = 36;
 
 // A voucher has no product photo; it renders as a small voucher card, never as a
 // line glyph. `gift.voucher` carries the amount label.
@@ -111,12 +115,12 @@ export function usePressScale(to = 0.98) {
 
 // One scheme card. `card` comes from solvSchemeCard():
 //   theme, title, chip: { text, tone: 'time'|'good'|'muted' }
-//   won: { short } | null                      running confirmation row
-//   headline: { pre?, val, post?, tone? } or { text }   the big line
-//   context: string | null, contextTone: 'default'|'accent'|'good'|'urgent'|'muted'
-//   showcase: { gift, caption } | null         the large gift tile
-//   leg: { from, to, current, fmt } | null     the meter
-//   strip: { count, topShort, gifts } | null   the whole-ladder summary
+//   sentence: { pre?, val, post?, tail?, tone? }   the ask, one line of copy
+//   giftRow: { caption, gift } | null              terminal/scheduled gift row
+//   line: string | null, lineTone                  status line
+//   reward: the gift on the rail's medallion; won: { short } | null
+//   leg: { from, to, current, fmt } | null         the rail
+//   strip: { count, topShort, gifts, short? } | null
 //   dim: true for terminal cards in the Completed tab
 export function SchemeCard({ card, onPress, index = 0 }) {
   const th = themeOf(card.theme);
@@ -128,13 +132,13 @@ export function SchemeCard({ card, onPress, index = 0 }) {
   const fill = festive ? th.stage.accent : SOLV.blue;
   const capColor = th.stage.accentDeep;
 
-  const contextColor = {
+  const lineColor = {
     default: SOLV.sub,
     accent: SOLV.blue,
     good: SOLV.green,
     urgent: SOLV.red,
     muted: SOLV.sub,
-  }[card.contextTone || 'default'];
+  }[card.lineTone || 'default'];
 
   const chipStyle = {
     time: festive
@@ -147,8 +151,10 @@ export function SchemeCard({ card, onPress, index = 0 }) {
   const leg = card.leg;
   const span = leg ? Math.max(1, leg.to - leg.from) : 1;
   const pct = leg ? clamp((leg.current - leg.from) / span, 0, 1) : 0;
+  const targetX = Math.max(0, barW - RAIL_END);
 
-  // Motion: the card fades in with a small rise; the fill sweeps to its value.
+  // Motion: the card fades in with a small rise; the fill sweeps to its value
+  // and the runner runs with it.
   const enter = useRef(new Animated.Value(STATIC ? 1 : 0)).current;
   const fillAnim = useRef(new Animated.Value(STATIC ? 1 : 0)).current;
   useEffect(() => {
@@ -170,8 +176,6 @@ export function SchemeCard({ card, onPress, index = 0 }) {
     </View>
   ) : null;
 
-  const h = card.headline;
-
   // A tappable card must SAY it opens (Norman: perceivable signifier); a card
   // with no detail page shows nothing and does not pretend. The View wrapper is
   // positioned (RN default), so the glyph paints above the band's absolute scene.
@@ -182,6 +186,9 @@ export function SchemeCard({ card, onPress, index = 0 }) {
       </Svg>
     </View>
   ) : null;
+
+  const sen = card.sentence;
+  const runnerX = clamp(pct * targetX - 10, 0, Math.max(0, targetX - 14));
 
   return (
     <Animated.View
@@ -217,103 +224,92 @@ export function SchemeCard({ card, onPress, index = 0 }) {
           )}
 
           <View style={styles.body}>
-            <View style={styles.contentRow}>
-              <View style={styles.leftCol}>
-                {h ? (
-                  h.text ? (
-                    <Text style={styles.headlineText} numberOfLines={2} allowFontScaling={false}>{h.text}</Text>
-                  ) : (
-                    <Text
-                      style={[styles.headlineVal, TABULAR, h.tone === 'urgent' && { color: SOLV.red }]}
-                      numberOfLines={1}
-                      allowFontScaling={false}
-                    >
-                      {h.pre ? <Text style={styles.headlineWord}>{h.pre}</Text> : null}
-                      {h.val}
-                      {h.post ? <Text style={styles.headlineWord}>{h.post}</Text> : null}
-                    </Text>
-                  )
-                ) : null}
+            {sen ? (
+              <Text style={styles.sentence} numberOfLines={2} allowFontScaling={false}>
+                {sen.pre || ''}
+                <Text style={[styles.sentenceVal, TABULAR, sen.tone === 'urgent' && { color: SOLV.red }]}>{sen.val}</Text>
+                {(sen.post || '') + (sen.tail ? ` ${sen.tail}` : '')}
+              </Text>
+            ) : null}
 
-                {card.context ? (
-                  <Text style={[styles.context, { color: contextColor }]} numberOfLines={2} allowFontScaling={false}>
-                    {card.context}
-                  </Text>
-                ) : null}
-              </View>
-
-              {card.showcase ? (
-                <View style={styles.showcaseCol}>
-                  <View style={[styles.showcase, { backgroundColor: th.card.tint }]}>
-                    {card.showcase.gift?.image ? (
-                      // Product photos come on white; an unframed one reads as a
-                      // white hole in the tint. A deliberate white frame with its
-                      // own radius turns it into a product shot.
-                      <View style={styles.showcaseFrame}>
-                        <GiftThumb gift={card.showcase.gift} size={62} accent={capColor} />
-                      </View>
-                    ) : (
-                      <GiftThumb gift={card.showcase.gift} size={72} accent={capColor} />
-                    )}
-                  </View>
-                  {card.showcase.caption ? (
-                    // One meaning per color: a won caption is green, a goal caption
-                    // wears the theme's deep accent.
-                    <Text
-                      style={[styles.showcaseCaption, { color: card.showcase.caption === 'YOU WON' ? SOLV.green : capColor }]}
-                      allowFontScaling={false}
-                    >
-                      {card.showcase.caption}
-                    </Text>
-                  ) : null}
+            {card.giftRow ? (
+              <View style={styles.giftRow}>
+                <View style={styles.thumb}>
+                  <GiftThumb gift={card.giftRow.gift} size={38} accent={capColor} />
                 </View>
-              ) : null}
-            </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[styles.giftCaption, { color: card.giftRow.caption === 'YOU WON' ? SOLV.green : capColor }]}
+                    allowFontScaling={false}
+                  >
+                    {card.giftRow.caption}
+                  </Text>
+                  <Text style={styles.giftName} numberOfLines={1} allowFontScaling={false}>
+                    {card.giftRow.gift.name}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+
+            {card.line ? (
+              <Text style={[styles.line, { color: lineColor }]} numberOfLines={2} allowFontScaling={false}>
+                {card.line}
+              </Text>
+            ) : null}
 
             {leg ? (
-              <View style={styles.meter} onLayout={(e) => setBarW(e.nativeEvent.layout.width)}>
-                {/* The bought amount rides the knob as a value tag: the number and
-                    its position on the journey are one object. */}
-                {barW > 0 && leg.current > leg.from ? (
-                  <View style={styles.tagRow}>
+              <View style={styles.rail} onLayout={(e) => setBarW(e.nativeEvent.layout.width)}>
+                {/* Above the rail: the bought tag rides the runner; the next gift
+                    waits above the flag. */}
+                <View style={styles.railTop}>
+                  {barW > 0 && leg.current > leg.from ? (
                     <Animated.View
                       style={[
                         styles.tagWrap,
-                        { opacity: fillAnim, left: clamp(pct * barW - tagW / 2, 0, Math.max(0, barW - tagW)) },
+                        { opacity: fillAnim, left: clamp(pct * targetX - tagW / 2, 0, Math.max(0, barW - MEDAL - tagW - 6)) },
                       ]}
                       onLayout={(e) => setTagW(e.nativeEvent.layout.width)}
                     >
                       <View style={styles.tag}>
                         <Text style={[styles.tagText, TABULAR]} numberOfLines={1} allowFontScaling={false}>
-                          {leg.fmt(leg.current)} bought
+                          {leg.fmt(leg.current)}
                         </Text>
                       </View>
                       <View style={styles.tagCaret} />
                     </Animated.View>
-                  </View>
-                ) : null}
-                <View style={styles.meterZone}>
-                  <View style={styles.meterTrack}>
+                  ) : null}
+                  {card.reward ? (
+                    <View style={styles.railMedallion}>
+                      <GiftThumb gift={card.reward} size={28} accent={capColor} />
+                    </View>
+                  ) : null}
+                </View>
+
+                {/* The rail: fill sweeps, the runner runs on it, the flag marks
+                    the target (grey until crossed, the app's own rule). */}
+                <View style={styles.railBar}>
+                  <View style={styles.railTrack}>
                     <Animated.View
                       style={[
-                        styles.meterFill,
-                        {
-                          backgroundColor: fill,
-                          width: fillAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', `${pct * 100}%`] }),
-                        },
+                        styles.railFill,
+                        { backgroundColor: fill, width: fillAnim.interpolate({ inputRange: [0, 1], outputRange: [0, pct * targetX] }) },
                       ]}
                     />
                   </View>
-                  {barW > 0 && leg.current > leg.from ? (
+                  {barW > 0 ? (
+                    <View style={[styles.flag, { left: targetX - 1 }]}>
+                      <IconTargetFlag width={11} height={20} color="#C7CCD4" />
+                    </View>
+                  ) : null}
+                  {barW > 0 ? (
                     <Animated.View
                       style={[
-                        styles.knob,
-                        {
-                          borderColor: fill,
-                          left: fillAnim.interpolate({ inputRange: [0, 1], outputRange: [-6, Math.max(-6, pct * barW - 6)] }),
-                        },
+                        styles.runner,
+                        { left: fillAnim.interpolate({ inputRange: [0, 1], outputRange: [0, runnerX] }) },
                       ]}
-                    />
+                    >
+                      <IconRunningMan height={20} color={fill} />
+                    </Animated.View>
                   ) : null}
                 </View>
                 <View style={styles.legRow}>
@@ -324,12 +320,12 @@ export function SchemeCard({ card, onPress, index = 0 }) {
             ) : null}
 
             {/* The won gift sits BELOW the progress: a settled fact under the
-                meter, anchored at the slab where it was won. */}
+                rail, next to the slab where it was won. */}
             {card.won ? (
               <View style={styles.wonRow}>
                 <GiftGlyph kind="check" size={14} color={SOLV.green} strokeWidth={2} />
                 <Text style={styles.wonText} numberOfLines={1} allowFontScaling={false}>
-                  You won the {card.won.short}
+                  You've qualified for the {card.won.short}
                 </Text>
               </View>
             ) : null}
@@ -387,70 +383,51 @@ const styles = StyleSheet.create({
   chipText: { fontFamily: F.bold, fontSize: 10, lineHeight: 13, letterSpacing: 0.4 },
 
   body: { paddingHorizontal: 16, paddingBottom: 14 },
-  contentRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 12 },
-  leftCol: { flex: 1, justifyContent: 'center' },
 
-  wonRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 10 },
-  wonText: { color: SOLV.green, fontFamily: F.medium, fontSize: 12, lineHeight: 15 },
+  sentence: { marginTop: 10, color: SOLV.sub, fontFamily: F.medium, fontSize: 13, lineHeight: 18 },
+  sentenceVal: { color: SOLV.ink, fontFamily: F.bold, fontSize: 14 },
 
-  tagRow: { height: 30, marginBottom: 2 },
-  tagWrap: { position: 'absolute', alignItems: 'center' },
+  giftRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
+  thumb: { width: 46, height: 46, borderRadius: 10, backgroundColor: SOLV.paper, borderWidth: 1, borderColor: PHOTO_EDGE, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  giftCaption: { fontFamily: F.bold, fontSize: 10, lineHeight: 13, letterSpacing: 0.6 },
+  giftName: { marginTop: 1, color: SOLV.ink, fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
+  line: { marginTop: 8, fontFamily: F.medium, fontSize: 13, lineHeight: 18 },
+
+  rail: { marginTop: 6 },
+  railTop: { height: 38, marginBottom: 4 },
+  railMedallion: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: MEDAL,
+    height: MEDAL,
+    borderRadius: 12,
+    backgroundColor: SOLV.paper,
+    borderWidth: 1,
+    borderColor: PHOTO_EDGE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  tagWrap: { position: 'absolute', bottom: 0, alignItems: 'center' },
   tag: { backgroundColor: '#1F2430', borderRadius: 7, paddingHorizontal: 8, height: 22, justifyContent: 'center' },
   tagText: { color: '#fff', fontFamily: F.bold, fontSize: 10.5, lineHeight: 13 },
   tagCaret: { width: 8, height: 8, marginTop: -5, backgroundColor: '#1F2430', transform: [{ rotate: '45deg' }] },
 
-  headlineVal: { color: SOLV.ink, fontFamily: F.bold, fontSize: 22, lineHeight: 28 },
-  headlineWord: { color: SOLV.sub, fontFamily: F.medium, fontSize: 14, lineHeight: 28 },
-  headlineText: { color: SOLV.ink, fontFamily: F.bold, fontSize: 16, lineHeight: 21 },
-  context: { marginTop: 3, fontFamily: F.medium, fontSize: 13, lineHeight: 18 },
-
-  showcaseCol: { alignItems: 'center', width: 92 },
-  showcase: {
-    width: 92,
-    height: 92,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: PHOTO_EDGE,
-    overflow: 'hidden',
-  },
-  showcaseCaption: { marginTop: 6, fontFamily: F.bold, fontSize: 10, lineHeight: 13, letterSpacing: 0.8 },
-  showcaseFrame: {
-    width: 74,
-    height: 74,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: PHOTO_EDGE,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-  },
-
-  meter: { marginTop: 14 },
-  meterZone: { height: 16, justifyContent: 'center' },
-  meterTrack: { height: 8, borderRadius: 4, backgroundColor: '#ECEEF1', overflow: 'hidden' },
-  meterFill: { height: 8, borderRadius: 4 },
-  knob: {
-    position: 'absolute',
-    top: 2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#fff',
-    borderWidth: 2.5,
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-  },
+  railBar: { height: 26, justifyContent: 'flex-end' },
+  railTrack: { height: 6, borderRadius: 3, backgroundColor: '#EEF0F3', overflow: 'hidden' },
+  railFill: { height: 6, borderRadius: 3 },
+  runner: { position: 'absolute', bottom: 5 },
+  flag: { position: 'absolute', bottom: 5 },
   legRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
   legValue: { color: SOLV.sub, fontFamily: F.medium, fontSize: 11, lineHeight: 14 },
-  legCurrent: { color: SOLV.ink, fontFamily: F.bold },
+
+  wonRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 10 },
+  wonText: { color: SOLV.green, fontFamily: F.medium, fontSize: 12, lineHeight: 15 },
 
   strip: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F2F3F5' },
   stripThumbs: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -489,11 +466,10 @@ export function solvSchemeCard(s, { title, theme = 'default', fmt, money }) {
   if (s.state === STATE.SCHEDULED) {
     return {
       ...base,
-      // The headline already names the top gift, so the strip says only the count.
+      // The gift row already names the top gift, so the strip says only the count.
       strip: strip ? { ...strip, short: true } : null,
-      headline: { text: s.ladder.length > 1 ? `Gifts up to the ${s.top.shortName}` : `Win a ${s.top.shortName}` },
-      context: `First gift at ${fmt(s.ladder[0].at)}.`,
-      showcase: { gift: top, caption: 'TOP GIFT' },
+      giftRow: { caption: 'TOP GIFT', gift: top },
+      line: `First gift at ${fmt(s.ladder[0].at)}.`,
       chip: { text: 'STARTS ' + s.startLabel.replace(/ \d{4}$/, '').toUpperCase(), tone: 'muted' },
     };
   }
@@ -501,52 +477,51 @@ export function solvSchemeCard(s, { title, theme = 'default', fmt, money }) {
     return {
       ...base,
       strip: null,
-      context: 'Scheme ended below the first slab.',
-      contextTone: 'muted',
+      line: 'Scheme ended below the first slab.',
+      lineTone: 'muted',
       chip: { text: 'ENDED', tone: 'muted' },
       dim: true,
     };
   }
   // The ended-with-a-win states: the won gift is the story.
   const wonBase = held
-    ? { ...base, strip: null, headline: { text: held.name }, showcase: { gift: held, caption: 'YOU WON' } }
+    ? { ...base, strip: null, giftRow: { caption: 'YOU WON', gift: held } }
     : base;
   if (s.state === STATE.ENDED_PENDING) {
-    return { ...wonBase, context: 'Scheme ended. We are confirming your gift.', chip: { text: 'ENDED', tone: 'muted' } };
+    return { ...wonBase, line: 'Scheme ended. We are confirming your gift.', chip: { text: 'ENDED', tone: 'muted' } };
   }
   if (s.state === STATE.GIFT_ORDERED) {
-    return { ...wonBase, context: 'On the way to your shop.', contextTone: 'accent', chip: { text: 'ON THE WAY', tone: 'time' } };
+    return { ...wonBase, line: 'On the way to your shop.', lineTone: 'accent', chip: { text: 'ON THE WAY', tone: 'time' } };
   }
   if (s.state === STATE.DELIVERED) {
-    return { ...wonBase, context: 'Delivered to your shop.', contextTone: 'good', dim: true, chip: { text: 'DELIVERED', tone: 'good' } };
+    return { ...wonBase, line: 'Delivered to your shop.', lineTone: 'good', dim: true, chip: { text: 'DELIVERED', tone: 'good' } };
   }
   if (s.state === STATE.TOP_REACHED) {
     return {
       ...wonBase,
       strip: null,
-      context: 'The top gift. Nothing is left to win.',
-      contextTone: 'good',
+      line: 'The top gift. Nothing is left to win.',
+      lineTone: 'good',
       chip: { text: `${s.daysLeft} DAYS LEFT`, tone: 'time' },
     };
   }
 
-  // LIVE, EARNED, NEAR_SLAB: the amount is the headline, the next gift is the
-  // showcase, and the meter runs over the slab won to the slab next.
-  // Urgency reads s.nearSlab, not the state: the flag also fires on the leg to the
-  // FIRST slab (state LIVE), which is the whole ladder of a single-slab scheme.
-  const headline = s.nearSlab
-    ? { pre: 'Only ', val: money(s.remaining), post: ' left', tone: 'urgent' }
-    : { val: money(s.remaining), post: s.currentValue > 0 ? ' more' : ' to go' };
-  // One frame for every running state: the amount, then what it wins. The
-  // one-gift replacement rule lives in the facts and the rules, not here.
-  const context = `to win the ${s.next.shortName}`;
+  // LIVE, EARNED, NEAR_SLAB: one sentence carries the ask; the rail carries the
+  // runner, the flag and the next gift. Urgency reads s.nearSlab, not the state:
+  // the flag also fires on the leg to the FIRST slab (state LIVE), which is the
+  // whole ladder of a single-slab scheme.
+  const tail = `to win the ${s.next.shortName}`;
+  const sentence = s.nearSlab
+    ? { pre: 'Only ', val: money(s.remaining), post: ' left', tail, tone: 'urgent' }
+    : s.currentValue > 0
+    ? { val: money(s.remaining), post: ' more', tail }
+    : { pre: 'Buy for ', val: money(s.next.at), tail };
 
   return {
     ...base,
     won: held ? { short: s.secured.shortName } : null,
-    headline,
-    context,
-    showcase: { gift: next, caption: 'NEXT GIFT' },
+    sentence,
+    reward: next,
     chip: { text: `${s.daysLeft} DAYS LEFT`, tone: 'time' },
     leg: {
       from: s.secured ? s.secured.at : 0,
