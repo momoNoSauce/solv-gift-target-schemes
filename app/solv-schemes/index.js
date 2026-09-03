@@ -231,9 +231,14 @@ export default function SolvSchemes() {
             </Pressable>
           ))}
         </View>
-        <Pressable onPress={() => router.push('/solv-schemes/states')} hitSlop={6}>
-          <Text style={styles.demoLink} allowFontScaling={false}>Card states and themes gallery</Text>
-        </Pressable>
+        <View style={styles.demoRow}>
+          <Pressable onPress={() => router.push('/solv-schemes/states')} hitSlop={6}>
+            <Text style={styles.demoLink} allowFontScaling={false}>Card states and themes gallery</Text>
+          </Pressable>
+          <Pressable onPress={() => router.push('/mega-diwali?state=earned&theme=diwali&demo=1')} hitSlop={6}>
+            <Text style={styles.demoLink} allowFontScaling={false}>Detail states and themes</Text>
+          </Pressable>
+        </View>
       </View>
     </SafeAreaView>
   );
