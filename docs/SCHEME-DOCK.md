@@ -329,12 +329,21 @@ half to two per fold; a status eyebrow ("21 DAYS LEFT", "DELIVERED 24 SEP") sits
 the detail's chrome will be. An empty tab shows the app's empty state.
 
 The affordance (founder review, 4 Sep 2026: the stages alone read as a list of
-graphics). Each stage sits inside a white card with a 1 px border and a 52 px paper footer
-row: a summary on the left ("8 gifts to win", "2 of 8 gifts won", "Starts 1 Oct") and
-"View details" with a chevron in the brand colour on the right. The footer is the first
+graphics; no "View details" link). Each stage sits inside a white card with a 1 px border,
+a shadow and a 56 px paper footer row: up to three gift thumbnails (the won gifts on a
+completed scheme, else the top of the ladder), a count ("8 gifts to win", "2 of 8 gifts
+won", "Starts 1 Oct"), and a round chevron in the brand colour. The footer is the first
 strip of the detail's paper body, so the card still grows into the page without a seam:
 the footer fades over the first third of the move while the body arrives, and the layer
 carries the same hairline border as the card.
+
+Card size. Every card stands the same height as a completed one (411 px stage, 467 px
+card). `Stage` takes `cardAnim`, a 0..1 dial: at 0 (the list card) a running stage has no
+eyebrow, a 16 px top bar, the pedestal 40 px shorter, the tile at the won size, and the
+amount tag, the second ask line and the secured capsule collapsed to 0; at 1 (the detail)
+everything is at full size. The layer drives the dial with the move's progress, so those
+parts grow back in place as the card opens. The eyebrow ("21 DAYS LEFT") is gone from
+the card: the stage's own status line already says it.
 
 The move is the App Store's card-to-detail:
 

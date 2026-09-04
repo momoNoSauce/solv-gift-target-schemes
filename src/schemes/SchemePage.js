@@ -37,7 +37,7 @@ function stepsFor(state) {
   return ['done', 'done', 'done', 'done'];
 }
 
-export default function SchemePage({ scheme, active, near = true, first, still = false, bodyAnim = null, eyebrowAnim = null, offset, bottomPad, onTitlePress, onSeeRunning, lang = 'en', compact = false, edge = false }) {
+export default function SchemePage({ scheme, active, near = true, first, still = false, bodyAnim = null, cardAnim = null, offset, bottomPad, onTitlePress, onSeeRunning, lang = 'en', compact = false, edge = false }) {
   const t = T[lang] || T.en;
   const d = deriveStage(scheme, t);
   const { th, st, s, missed, withDelivery, showBar, multiGift, running, festive } = d;
@@ -149,7 +149,7 @@ export default function SchemePage({ scheme, active, near = true, first, still =
           onSizes();
         }}
       >
-        <Stage scheme={scheme} compact={compact} anim={{ labelA, tileA, nameA, barA, amountA, ctaA }} lag={lag} near={near} onTitlePress={onTitlePress} onSeeRunning={onSeeRunning} lang={lang} fill={missed} eyebrowAnim={eyebrowAnim} />
+        <Stage scheme={scheme} compact={compact} anim={{ labelA, tileA, nameA, barA, amountA, ctaA }} lag={lag} near={near} onTitlePress={onTitlePress} onSeeRunning={onSeeRunning} lang={lang} fill={missed} cardAnim={cardAnim} />
 
         <Animated.View style={bodyStyle}>
         {/* ——— Delivery, for the ended-with-win states ——— */}

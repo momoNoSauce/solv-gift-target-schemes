@@ -28,10 +28,14 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Platform } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { STATE } from '../gifts/state';
+import { GiftThumb } from '../gifts/solv';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import TabLabel from '../components/TabLabel';
 import GiftGlyph from '../gifts/icons';
 import { SOLV, usePressScale } from '../gifts/solv';
+
+// The card form of every stage in the list (see Stage's cardAnim).
+const ZERO = new Animated.Value(0);
 import { F } from '../theme';
 import { schemesFor } from './registry';
 import { usePager } from './usePager';
@@ -50,28 +54,45 @@ const TOOLBAR_H = 48;
 const TAB_H = 44;
 
 // The affordance. A stage on its own reads as a graphic; the same stage inside a
-// white card with a border and a paper footer row (a summary, and "View details"
-// with a chevron in the brand colour) reads as a card to tap. The footer is the
-// first strip of the detail's paper body, so the card grows into the page
-// without a seam: the footer's words fade as the body's arrive.
-export const FOOTER_H = 52;
+// white card with a border, a shadow and a paper footer row reads as a card to
+// tap. The footer shows the scheme's gifts as small thumbnails with a count
+// ("8 gifts to win", "2 of 8 gifts won") and a round chevron on the right: the
+// card has more inside, without a text link saying so. The footer is the first
+// strip of the detail's paper body, so the card grows into the page without a
+// seam: the footer fades as the body arrives.
+export const FOOTER_H = 56;
 
 function footerLine(scheme, t) {
   const s = scheme.s;
-  if (s.state === STATE.SCHEDULED) return t.cardStarts(s.startLabel);
   const n = s.ladder.length;
+  if (s.state === STATE.SCHEDULED) return t.cardStarts(s.startLabel);
   if (s.state === STATE.ENDED_MISSED) return t.cardMissed(n);
   if (s.ended && s.earned) return t.cardWon(s.ladder.filter((g) => s.currentValue >= g.at).length, n);
   return t.cardGifts(n);
 }
 
+// Up to three gifts: the won ones on a completed scheme, else the top of the ladder.
+function footerGifts(scheme) {
+  const s = scheme.s;
+  const won = s.ladder.filter((g) => s.currentValue >= g.at);
+  const pick = s.ended && won.length ? won : s.ladder;
+  return pick.slice(-3).reverse();
+}
+
 export function CardFooter({ scheme, t, style }) {
+  const gifts = footerGifts(scheme);
   return (
     <View style={[styles.footer, style]} pointerEvents="none">
+      <View style={styles.thumbRow}>
+        {gifts.map((g, i) => (
+          <View key={i} style={[styles.thumb, i > 0 && { marginLeft: -9 }, { zIndex: 3 - i }]}>
+            <GiftThumb gift={g} size={22} />
+          </View>
+        ))}
+      </View>
       <Text style={styles.footerLine} numberOfLines={1} allowFontScaling={false}>{footerLine(scheme, t)}</Text>
-      <View style={styles.footerCta}>
-        <Text style={styles.footerCtaText} allowFontScaling={false}>{t.viewDetails}</Text>
-        <Svg width={16} height={16} viewBox="0 0 24 24">
+      <View style={styles.chev}>
+        <Svg width={18} height={18} viewBox="0 0 24 24">
           <Path d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.42 1.41l4.59-4.59a1 1 0 0 0 0-1.41L10.71 6.7a1 1 0 0 0-1.42.01z" fill={SOLV.blue} />
         </Svg>
       </View>
@@ -83,8 +104,8 @@ function Card({ scheme, compact, onPress, onLayout, cardRef, dim, t }) {
   const press = usePressScale(0.97);
   return (
     <Animated.View ref={cardRef} onLayout={onLayout} style={[styles.card, { transform: [{ scale: press.scale }] }, dim && { opacity: 0 }]}>
-      <Pressable onPress={onPress} onPressIn={press.pressIn} onPressOut={press.pressOut} accessibilityRole="button" accessibilityLabel={`${scheme.title}, ${t.viewDetails}`}>
-        <Stage scheme={scheme} compact={compact} card />
+      <Pressable onPress={onPress} onPressIn={press.pressIn} onPressOut={press.pressOut} accessibilityRole="button" accessibilityLabel={scheme.title}>
+        <Stage scheme={scheme} compact={compact} card cardAnim={ZERO} />
         <CardFooter scheme={scheme} t={t} />
       </Pressable>
     </Animated.View>
@@ -310,7 +331,7 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
           {/* The page lays out at the layer's live width, so its centred stage
               stays centred while the frame grows. */}
           <View style={{ width: '100%', flex: 1 }}>
-            <SchemePage scheme={schemes[open.index]} active still compact={compact} edge={compact} bottomPad={24} bodyAnim={progress} eyebrowAnim={progress} />
+            <SchemePage scheme={schemes[open.index]} active still compact={compact} edge={compact} bottomPad={24} bodyAnim={progress} cardAnim={progress} />
           </View>
           {/* The card's footer, where it was, fading as the body arrives. */}
           <Animated.View style={[styles.layerFooter, { top: open.from.h - FOOTER_H, opacity: progress.interpolate({ inputRange: [0, 0.3], outputRange: [1, 0], extrapolate: 'clamp' }) }]} pointerEvents="none">
@@ -346,10 +367,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 4,
   },
-  footer: { height: FOOTER_H, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 18, paddingRight: 12, backgroundColor: SOLV.paper },
-  footerLine: { flex: 1, color: SOLV.sub, fontFamily: F.regular, fontSize: 14, lineHeight: 18, marginRight: 12 },
-  footerCta: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  footerCtaText: { color: SOLV.blue, fontFamily: F.medium, fontSize: 14, lineHeight: 18 },
+  footer: { height: FOOTER_H, flexDirection: 'row', alignItems: 'center', paddingLeft: 14, paddingRight: 14, backgroundColor: SOLV.paper, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.06)' },
+  thumbRow: { flexDirection: 'row', alignItems: 'center', marginRight: 12 },
+  thumb: { width: 32, height: 32, borderRadius: 16, backgroundColor: SOLV.paper, borderWidth: 1, borderColor: 'rgba(0,0,0,0.10)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  footerLine: { flex: 1, color: SOLV.ink, fontFamily: F.medium, fontSize: 14, lineHeight: 18, marginRight: 12 },
+  chev: { width: 28, height: 28, borderRadius: 14, backgroundColor: SOLV.blueBg, alignItems: 'center', justifyContent: 'center' },
   layerFooter: { position: 'absolute', left: 0, right: 0, height: FOOTER_H },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
   emptyBadge: { width: 64, height: 64, borderRadius: 32, backgroundColor: SOLV.blueBg, alignItems: 'center', justifyContent: 'center' },
