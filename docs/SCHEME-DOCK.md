@@ -144,9 +144,13 @@ page's own scroll view and its buttons.
   keeps vertical scroll, the pager takes horizontal); the dock and the arc zone are
   `touch-action: none`. Without this a mobile browser could claim a horizontal swipe
   before the pan responder saw it.
-- The page claims a drag at 6 px with a 1.4 horizontal-to-vertical ratio, because its
-  scroll view owns the vertical axis. The dock has no vertical axis: it claims at 4 px
-  with no ratio.
+- One touch, one axis. The axis of a touch is decided once, in its first 8 px of
+  travel (horizontal when dx exceeds 1.2 times dy), and held for the rest of that
+  touch. A vertical-first touch belongs to the page's scroll view and never moves the
+  pager, however far it drifts sideways; a horizontal-first touch moves the pager, and
+  the browser starts no scroll for it. The dock has no vertical axis: it claims at 4 px
+  in any direction.
+- The back arrow returns to the Option A / Option B entry, from a deep link as well.
 - A flick from rest carries at most one page on the page strip and up to three on the
   dock, the way a picker does; real travel crosses more on both.
 - The focused thumb rises 2 px as it grows, and every thumb reports `selected` to

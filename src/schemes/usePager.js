@@ -88,12 +88,31 @@ export function usePager({ count, initial = 0 }) {
   // vertical travel), because its own scroll view owns the vertical axis. The
   // dock has no vertical axis, so it claims at 4 px with no ratio, and a flick
   // on it may carry up to three pages, the way a picker does.
-  const makePan = (unitRef, { threshold = 6, ratio = 1.4, flickLimit = 1 } = {}) =>
-    PanResponder.create({
+  //
+  // Axis lock. The axis of a touch is decided once, in its first `threshold`
+  // px of travel, and held for the rest of that touch. A vertical-first touch
+  // belongs to the page's scroll view and never moves the pager, however far
+  // it drifts sideways; a horizontal-first touch moves the pager, and the
+  // browser (told touch-action: pan-y) starts no scroll for it. One touch, one
+  // axis, so the page never scrolls and pages at once.
+  const makePan = (unitRef, { threshold = 6, ratio = 1.4, flickLimit = 1 } = {}) => {
+    let axis = null; // null (undecided) | 'h' | 'v'
+    const decide = (g) => {
+      if (axis) return axis === 'h';
+      const ax = Math.abs(g.dx);
+      const ay = Math.abs(g.dy);
+      if (ax + ay < threshold) return false;
+      axis = ax > ay * ratio ? 'h' : 'v';
+      return axis === 'h';
+    };
+    return PanResponder.create({
       onStartShouldSetPanResponder: () => false,
-      onStartShouldSetPanResponderCapture: () => false,
-      onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > threshold && Math.abs(g.dx) > Math.abs(g.dy) * ratio,
-      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > threshold && Math.abs(g.dx) > Math.abs(g.dy) * ratio,
+      onStartShouldSetPanResponderCapture: () => {
+        axis = null;
+        return false;
+      },
+      onMoveShouldSetPanResponderCapture: (_, g) => decide(g),
+      onMoveShouldSetPanResponder: (_, g) => decide(g),
       onPanResponderTerminationRequest: () => false,
       onPanResponderGrant: () => {
         running.current?.stop();
@@ -120,10 +139,11 @@ export function usePager({ count, initial = 0 }) {
       },
       onPanResponderTerminate: () => settle(posNow.current, 0),
     });
+  };
 
   const pageUnit = useRef(1);
   const dockUnit = useRef(1);
-  const pagePan = useMemo(() => makePan(pageUnit), [last]);
+  const pagePan = useMemo(() => makePan(pageUnit, { threshold: 8, ratio: 1.2, flickLimit: 1 }), [last]);
   const dockPan = useMemo(() => makePan(dockUnit, { threshold: 4, ratio: 0, flickLimit: 3 }), [last]);
 
   return {
