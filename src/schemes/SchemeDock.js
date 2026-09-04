@@ -53,23 +53,28 @@ if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getEle
   s.textContent =
     '[data-glass]{backdrop-filter:blur(22px) saturate(1.35);-webkit-backdrop-filter:blur(22px) saturate(1.35);}' +
     '[data-noselect]{user-select:none;-webkit-user-select:none;}' +
-    '[data-noselect] img{-webkit-user-drag:none;pointer-events:none;}';
+    '[data-noselect] img{-webkit-user-drag:none;pointer-events:none;}' +
+    // Who owns a touch: the page strip keeps vertical scroll for the browser and
+    // hands horizontal to the pager; the dock and the arc hand over everything.
+    '[data-touch="pan-y"]{touch-action:pan-y;}[data-touch="none"]{touch-action:none;}';
   document.head.appendChild(s);
 }
 
-function Thumb({ scheme, i, pos, onPress, first }) {
+function Thumb({ scheme, i, pos, onPress, first, selected }) {
   const done = scheme.group === 'completed';
   const won = done && Boolean(scheme.s.secured);
   const range = [i - 1, i, i + 1];
   const scale = pos.interpolate({ inputRange: range, outputRange: [THUMB_MIN / THUMB, 1, THUMB_MIN / THUMB], extrapolate: 'clamp' });
+  // The focused thumb rises 2 px as it grows: the lift separates it from its neighbours.
+  const lift = pos.interpolate({ inputRange: range, outputRange: [0, -2, 0], extrapolate: 'clamp' });
   const label = pos.interpolate({ inputRange: range, outputRange: [0.55, 1, 0.55], extrapolate: 'clamp' });
   const press = usePressScale(0.96);
 
   return (
     <View style={styles.col}>
       {first ? <View style={styles.groupLine} /> : null}
-      <Pressable onPress={onPress} onPressIn={press.pressIn} onPressOut={press.pressOut} accessibilityRole="button" accessibilityLabel={scheme.title} style={styles.hit}>
-        <Animated.View style={[styles.ringBox, { transform: [{ scale: Animated.multiply(scale, press.scale) }] }]}>
+      <Pressable onPress={onPress} onPressIn={press.pressIn} onPressOut={press.pressOut} accessibilityRole="button" accessibilityLabel={scheme.title} accessibilityState={{ selected }} style={styles.hit}>
+        <Animated.View style={[styles.ringBox, { transform: [{ translateY: lift }, { scale: Animated.multiply(scale, press.scale) }] }]}>
           <View style={styles.thumb}>
             <SchemeArt scheme={scheme} size={THUMB} dim={done} />
             <View pointerEvents="none" style={styles.photoEdge} />
@@ -88,7 +93,7 @@ function Thumb({ scheme, i, pos, onPress, first }) {
   );
 }
 
-export default function SchemeDock({ schemes, pos, onSelect, panHandlers, width, bottomInset = 0 }) {
+export default function SchemeDock({ schemes, pos, index = 0, onSelect, panHandlers, width, bottomInset = 0 }) {
   const n = schemes.length;
   const rowW = n * PITCH;
   const pillW = Math.min(width - DOCK_MARGIN * 2, rowW + PAD * 2);
@@ -135,12 +140,12 @@ export default function SchemeDock({ schemes, pos, onSelect, panHandlers, width,
         { bottom: DOCK_MARGIN + bottomInset, opacity: enter, transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }] },
       ]}
     >
-      <View style={[styles.pill, { width: pillW }]} dataSet={{ glass: 'true', noselect: 'true' }} {...panHandlers}>
+      <View style={[styles.pill, { width: pillW }]} dataSet={{ glass: 'true', noselect: 'true', touch: 'none' }} {...panHandlers}>
         <View style={styles.hairline} pointerEvents="none" />
         <Animated.View pointerEvents="none" style={[styles.ring, { borderColor: accent, transform: [{ translateX: ringX }] }]} />
         <Animated.View style={[styles.row, { width: rowW, transform: [{ translateX: rowX }] }]}>
           {schemes.map((sc, i) => (
-            <Thumb key={sc.id} scheme={sc} i={i} pos={pos} first={i === firstDone && firstDone > 0} onPress={() => onSelect(i)} />
+            <Thumb key={sc.id} scheme={sc} i={i} pos={pos} first={i === firstDone && firstDone > 0} selected={i === index} onPress={() => onSelect(i)} />
           ))}
         </Animated.View>
         {rowW > inner ? (

@@ -138,6 +138,22 @@ A horizontal move claims the gesture only when it travels more than 6 px and is 
 least 1.4 times its vertical travel. A vertical or ambiguous move stays with the
 page's own scroll view and its buttons.
 
+## Dock gestures (audit, 4 Sep 2026)
+
+- Who owns a touch is declared: the page strip is `touch-action: pan-y` (the browser
+  keeps vertical scroll, the pager takes horizontal); the dock and the arc zone are
+  `touch-action: none`. Without this a mobile browser could claim a horizontal swipe
+  before the pan responder saw it.
+- The page claims a drag at 6 px with a 1.4 horizontal-to-vertical ratio, because its
+  scroll view owns the vertical axis. The dock has no vertical axis: it claims at 4 px
+  with no ratio.
+- A flick from rest carries at most one page on the page strip and up to three on the
+  dock, the way a picker does; real travel crosses more on both.
+- The focused thumb rises 2 px as it grows, and every thumb reports `selected` to
+  assistive tech.
+- Both versions carry the "N schemes" pill and the list sheet, so a long list always
+  has an exit that does not depend on swiping.
+
 ## Dock geometry
 
 | Token | Value |

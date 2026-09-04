@@ -99,7 +99,7 @@ export default function ArcDock({ schemes, pos, onSelect, panHandlers, width, bo
   const cx = width / 2;
   const n = schemes.length;
   return (
-    <View style={[styles.zone, { height: ZONE_H + bottomInset }]} {...panHandlers}>
+    <View style={[styles.zone, { height: ZONE_H + bottomInset }]} dataSet={{ touch: 'none' }} {...panHandlers}>
       {schemes.map((sc, i) => (
         <Thumb key={sc.id} scheme={sc} i={i} pos={pos} cx={cx} onPress={() => onSelect(i)} />
       ))}

@@ -84,14 +84,16 @@ export function usePager({ count, initial = 0 }) {
   }, [last]);
 
   // `unit` is the finger travel, in px, that moves the position by one page.
-  const makePan = (unitRef) =>
+  // The page claims a drag only on clear horizontal intent (6 px, 1.4 times its
+  // vertical travel), because its own scroll view owns the vertical axis. The
+  // dock has no vertical axis, so it claims at 4 px with no ratio, and a flick
+  // on it may carry up to three pages, the way a picker does.
+  const makePan = (unitRef, { threshold = 6, ratio = 1.4, flickLimit = 1 } = {}) =>
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onStartShouldSetPanResponderCapture: () => false,
-      // Claim on horizontal intent only: a vertical or ambiguous move stays
-      // with the page's own scroll view and its pressables.
-      onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.4,
-      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.4,
+      onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > threshold && Math.abs(g.dx) > Math.abs(g.dy) * ratio,
+      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > threshold && Math.abs(g.dx) > Math.abs(g.dy) * ratio,
       onPanResponderTerminationRequest: () => false,
       onPanResponderGrant: () => {
         running.current?.stop();
@@ -112,8 +114,8 @@ export function usePager({ count, initial = 0 }) {
         const raw = posNow.current;
         const from = Math.round(startPos.current);
         let target = Math.round(raw + v * PROJECT_MS);
-        // A flick from rest moves one page; only real travel crosses more.
-        if (Math.abs(raw - startPos.current) < 1) target = clamp(target, from - 1, from + 1);
+        // A flick from rest moves at most `flickLimit` pages; real travel crosses more.
+        if (Math.abs(raw - startPos.current) < 1) target = clamp(target, from - flickLimit, from + flickLimit);
         settle(target, v * 1000);
       },
       onPanResponderTerminate: () => settle(posNow.current, 0),
@@ -122,7 +124,7 @@ export function usePager({ count, initial = 0 }) {
   const pageUnit = useRef(1);
   const dockUnit = useRef(1);
   const pagePan = useMemo(() => makePan(pageUnit), [last]);
-  const dockPan = useMemo(() => makePan(dockUnit), [last]);
+  const dockPan = useMemo(() => makePan(dockUnit, { threshold: 4, ratio: 0, flickLimit: 3 }), [last]);
 
   return {
     pos,

@@ -101,7 +101,7 @@ export default function MySchemesArc() {
         ) : size.w > 0 ? (
           <Animated.View
             {...pagePan}
-            dataSet={{ noselect: 'true' }}
+            dataSet={{ noselect: 'true', touch: 'pan-y' }}
             style={[
               styles.strip,
               { top: sheetTop, bottom: zoneH, width: size.w * n, transform: [{ translateX: Animated.multiply(pos, -size.w) }] },

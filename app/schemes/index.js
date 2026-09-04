@@ -28,6 +28,8 @@ import { schemesFor, VIEWS } from '../../src/schemes/registry';
 import { usePager } from '../../src/schemes/usePager';
 import SchemePage from '../../src/schemes/SchemePage';
 import SchemeDock, { DOCK_H, DOCK_MARGIN, PITCH } from '../../src/schemes/SchemeDock';
+import AllSchemesSheet from '../../src/schemes/AllSchemesSheet';
+import Svg, { Path } from 'react-native-svg';
 import { T } from '../../src/schemes/copy';
 
 export default function MySchemes() {
@@ -61,6 +63,8 @@ export default function MySchemes() {
   }, [n, goTo, index]);
 
   const [demoOpen, setDemoOpen] = useState(params.demo === '1');
+  const [listOpen, setListOpen] = useState(false);
+  const [screenH, setScreenH] = useState(0);
   const firstIndex = useRef(pinned != null ? Math.round(pinned) : initial).current;
 
   // The backdrop behind the pages carries the theme under the pager, so the
@@ -77,7 +81,7 @@ export default function MySchemes() {
   return (
     <View style={{ flex: 1 }}>
       <StatusBar style="light" />
-      <Animated.View style={[styles.screen, { backgroundColor: backdrop }]} onLayout={(e) => setPageW(e.nativeEvent.layout.width)}>
+      <Animated.View style={[styles.screen, { backgroundColor: backdrop }]} onLayout={(e) => { setPageW(e.nativeEvent.layout.width); setScreenH(e.nativeEvent.layout.height); }}>
         {n === 0 ? (
           <SafeAreaView style={styles.empty} edges={['top']}>
             <View style={styles.emptyBadge}>
@@ -89,7 +93,7 @@ export default function MySchemes() {
         ) : pageW > 0 ? (
           <Animated.View
             {...pagePan}
-            dataSet={{ noselect: 'true' }}
+            dataSet={{ noselect: 'true', touch: 'pan-y' }}
             style={[
               styles.strip,
               { width: pageW * n, transform: [{ translateX: Animated.multiply(pos, -pageW) }] },
@@ -113,18 +117,30 @@ export default function MySchemes() {
           </Animated.View>
         ) : null}
 
-        {/* The fixed chrome: one back button for every page. */}
+        {/* The fixed chrome: one back button, and the list of every scheme. */}
         <SafeAreaView style={styles.topBar} edges={['top']} pointerEvents="box-none">
-          <Pressable onPress={() => router.back()} style={styles.backHit} android_ripple={{ color: '#ffffff33', borderless: true }} accessibilityLabel="Back">
-            <View style={styles.backChip}>
-              <IconBack size={22} color="#fff" />
-            </View>
-          </Pressable>
+          <View style={styles.chromeRow} pointerEvents="box-none">
+            <Pressable onPress={() => router.back()} style={styles.backHit} android_ripple={{ color: '#ffffff33', borderless: true }} accessibilityLabel="Back">
+              <View style={styles.backChip}>
+                <IconBack size={22} color="#fff" />
+              </View>
+            </Pressable>
+            {n > 1 ? (
+              <Pressable onPress={() => setListOpen(true)} style={styles.listBtn} accessibilityLabel="All schemes" android_ripple={{ color: '#ffffff33', borderless: true }}>
+                <Svg width={18} height={18} viewBox="0 0 24 24">
+                  <Path d="M4 7h16M4 12h16M4 17h10" stroke="#fff" strokeWidth={2} strokeLinecap="round" />
+                </Svg>
+                <Text style={styles.listCount} numberOfLines={1} allowFontScaling={false}>{n} schemes</Text>
+              </Pressable>
+            ) : null}
+          </View>
         </SafeAreaView>
 
         {n > 0 && pageW > 0 ? (
-          <SchemeDock schemes={schemes} pos={pos} onSelect={goTo} panHandlers={dockPan} width={pageW} bottomInset={insets.bottom} />
+          <SchemeDock schemes={schemes} pos={pos} index={index} onSelect={goTo} panHandlers={dockPan} width={pageW} bottomInset={insets.bottom} />
         ) : null}
+
+        <AllSchemesSheet open={listOpen} schemes={schemes} index={index} onSelect={goTo} onClose={() => setListOpen(false)} height={screenH} bottomInset={insets.bottom} />
 
         {/* Prototype panel: scenarios and the older surfaces. Not app UI. */}
         {demoOpen ? (
@@ -158,7 +174,10 @@ export default function MySchemes() {
 const styles = StyleSheet.create({
   screen: { flex: 1, overflow: 'hidden' },
   strip: { position: 'absolute', left: 0, top: 0, bottom: 0, flexDirection: 'row' },
-  topBar: { position: 'absolute', left: 0, top: 0 },
+  topBar: { position: 'absolute', left: 0, right: 0, top: 0 },
+  chromeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 16 },
+  listBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 10, paddingRight: 12, height: 36, marginTop: 6, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.22)' },
+  listCount: { color: '#fff', fontFamily: F.medium, fontSize: 13, lineHeight: 16, flexShrink: 0, fontVariant: ['tabular-nums'] },
   // A 44px target, the icon 16px from the edge and 14px from the top.
   backHit: { marginLeft: 10, marginTop: 6, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   // Dark glass under the arrow, so it reads on the light list that scrolls under it.
