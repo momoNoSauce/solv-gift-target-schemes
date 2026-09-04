@@ -332,35 +332,42 @@ the card and the top of the page, so they are the same pixels. Cards are big, on
 half to two per fold; a status eyebrow ("21 DAYS LEFT", "DELIVERED 24 SEP") sits where
 the detail's chrome will be. An empty tab shows the app's empty state.
 
-The affordance (founder review, 4 Sep 2026: the stages alone read as a list of
-graphics; no "View details" link). Each stage sits inside a white card with a 1 px border,
-a shadow and a 56 px paper footer row: gift thumbnails (the one gift won on a completed
-scheme, else up to three from the top of the ladder), a line in the app's own word for a
-slab ("Targets ₹2L to ₹1.2Cr · 8 gifts", "Target ₹60,000 · 1 gift", "Won at the ₹5L
-target", "No target reached", "Starts 1 Oct · 8 gifts"), and a round chevron in the brand
-colour. A scheme pays one gift, the highest target crossed, so the footer never counts
-gifts won. The footer is the first
-strip of the detail's paper body, so the card still grows into the page without a seam:
-the footer fades over the first third of the move while the body arrives, and the layer
-carries the same hairline border as the card.
+The affordance (founder review, 4 Sep 2026: the stages read as a list of graphics; no
+"View details" link; "a white border around the content" would make it a card). The art
+does not reach the card's edge. Each card is a white surface with a 10 px frame around an
+inset art panel, and the footer sits inside that frame under the art: the white is what
+makes the card a card and the stage its picture. Radii are concentric, 12 px on the art
+plus the 10 px frame = 22 px on the card. The footer's own edges line up with the art's,
+not the card's.
 
-Card size. Every card stands the same height as a completed one (467 px in option B,
-435 px in option A). `Stage` takes `cardAnim`, a 0..1 dial: at 0 (the list card) a running
-stage has no eyebrow, a 16 px top bar, the pedestal 50 px shorter (48 px compact), the tile
-at the won size, the amount tag, the second ask line and the secured capsule collapsed to
-0, and the bar keeping a 10 px gap under the gift name; at 1 (the detail) everything is at
-full size. The contact shadow under the tile is an SVG ellipse whose position and size ride
-the same dial (audit, 4 Sep 2026: a fixed viewBox let it slide behind the gift name on the
-shortened pedestal). The layer drives the dial with the move's progress, so those
-parts grow back in place as the card opens. The eyebrow ("21 DAYS LEFT") is gone from
-the card: the stage's own status line already says it.
+The footer holds gift thumbnails (the one gift won on a completed scheme, else up to three
+from the top of the ladder, the won one carrying a green check), the scheme window ("Ends
+9 Nov 2026 · 21 days left", "Ended 12 Sep 2026", "Starts 1 Oct"), and a round chevron in
+the brand colour.
+
+The subtitle carries the offer, not the dates: "Targets ₹2L to ₹1.2Cr · 8 gifts", "Target
+₹60,000 · 1 gift", "Won at the ₹5L target", "No target reached" (Stage's `offerLine`). A
+scheme pays one gift, the highest target crossed, so nothing counts gifts won. The detail
+keeps the dates under the title, and the two readings cross in place over the first third
+of the move.
+
+Card size. Every card in a list stands the same height (454 px in option B, 422 px in
+option A, ±3 px on the won layout). `Stage` takes `cardAnim`, a 0..1 dial: at 0 (the list
+card) a running stage has no eyebrow, a 16 px top bar, a shorter pedestal, the tile at the
+won size, and the ask ("Buy ₹X more") collapsed to 0, while the amount tag over the bar
+and the qualified chip stay (the current buying is the card's signal); at 1 (the detail)
+everything is at full size. A card that carries the chip pays for it out of the pedestal
+and the stage's bottom padding, so the chip costs no height in the list. The contact
+shadow under the tile is an SVG ellipse whose position and size ride the same dial (audit,
+4 Sep 2026: a fixed viewBox let it slide behind the gift name on the shortened pedestal).
 
 The move is the App Store's card-to-detail:
 
 1. On tap the card's rectangle is measured against the screen root.
 2. A transition layer showing the detail page appears in that exact rectangle and
    springs to the detail's frame: the sheet (option A) or the full screen (option B),
-   corner radius easing from 20 to the frame's. The page lays out at the layer's live
+   corner radius easing from 22 to the frame's while the white frame opens, its 10 px
+   inset going to 0 and the art's corners easing to the frame's own. The page lays out at the layer's live
    width, so the centred stage stays centred as the frame grows.
 3. The card's eyebrow fades over the first third; the paper under the body turns from
    the stage's night to the page ground in the first fifth, before the frame has grown

@@ -46,7 +46,9 @@ import SolvBottomNav, { NAV_H } from './SolvBottomNav';
 import { T } from './copy';
 import { SETTLED } from './motion';
 
-const CARD_RADIUS = 20;
+const CARD_RADIUS = 22;   // = ART_RADIUS + FRAME, so the corners are concentric
+const ART_RADIUS = 12;
+const FRAME = 10;         // the white frame around the art
 const CARD_MARGIN = 16;
 const GAP = 14;
 const TOOLBAR_H = 48;
@@ -59,18 +61,16 @@ const TAB_H = 44;
 // card has more inside, without a text link saying so. The footer is the first
 // strip of the detail's paper body, so the card grows into the page without a
 // seam: the footer fades as the body arrives.
-export const FOOTER_H = 56;
+export const FOOTER_H = 46;
 
-// A scheme pays one gift: the highest target crossed. The footer says what the
-// targets are, or which one paid.
-function footerLine(scheme, t) {
+// The footer carries the window. The offer ("Targets ₹2L to ₹1.2Cr · 8 gifts")
+// sits under the title on the stage (see Stage's offerLine), where the eye lands
+// first; the dates belong with the small print.
+function footerDate(scheme, t) {
   const s = scheme.s;
-  const n = s.ladder.length;
-  const slab = scheme.fmt;
-  if (s.state === STATE.SCHEDULED) return t.cardStarts(s.startLabel, n);
-  if (s.state === STATE.ENDED_MISSED) return t.cardMissed;
-  if (s.ended && s.earned) return t.cardWon(slab(s.secured.at));
-  return t.cardTargets(slab(s.ladder[0].at), slab(s.ladder[n - 1].at), n);
+  if (s.state === STATE.SCHEDULED) return [t.startsLine(s.startLabel), null];
+  if (s.ended) return [t.endedLine(s.endLabel), null];
+  return [t.endsLine(s.endLabel), t.daysLeft(s.daysLeft)];
 }
 
 // The gifts in the footer: the one won on a completed scheme, else up to three
@@ -91,8 +91,18 @@ export function CardFooter({ scheme, t, style }) {
             <GiftThumb gift={g} size={22} />
           </View>
         ))}
+        {scheme.s.ended && scheme.s.earned ? (
+          <View style={styles.wonBadge}>
+            <Svg width={9} height={9} viewBox="0 0 24 24">
+              <Path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            </Svg>
+          </View>
+        ) : null}
       </View>
-      <Text style={styles.footerLine} numberOfLines={1} allowFontScaling={false}>{footerLine(scheme, t)}</Text>
+      <Text style={styles.footerLine} numberOfLines={1} allowFontScaling={false}>
+        {footerDate(scheme, t)[0]}
+        {footerDate(scheme, t)[1] ? <Text style={styles.footerDays} allowFontScaling={false}>{footerDate(scheme, t)[1]}</Text> : null}
+      </Text>
       <View style={styles.chev}>
         <Svg width={18} height={18} viewBox="0 0 24 24">
           <Path d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.42 1.41l4.59-4.59a1 1 0 0 0 0-1.41L10.71 6.7a1 1 0 0 0-1.42.01z" fill={SOLV.blue} />
@@ -103,11 +113,15 @@ export function CardFooter({ scheme, t, style }) {
 }
 
 function Card({ scheme, compact, onPress, onLayout, cardRef, dim, t }) {
-  const press = usePressScale(0.97);
+  const press = usePressScale(0.96);
   return (
     <Animated.View ref={cardRef} onLayout={onLayout} style={[styles.card, { transform: [{ scale: press.scale }] }, dim && { opacity: 0 }]}>
       <Pressable onPress={onPress} onPressIn={press.pressIn} onPressOut={press.pressOut} accessibilityRole="button" accessibilityLabel={scheme.title}>
-        <Stage scheme={scheme} compact={compact} card cardAnim={ZERO} />
+        {/* The art sits inside the card, not across it: the white frame is what
+            makes the card a card and the stage its picture. */}
+        <View style={styles.art}>
+          <Stage scheme={scheme} compact={compact} card cardAnim={ZERO} />
+        </View>
         <CardFooter scheme={scheme} t={t} />
       </Pressable>
     </Animated.View>
@@ -332,9 +346,18 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
         <Animated.View pointerEvents="none" style={[styles.layer, compact && styles.layerSheet, layer, { opacity: layerFade }]}>
           {/* The page lays out at the layer's live width, so its centred stage
               stays centred while the frame grows. */}
-          <View style={{ width: '100%', flex: 1 }}>
+          {/* The frame opens as the card grows: the inset goes to 0 and the
+              art's corners ease to the detail frame's own. */}
+          <Animated.View
+            style={{
+              flex: 1,
+              overflow: 'hidden',
+              margin: progress.interpolate({ inputRange: [0, 0.34], outputRange: [FRAME, 0], extrapolate: 'clamp' }),
+              borderRadius: progress.interpolate({ inputRange: [0, 0.34], outputRange: [ART_RADIUS, open.to.radius], extrapolate: 'clamp' }),
+            }}
+          >
             <SchemePage scheme={schemes[open.index]} active still compact={compact} edge={compact} bottomPad={24} bodyAnim={progress} cardAnim={progress} />
-          </View>
+          </Animated.View>
           {/* The card's footer, where it was, fading as the body arrives. */}
           <Animated.View style={[styles.layerFooter, { top: open.from.h - FOOTER_H, opacity: progress.interpolate({ inputRange: [0, 0.3], outputRange: [1, 0], extrapolate: 'clamp' }) }]} pointerEvents="none">
             <CardFooter scheme={schemes[open.index]} t={t} />
@@ -361,26 +384,31 @@ const styles = StyleSheet.create({
     marginHorizontal: CARD_MARGIN,
     marginBottom: GAP,
     borderRadius: CARD_RADIUS,
-    overflow: 'hidden',
+    padding: FRAME,
+    paddingBottom: 0,
     backgroundColor: SOLV.paper,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.10)',
+    borderColor: 'rgba(0,0,0,0.08)',
     shadowColor: '#000',
     shadowOpacity: 0.10,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
     elevation: 4,
   },
-  footer: { height: FOOTER_H, flexDirection: 'row', alignItems: 'center', paddingLeft: 14, paddingRight: 14, backgroundColor: SOLV.paper, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.06)' },
+  art: { borderRadius: ART_RADIUS, overflow: 'hidden' },
+  // The footer's own edges line up with the art above it, not with the card.
+  footer: { height: FOOTER_H, flexDirection: 'row', alignItems: 'center', backgroundColor: SOLV.paper },
   thumbRow: { flexDirection: 'row', alignItems: 'center', marginRight: 12 },
   thumb: { width: 32, height: 32, borderRadius: 16, backgroundColor: SOLV.paper, borderWidth: 1, borderColor: 'rgba(0,0,0,0.10)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  footerLine: { flex: 1, color: SOLV.ink, fontFamily: F.medium, fontSize: 14, lineHeight: 18, marginRight: 12 },
-  chev: { width: 28, height: 28, borderRadius: 14, backgroundColor: SOLV.blueBg, alignItems: 'center', justifyContent: 'center' },
-  layerFooter: { position: 'absolute', left: 0, right: 0, height: FOOTER_H },
+  wonBadge: { position: 'absolute', right: -3, bottom: -1, width: 14, height: 14, borderRadius: 7, backgroundColor: SOLV.green, borderWidth: 1.5, borderColor: SOLV.paper, alignItems: 'center', justifyContent: 'center', zIndex: 4 },
+  footerLine: { flex: 1, color: SOLV.sub, fontFamily: F.regular, fontSize: 13, lineHeight: 17, marginRight: 12, fontVariant: ['tabular-nums'] },
+  footerDays: { color: SOLV.ink, fontFamily: F.medium },
+  chev: { width: 30, height: 30, borderRadius: 15, backgroundColor: SOLV.blueBg, alignItems: 'center', justifyContent: 'center' },
+  layerFooter: { position: 'absolute', left: FRAME, right: FRAME, height: FOOTER_H },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
   emptyBadge: { width: 64, height: 64, borderRadius: 32, backgroundColor: SOLV.blueBg, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { marginTop: 14, fontFamily: F.bold, fontSize: 15, lineHeight: 19, color: SOLV.ink },
   emptyLine: { marginTop: 4, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 18, color: SOLV.sub },
-  layer: { position: 'absolute', overflow: 'hidden', backgroundColor: '#F7F7F7', zIndex: 20, borderWidth: 1, borderColor: 'rgba(0,0,0,0.10)' },
+  layer: { position: 'absolute', overflow: 'hidden', backgroundColor: SOLV.paper, zIndex: 20, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)' },
   layerSheet: { shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 24, shadowOffset: { width: 0, height: 10 } },
 });

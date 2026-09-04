@@ -150,6 +150,20 @@ export function WonStamp({ word, date, anim }) {
   );
 }
 
+// What the scheme offers, in the app's own word for a slab. This is the card's
+// subtitle: on a card the offer matters more than the dates, which the card's
+// footer carries instead. The detail keeps the dates under the title, and the
+// two crossfade as a card grows into the page.
+export function offerLine(scheme, t) {
+  const s = scheme.s;
+  const n = s.ladder.length;
+  const slab = scheme.fmt;
+  if (s.state === STATE.SCHEDULED) return t.cardStarts(s.startLabel, n);
+  if (s.state === STATE.ENDED_MISSED) return t.cardMissed;
+  if (s.ended && s.earned) return t.cardWon(slab(s.secured.at));
+  return t.cardTargets(slab(s.ladder[0].at), slab(s.ladder[n - 1].at), n);
+}
+
 export const rise = (v, d = 10) => ({
   opacity: v,
   transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [d, 0] }) }],
@@ -157,9 +171,11 @@ export const rise = (v, d = 10) => ({
 
 // `cardAnim` (0..1) is the card-to-detail dial: at 0 the stage is a list card,
 // at 1 the top of the detail page. On a running stage the card form hides the
-// amount tag, the second ask line and the secured capsule, shrinks the pedestal
-// (by 50px, 48px in the compact stage) and the tile to the won size, and shortens the top bar, so a running
-// card stands the same height as a completed one. The move drives the dial from
+// ask ("Buy ₹X more"), keeps the amount tag over the bar (the current buying is
+// the card's signal) and the secured chip (closer to the bar), shrinks the
+// pedestal and the tile to the won size, and shortens the top bar, so a running
+// card without a secured gift stands the same height as a completed one; the
+// chip adds its own height where a gift is secured. The move drives the dial from
 // 0 to 1 and every part grows back in place. null means the detail (1).
 export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, lag = null, near = true, onTitlePress, onSeeRunning, card = false, cardAnim = null, lang = 'en', fill = false }) {
   const t = T[lang] || T.en;
@@ -191,29 +207,48 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
   // shorter and its tile at the won size; the contact shadow under the tile
   // follows, smaller and closer on the card so it stays inside the pedestal.
   const pedH = compact ? 204 : 236;
-  const pedCardH = compact ? 156 : 186;
+  const pedCardH = compact ? 162 : 188;
   const tileLayout = hero.tone === 'won' ? (compact ? 128 : 136) : compact ? 148 : 168;
   const tileCardScale = showBar ? (compact ? 128 / 148 : 136 / 168) : 1;
   const tileTopMargin = compact ? 14 : 16;
+  // A card that carries the qualified chip pays for it out of the pedestal and
+  // the stage's bottom padding, so every card in the list stands the same height.
+  const chipOnCard = showBar && Boolean(securedCapsule);
+  const chipRoom = compact ? 46 : 52;
+  const padRoom = compact ? 20 : 24;
   const shadow = { rx: compact ? 68 : 76, ry: compact ? 8 : 9, gap: 10 };
   const shadowCard = { rx: compact ? 54 : 60, ry: compact ? 5 : 6, gap: compact ? 4 : 6 };
   const tileMid = (ped) => ped / 2 + tileTopMargin / 2;
   const contactTopDetail = tileMid(pedH) + tileLayout / 2 + shadow.gap - shadow.ry;
-  const contactTopCard = tileMid(pedCardH) + (tileLayout / 2) * tileCardScale + shadowCard.gap - shadowCard.ry;
+  const contactTopCard = tileMid(chipOnCard ? pedCardH - (chipRoom - padRoom) : pedCardH) + (tileLayout / 2) * tileCardScale + shadowCard.gap - shadowCard.ry;
   const contact = showBar
     ? { top: dial(contactTopCard, contactTopDetail), width: dial(2 * shadowCard.rx, 2 * shadow.rx), height: dial(2 * shadowCard.ry, 2 * shadow.ry), marginLeft: dial(-shadowCard.rx, -shadow.rx) }
     : { top: contactTopDetail, width: 2 * shadow.rx, height: 2 * shadow.ry, marginLeft: -shadow.rx };
 
-  const h2 = s.state === STATE.SCHEDULED
-    ? <Text style={[styles.h2, TABULAR, { color: st.sub }]} allowFontScaling={false}>{t.startsLine(s.startLabel)}</Text>
+  const dates = s.state === STATE.SCHEDULED
+    ? <Text style={[styles.h2, TABULAR, { color: st.sub }]} numberOfLines={1} allowFontScaling={false}>{t.startsLine(s.startLabel)}</Text>
     : s.ended
-    ? <Text style={[styles.h2, TABULAR, { color: st.sub }]} allowFontScaling={false}>{t.endedLine(s.endLabel)}</Text>
+    ? <Text style={[styles.h2, TABULAR, { color: st.sub }]} numberOfLines={1} allowFontScaling={false}>{t.endedLine(s.endLabel)}</Text>
     : (
-      <Text style={[styles.h2, TABULAR, { color: st.sub }]} allowFontScaling={false}>
+      <Text style={[styles.h2, TABULAR, { color: st.sub }]} numberOfLines={1} allowFontScaling={false}>
         {t.endsLine(s.endLabel)}
         <Text style={{ color: st.accent, fontFamily: F.medium }} allowFontScaling={false}>{t.daysLeft(s.daysLeft)}</Text>
       </Text>
     );
+
+  // One line of subtitle, two readings of it. The card says what the scheme
+  // pays; the page says when it ends. They cross over the first third of the
+  // move, in place, so the line never jumps.
+  const h2 = cardAnim ? (
+    <View style={styles.h2Stack}>
+      <Animated.View style={[styles.h2Layer, { opacity: k.interpolate({ inputRange: [0, 0.34], outputRange: [1, 0], extrapolate: 'clamp' }) }]}>
+        <Text style={[styles.h2, TABULAR, { color: st.sub, marginTop: 0 }]} numberOfLines={1} allowFontScaling={false}>{offerLine(scheme, t)}</Text>
+      </Animated.View>
+      <Animated.View style={[styles.h2Layer, { opacity: k.interpolate({ inputRange: [0.34, 1], outputRange: [0, 1], extrapolate: 'clamp' }) }]}>
+        {dates}
+      </Animated.View>
+    </View>
+  ) : dates;
 
   const title = (
     <>
@@ -236,7 +271,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
   );
 
   return (
-    <View style={[styles.stage, compact && styles.stageCompact, fill && { flex: 1 }, card && styles.stageCard]}>
+    <Animated.View style={[styles.stage, compact && styles.stageCompact, fill && { flex: 1 }, card && styles.stageCard, chipOnCard && { paddingBottom: dial(0, padRoom) }]}>
       <StageScene stage={st} festive={festive} focusY={missed ? 0.2 : 0.44} />
       {festive && !missed ? <ShaderStage theme={th.key} stage={st} near={near} /> : null}
       {/* Everything on the stage sits above the canvas by explicit order, and
@@ -260,7 +295,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
           </View>
         ) : (
           <>
-            <Animated.View style={[styles.pedestal, compact && styles.pedestalCompact, lag, showBar && { height: dial(pedCardH, pedH) }]}>
+            <Animated.View style={[styles.pedestal, compact && styles.pedestalCompact, lag, showBar && { height: dial(chipOnCard ? pedCardH - (chipRoom - padRoom) : pedCardH, pedH) }]}>
               {/* The contact shadow: an ellipse 10 px under the tile's visible bottom
                   edge, following the pedestal height and the tile scale on the dial. */}
               <Animated.View pointerEvents="none" style={[styles.contact, contact]}>
@@ -328,7 +363,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
             {showBar ? (
               <>
                 {trackW > 0 && localPct > 0 ? (
-                  <Animated.View style={[styles.dTagRow, { height: dial(0, 38), marginTop: dial(compact ? 8 : 10, compact ? 8 : 14), opacity: k }]}>
+                  <View style={[styles.dTagRow, compact && { marginTop: 8 }]}>
                     <Animated.View
                       style={[
                         styles.tagWrap,
@@ -347,9 +382,9 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                       </View>
                       <View style={styles.dTagCaret} />
                     </Animated.View>
-                  </Animated.View>
+                  </View>
                 ) : (
-                  <Animated.View style={[styles.dTagRow, { height: dial(0, 38), marginTop: dial(compact ? 8 : 10, compact ? 8 : 14) }]} />
+                  <View style={[styles.dTagRow, compact && { marginTop: 8 }]} />
                 )}
 
                 <View style={styles.barZone}>
@@ -374,19 +409,17 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                   </Text>
                 </View>
 
-                <Animated.View style={rise(amountA, 10)}>
+                <Animated.View style={[rise(amountA, 10), { opacity: Animated.multiply(amountA, k), height: dial(0, 65), overflow: 'hidden' }]}>
                   <Text style={[styles.bigMore, TABULAR, { color: amountParts.color }]} allowFontScaling={false}>
                     {amountParts.pre ? <Text style={styles.bigMoreWord}>{amountParts.pre}</Text> : null}
                     {amountParts.amt}
                     <Text style={styles.bigMoreWord}>{amountParts.post}</Text>
                   </Text>
-                  <Animated.View style={{ height: dial(0, 21), opacity: k, overflow: 'hidden' }}>
-                    <Text style={[styles.bigRest, { color: st.sub }]} allowFontScaling={false}>{t.rest(s.next.shortName)}</Text>
-                  </Animated.View>
+                  <Text style={[styles.bigRest, { color: st.sub }]} allowFontScaling={false}>{t.rest(s.next.shortName)}</Text>
                 </Animated.View>
 
                 {securedCapsule ? (
-                  <Animated.View style={[styles.securedWrap, { transform: rise(ctaA, 6).transform, opacity: Animated.multiply(ctaA, k), height: dial(0, 40), marginTop: dial(0, 22), overflow: 'hidden' }]}>
+                  <Animated.View style={[styles.securedWrap, rise(ctaA, 6), { marginTop: dial(12, 22) }]}>
                     <View style={styles.secured}>
                       <View style={styles.securedThumb}>
                         {securedCapsule.image ? (
@@ -414,7 +447,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
           </>
         )}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -429,12 +462,15 @@ const styles = StyleSheet.create({
   motifHang: { position: 'absolute', right: '100%', marginRight: 8, top: 3 },
   h1: { fontFamily: F.bold, fontSize: 22, lineHeight: 27, letterSpacing: 0.2, textAlign: 'center', paddingHorizontal: 8 },
   h2: { marginTop: 4, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 17 },
+  // The subtitle's own box, so the offer and the dates can cross in place.
+  h2Stack: { height: 21, justifyContent: 'flex-end' },
+  h2Layer: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end' },
 
   secured: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', borderRadius: 20, paddingLeft: 6, paddingRight: 12, height: 40 },
   securedThumb: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   securedText: { fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
   securedWrap: { alignItems: 'center', marginTop: 22 },
-  // The dial collapses dTagRow, the second ask line and securedWrap to 0 on the card.
+  // The dial collapses the ask block to 0 on the card.
 
   pedestal: { height: 236, alignItems: 'center', justifyContent: 'center', marginTop: 0 },
   contact: { position: 'absolute', left: '50%' },
@@ -460,7 +496,7 @@ const styles = StyleSheet.create({
   heroNote: { marginTop: 12, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: 44 },
   finalBought: { marginTop: 8, textAlign: 'center', fontFamily: F.medium, fontSize: 15, lineHeight: 19 },
 
-  dTagRow: { height: 38, marginTop: 14, overflow: 'hidden' },
+  dTagRow: { height: 38, marginTop: 14 },
   tagWrap: { position: 'absolute', alignItems: 'center' },
   dTag: { backgroundColor: '#fff', borderRadius: 9, paddingHorizontal: 11, height: 30, justifyContent: 'center' },
   dTagText: { color: N.ink, fontFamily: F.bold, fontSize: 15, lineHeight: 18 },
