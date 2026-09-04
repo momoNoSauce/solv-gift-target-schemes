@@ -340,12 +340,14 @@ makes the card a card and the stage its picture. Radii are concentric, 12 px on 
 plus the 10 px frame = 22 px on the card. The footer's own edges line up with the art's,
 not the card's.
 
-The footer is 60 px, which leaves 14 px above and below its 32 px thumbnails, and 11 px of
-frame stays under it: the footer must never sit against the card's bottom edge. It holds
-gift thumbnails (the one gift won on a completed scheme, else up to three
-from the top of the ladder, the won one carrying a green check), the scheme window ("Ends
-9 Nov 2026 · 21 days left", "Ended 12 Sep 2026", "Starts 1 Oct"), and a round chevron in
-the brand colour.
+The footer is one row, 52 px, with 11 px of frame under it: the window on the left ("Ends
+9 Nov 2026 · 21 days left", "Ended 12 Sep 2026", "Starts 1 Oct") and a round chevron in the
+brand colour on the right. Its edges line up with the art's, not the card's.
+
+No gift thumbnails there (founder review, 4 Sep 2026). The card already has one gift photo,
+the hero tile; a row of 22 px discs was a second, weaker one that showed the same product
+again on a single-gift scheme, and the subtitle already counts the gifts in words. The full
+list with photos and slab amounts is one tap away in the detail.
 
 The subtitle carries the offer, not the dates: "Targets ₹2L to ₹1.2Cr · 8 gifts", "Target
 ₹60,000 · 1 gift", "Won at the ₹5L target", "No target reached" (Stage's `offerLine`). A

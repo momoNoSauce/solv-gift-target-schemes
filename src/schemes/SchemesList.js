@@ -28,7 +28,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Platform } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { STATE } from '../gifts/state';
-import { GiftThumb } from '../gifts/solv';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import GiftGlyph from '../gifts/icons';
 import { SOLV, usePressScale } from '../gifts/solv';
@@ -61,7 +60,7 @@ const TAB_H = 44;
 // card has more inside, without a text link saying so. The footer is the first
 // strip of the detail's paper body, so the card grows into the page without a
 // seam: the footer fades as the body arrives.
-export const FOOTER_H = 60;
+export const FOOTER_H = 52;
 
 // The footer carries the window. The offer ("Targets ₹2L to ₹1.2Cr · 8 gifts")
 // sits under the title on the stage (see Stage's offerLine), where the eye lands
@@ -73,32 +72,14 @@ function footerDate(scheme, t) {
   return [t.endsLine(s.endLabel), t.daysLeft(s.daysLeft)];
 }
 
-// The gifts in the footer: the one won on a completed scheme, else up to three
-// from the top of the ladder.
-function footerGifts(scheme) {
-  const s = scheme.s;
-  if (s.ended && s.earned) return [s.secured];
-  return s.ladder.slice(-3).reverse();
-}
-
+// One row under the art: the window on the left, the chevron on the right. No
+// gift thumbnails (founder review, 4 Sep 2026). The card already has one gift
+// photo, the hero tile; a row of 22 px discs was a second, weaker one, showing
+// the same product again on a single-gift scheme, and the subtitle already
+// counts the gifts in words. The full list with photos lives in the detail.
 export function CardFooter({ scheme, t, style }) {
-  const gifts = footerGifts(scheme);
   return (
     <View style={[styles.footer, style]} pointerEvents="none">
-      <View style={styles.thumbRow}>
-        {gifts.map((g, i) => (
-          <View key={i} style={[styles.thumb, i > 0 && { marginLeft: -9 }, { zIndex: 3 - i }]}>
-            <GiftThumb gift={g} size={22} />
-          </View>
-        ))}
-        {scheme.s.ended && scheme.s.earned ? (
-          <View style={styles.wonBadge}>
-            <Svg width={9} height={9} viewBox="0 0 24 24">
-              <Path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            </Svg>
-          </View>
-        ) : null}
-      </View>
       <Text style={styles.footerLine} numberOfLines={1} allowFontScaling={false}>
         {footerDate(scheme, t)[0]}
         {footerDate(scheme, t)[1] ? <Text style={styles.footerDays} allowFontScaling={false}>{footerDate(scheme, t)[1]}</Text> : null}
@@ -398,10 +379,7 @@ const styles = StyleSheet.create({
   // The footer's own edges line up with the art above it, not with the card.
   footer: { height: FOOTER_H, flexDirection: 'row', alignItems: 'center', backgroundColor: SOLV.paper },
   // The footer's box starts where the art ends; its own top padding is the gap.
-  thumbRow: { flexDirection: 'row', alignItems: 'center', marginRight: 12 },
-  thumb: { width: 32, height: 32, borderRadius: 16, backgroundColor: SOLV.paper, borderWidth: 1, borderColor: 'rgba(0,0,0,0.10)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  wonBadge: { position: 'absolute', right: -3, bottom: -1, width: 14, height: 14, borderRadius: 7, backgroundColor: SOLV.green, borderWidth: 1.5, borderColor: SOLV.paper, alignItems: 'center', justifyContent: 'center', zIndex: 4 },
-  footerLine: { flex: 1, color: SOLV.sub, fontFamily: F.regular, fontSize: 13, lineHeight: 17, marginRight: 12, fontVariant: ['tabular-nums'] },
+  footerLine: { flex: 1, color: SOLV.sub, fontFamily: F.regular, fontSize: 14, lineHeight: 18, marginRight: 12, fontVariant: ['tabular-nums'] },
   footerDays: { color: SOLV.ink, fontFamily: F.medium },
   chev: { width: 30, height: 30, borderRadius: 15, backgroundColor: SOLV.blueBg, alignItems: 'center', justifyContent: 'center' },
   layerFooter: { position: 'absolute', left: FRAME, right: FRAME, height: FOOTER_H },
