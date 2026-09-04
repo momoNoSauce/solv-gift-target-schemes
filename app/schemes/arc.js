@@ -22,6 +22,7 @@ import GiftGlyph from '../../src/gifts/icons';
 import { themeOf } from '../../src/gifts/themes';
 import { schemesFor, VIEWS } from '../../src/schemes/registry';
 import { usePager } from '../../src/schemes/usePager';
+import { backToEntry } from '../../src/schemes/nav';
 import SchemePage from '../../src/schemes/SchemePage';
 import ArcDock, { ARC_PITCH, ZONE_H } from '../../src/schemes/ArcDock';
 import AllSchemesSheet from '../../src/schemes/AllSchemesSheet';
@@ -131,7 +132,7 @@ export default function MySchemesArc() {
         <View style={[styles.chrome, { top: sheetTop + 4, left: SHEET_MARGIN + 6, right: SHEET_MARGIN + 6 }]} pointerEvents="box-none">
           {/* The same dark glass as the schemes pill, so the arrow reads on the light
               list that scrolls under it as well as on the stage. */}
-          <Pressable onPress={() => router.back()} style={styles.backBtn} android_ripple={{ color: '#ffffff33', borderless: true }} accessibilityLabel="Back">
+          <Pressable onPress={() => backToEntry(router)} style={styles.backBtn} android_ripple={{ color: '#ffffff33', borderless: true }} accessibilityLabel="Back">
             <IconBack size={22} color="#fff" />
           </Pressable>
           {n > 1 ? (

@@ -26,6 +26,7 @@ import GiftGlyph from '../../src/gifts/icons';
 import { themeOf } from '../../src/gifts/themes';
 import { schemesFor, VIEWS } from '../../src/schemes/registry';
 import { usePager } from '../../src/schemes/usePager';
+import { backToEntry } from '../../src/schemes/nav';
 import SchemePage from '../../src/schemes/SchemePage';
 import SchemeDock, { DOCK_H, DOCK_MARGIN, PITCH } from '../../src/schemes/SchemeDock';
 import AllSchemesSheet from '../../src/schemes/AllSchemesSheet';
@@ -120,7 +121,7 @@ export default function MySchemes() {
         {/* The fixed chrome: one back button, and the list of every scheme. */}
         <SafeAreaView style={styles.topBar} edges={['top']} pointerEvents="box-none">
           <View style={styles.chromeRow} pointerEvents="box-none">
-            <Pressable onPress={() => router.back()} style={styles.backHit} android_ripple={{ color: '#ffffff33', borderless: true }} accessibilityLabel="Back">
+            <Pressable onPress={() => backToEntry(router)} style={styles.backHit} android_ripple={{ color: '#ffffff33', borderless: true }} accessibilityLabel="Back">
               <View style={styles.backChip}>
                 <IconBack size={22} color="#fff" />
               </View>
