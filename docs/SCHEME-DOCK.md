@@ -294,7 +294,7 @@ t = 12 s and stops. Native keeps the SVG scene.
 
 ## Entry and deploy
 
-`/options` is the founder-review entry: Option A (dock) and Option B (arc), each with
+`/options` is the founder-review entry: Option A (arc) and Option B (dock), each with
 a device preview, one line, and a spring press. The deployed build sets
 `EXPO_PUBLIC_LANDING=options` so `/` lands there; the drawer stays the local root.
 `vercel.json` rewrites every path to `index.html` for the client router.

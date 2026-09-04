@@ -1,5 +1,5 @@
-// The review entry: two options, two rows. Option A opens the dock version,
-// Option B the arc version. Nothing else.
+// The review entry: two options, two rows. Option A opens the arc version,
+// Option B the dock version. Nothing else.
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated, Easing } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -12,8 +12,8 @@ import { SETTLED } from './motion';
 const INK = '#0B0A14';
 
 const OPTIONS = [
-  { key: 'A', name: 'Dock', href: '/schemes' },
-  { key: 'B', name: 'Arc', href: '/schemes/arc' },
+  { key: 'A', name: 'Arc', href: '/schemes/arc' },
+  { key: 'B', name: 'Dock', href: '/schemes' },
 ];
 
 function Row({ option, anim, onPress }) {

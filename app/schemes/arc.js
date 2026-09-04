@@ -162,7 +162,7 @@ export default function MySchemesArc() {
             </View>
             <View style={styles.demoRow}>
               <Pressable onPress={() => router.replace(`/schemes?view=${viewKey}`)} hitSlop={6}>
-                <Text style={styles.demoLink} allowFontScaling={false}>Version A: dock bar</Text>
+                <Text style={styles.demoLink} allowFontScaling={false}>Option B: dock bar</Text>
               </Pressable>
               <Pressable onPress={() => router.push('/solv-schemes')} hitSlop={6}>
                 <Text style={styles.demoLink} allowFontScaling={false}>Old list page</Text>
