@@ -201,17 +201,18 @@ peek nudge on arrival.
 
 ## Completed schemes
 
-A completed scheme with a gift reads as settled before a word is read, in the
-system's own language for "this one is yours":
+A completed scheme with a gift reads as settled before a word is read:
 
-- The won gift's tile wears a 2 px ring of the settled green at a 6 px gap,
-  concentric with the tile (outer radius = tile radius + 8). The goal state wears no
-  ring.
-- A 34 px green seal with a white check sits in the ring's top-right corner, cut out
-  of the ring by a 3 px border in the stage's own colour. It lands with the tile and
-  settles from 0.6 to 1. This is the same check the medallions, the dock thumbs and
-  the arc thumbs carry for a won gift, at tile scale.
-- The tile is smaller than a goal tile (124 px in the sheet, 136 px full), because the
+- The won gift's tile carries a seal, cut the way a real one is: a 3.2 px outer ring
+  with its ink slightly uneven (a hairline dashed bite in the paper's colour), a
+  1.4 px inner ring, the state on the top arc and the date on the bottom arc in
+  letterspaced caps (both read upright), two dots at the sides, and a heavy check at
+  the centre. 96 px, set 12 degrees off square, one green ink (`#2BB05B`) that reads
+  on the white tile and on every night colour, with a 10 % white impression under it.
+- The seal crosses the tile's top-right corner and lands on the stage: its centre sits
+  6 px outside the tile, so the ink shows on the ground and only clips the photo's
+  empty corner. It lands with the tile and settles from 1.3 to 1.
+- The tile is smaller than a goal tile (128 px in the sheet, 136 px full), because the
   object is no longer the thing to reach for.
 - The sentence leads: "You won the Air Fryer" at 22 px Bold, the title's weight. Under
   it, one status line in the colour of its meaning, with its glyph: "Delivered to your
@@ -221,8 +222,9 @@ system's own language for "this one is yours":
 - No meter, no ask, no note that repeats the stepper. After delivery the address card
   is gone.
 
-A rubber stamp was tried and rejected: it is a cliché, and it fights the tile instead
-of changing what the tile is.
+Two earlier treatments were rejected: a rotated bordered label (a cliché that fought
+the tile) and a ring with a small check badge (correct, but too quiet to be read as
+"won" at a glance).
 
 ## Numbers
 

@@ -19,7 +19,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Image, Pressable, ScrollView, StyleSheet, Animated, Easing, Platform } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Ellipse, Path } from 'react-native-svg';
+import Svg, { Ellipse, Path, Circle, Defs, Text as SvgText, TextPath } from 'react-native-svg';
 import { F } from '../theme';
 import { IconRunningMan, IconTargetFlag } from '../icons';
 import GiftGlyph from '../gifts/icons';
@@ -73,16 +73,41 @@ export function CtaButton({ label, bg, fg, glow = false, onPress, containerStyle
   );
 }
 
-// The seal on a won gift: the system's own "yours" mark, the green check, at
-// tile scale, set into the ring's top-right corner. It lands with the tile.
-function Seal({ anim, fill, cutout }) {
+// The stamp on a won gift. A seal, the way a real one is cut: a heavy outer
+// ring with its ink slightly uneven, a hairline inner ring, the word on the top
+// arc and the date on the bottom arc in letterspaced caps (both read upright),
+// a heavy check at the centre. Set 12 degrees off square, pressed onto the
+// tile's corner, it lands with the tile and settles from 1.3 to 1. One ink for
+// every surface, a green that reads on the white tile and on the night behind.
+const STAMP_INK = '#2BB05B';
+function WonStamp({ word, date, anim }) {
+  const id = React.useRef(`st${Math.random().toString(36).slice(2, 7)}`).current;
   return (
     <Animated.View
       pointerEvents="none"
-      style={[styles.seal, { backgroundColor: fill, borderColor: cutout, opacity: anim, transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }]}
+      style={[styles.stamp, { opacity: anim, transform: [{ rotate: '-12deg' }, { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [1.3, 1] }) }] }]}
     >
-      <Svg width={18} height={18} viewBox="0 0 24 24">
-        <Path d="M6 12.5l4 4 8-9" stroke="#fff" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Svg width={96} height={96} viewBox="0 0 100 100">
+        <Defs>
+          {/* top arc, left to right over the top; bottom arc, left to right under the bottom */}
+          <Path id={`${id}top`} d="M 14 50 A 36 36 0 0 1 86 50" />
+          <Path id={`${id}bot`} d="M 14 50 A 36 36 0 0 0 86 50" />
+        </Defs>
+        {/* the impression: a faint lift under the ink so the seal reads on a green stage as well as on white */}
+        <Circle cx="50" cy="50" r="48" fill="#FFFFFF" opacity="0.10" />
+        <Circle cx="50" cy="50" r="46" stroke={STAMP_INK} strokeWidth="3.2" fill="none" opacity="0.92" />
+        {/* uneven ink: a dashed hairline in the tile's colour eats small bites of the outer ring */}
+        <Circle cx="50" cy="50" r="46" stroke="#FFFFFF" strokeWidth="1.2" fill="none" opacity="0.35" strokeDasharray="1 27 2 41 1 33 2 52 1 38" />
+        <Circle cx="50" cy="50" r="28" stroke={STAMP_INK} strokeWidth="1.4" fill="none" opacity="0.9" />
+        <SvgText fill={STAMP_INK} fontFamily={F.bold} fontSize="9.5" letterSpacing="2.2" textAnchor="middle">
+          <TextPath href={`#${id}top`} startOffset="50%">{word}</TextPath>
+        </SvgText>
+        <SvgText fill={STAMP_INK} fontFamily={F.bold} fontSize="8" letterSpacing="1.6" textAnchor="middle">
+          <TextPath href={`#${id}bot`} startOffset="50%">{date}</TextPath>
+        </SvgText>
+        <Circle cx="12" cy="50" r="1.6" fill={STAMP_INK} />
+        <Circle cx="88" cy="50" r="1.6" fill={STAMP_INK} />
+        <Path d="M38 51.5l8.5 8.5L63 41" stroke={STAMP_INK} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.94" />
       </Svg>
     </Animated.View>
   );
@@ -150,6 +175,14 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
     s.state === STATE.SCHEDULED ? t.startsNote(s.startLabel)
     : null;
   // The stepper below carries the delivery story; the stage does not repeat it.
+  // The stamp reads the state and its date.
+  const stampWord = s.state === STATE.DELIVERED ? t.stampDelivered : s.state === STATE.GIFT_ORDERED ? t.stampOnTheWay : t.stampWon;
+  const stampDate = (
+    s.state === STATE.DELIVERED && scheme.fulfilment.deliveredAt ? ddMMM(scheme.fulfilment.deliveredAt)
+    : s.state === STATE.GIFT_ORDERED && scheme.fulfilment.orderedAt ? ddMMM(scheme.fulfilment.orderedAt)
+    : s.ended ? ddMMM(scheme.endTime + 24 * 60 * 60 * 1000)
+    : ddMMM(scheme.now)
+  ).toUpperCase() + ' ' + new Date(scheme.endTime).getUTCFullYear();
   // The won state's one status line, in the colour of its meaning.
   const wonStatus =
     s.state === STATE.DELIVERED ? { text: t.wonStatusDelivered(deliveredLabel), color: st.good, icon: 'check' }
@@ -330,13 +363,7 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
                 )}
                 {/* A won gift wears the system's "yours" ring, 2 px of the settled green
                     at a 6 px gap, concentric with the tile; the goal state wears none. */}
-                <Animated.View
-                  style={[
-                    styles.tileWrap,
-                    compact && styles.tileWrapCompact,
-                    hero.tone === 'won' && [styles.tileRing, { borderColor: st.good, opacity: tileA }],
-                  ]}
-                >
+                <View style={[styles.tileWrap, compact && styles.tileWrapCompact]}>
                 <Animated.View
                   style={[
                     styles.tile,
@@ -353,8 +380,8 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
                     <GiftGlyph kind={hero.gift.icon} size={80} color={st.accentDeep} strokeWidth={1.2} />
                   )}
                 </Animated.View>
-                {hero.tone === 'won' ? <Seal anim={tileA} fill={th.card.good} cutout={st.ground2} /> : null}
-                </Animated.View>
+                {hero.tone === 'won' ? <WonStamp word={stampWord} date={stampDate} anim={tileA} /> : null}
+                </View>
               </Animated.View>
               {hero.tone === 'won' ? (
                 <Animated.View style={[rise(nameA, 8), lag]}>
@@ -687,15 +714,14 @@ const styles = StyleSheet.create({
   heroLabel: { position: 'absolute', top: 18, fontFamily: F.bold, fontSize: 11, lineHeight: 15, letterSpacing: 1.2 },
   tileWrap: { marginTop: 16 },
   tileWrapCompact: { marginTop: 14 },
-  // The won ring: 2 px at a 6 px gap, outer radius = tile radius + 8 (concentric).
-  tileRing: { padding: 6, borderWidth: 2, borderRadius: 32 },
   tileWon: { width: 136, height: 136, borderRadius: 24 },
-  tileWonCompact: { width: 124, height: 124, borderRadius: 24 },
+  tileWonCompact: { width: 128, height: 128, borderRadius: 24 },
   tileImgWon: { width: 104, height: 104 },
-  tileImgWonCompact: { width: 94, height: 94 },
-  // The seal: a 34 px green disc with a white check, cut out of the ring's corner
-  // by a 3 px border in the stage's own colour.
-  seal: { position: 'absolute', top: -8, right: -8, width: 34, height: 34, borderRadius: 17, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
+  tileImgWonCompact: { width: 98, height: 98 },
+  // The stamp crosses the tile's top-right corner and lands on the stage: its
+  // centre sits 6 px outside the tile, so the ink reads on the dark ground and
+  // only clips the photo's empty corner.
+  stamp: { position: 'absolute', right: -54, top: -34, width: 96, height: 96 },
   wonHeadline: { marginTop: 6, textAlign: 'center', fontFamily: F.bold, fontSize: 22, lineHeight: 28, paddingHorizontal: 24, letterSpacing: 0.1 },
   wonStatusRow: { marginTop: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 24 },
   wonStatus: { fontFamily: F.medium, fontSize: 14, lineHeight: 18, fontVariant: ['tabular-nums'] },
