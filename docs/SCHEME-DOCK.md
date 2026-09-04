@@ -328,6 +328,14 @@ the card and the top of the page, so they are the same pixels. Cards are big, on
 half to two per fold; a status eyebrow ("21 DAYS LEFT", "DELIVERED 24 SEP") sits where
 the detail's chrome will be. An empty tab shows the app's empty state.
 
+The affordance (founder review, 4 Sep 2026: the stages alone read as a list of
+graphics). Each stage sits inside a white card with a 1 px border and a 52 px paper footer
+row: a summary on the left ("8 gifts to win", "2 of 8 gifts won", "Starts 1 Oct") and
+"View details" with a chevron in the brand colour on the right. The footer is the first
+strip of the detail's paper body, so the card still grows into the page without a seam:
+the footer fades over the first third of the move while the body arrives, and the layer
+carries the same hairline border as the card.
+
 The move is the App Store's card-to-detail:
 
 1. On tap the card's rectangle is measured against the screen root.

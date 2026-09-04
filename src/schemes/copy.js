@@ -60,6 +60,11 @@ export const T = {
     emptyLine: 'When a scheme starts for your shop, it shows here.',
     emptyDoneTitle: 'No completed schemes',
     emptyDoneLine: 'A scheme moves here when its window ends.',
+    viewDetails: 'View details',
+    cardGifts: (n) => (n === 1 ? '1 gift to win' : `${n} gifts to win`),
+    cardWon: (won, n) => `${won} of ${n} ${n === 1 ? 'gift' : 'gifts'} won`,
+    cardMissed: (n) => `0 of ${n} ${n === 1 ? 'gift' : 'gifts'} won`,
+    cardStarts: (d) => `Starts ${d}`,
   },
   hi: {
     startsLine: (d) => `${d} से शुरू`,
@@ -116,5 +121,10 @@ export const T = {
     emptyLine: 'जब आपकी दुकान के लिए स्कीम शुरू होगी, यहाँ दिखेगी।',
     emptyDoneTitle: 'कोई पूरी हुई स्कीम नहीं',
     emptyDoneLine: 'स्कीम की अवधि खत्म होने पर वह यहाँ आती है।',
+    viewDetails: 'विवरण देखें',
+    cardGifts: (n) => `${n} गिफ्ट जीतने के लिए`,
+    cardWon: (won, n) => `${n} में से ${won} गिफ्ट जीते`,
+    cardMissed: (n) => `${n} में से 0 गिफ्ट जीते`,
+    cardStarts: (d) => `${d} से शुरू`,
   },
 };

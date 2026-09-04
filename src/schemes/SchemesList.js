@@ -26,6 +26,8 @@
 // move and can be reversed mid-flight.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Platform } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
+import { STATE } from '../gifts/state';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import TabLabel from '../components/TabLabel';
 import GiftGlyph from '../gifts/icons';
@@ -47,12 +49,43 @@ const GAP = 14;
 const TOOLBAR_H = 48;
 const TAB_H = 44;
 
-function Card({ scheme, compact, onPress, onLayout, cardRef, dim }) {
+// The affordance. A stage on its own reads as a graphic; the same stage inside a
+// white card with a border and a paper footer row (a summary, and "View details"
+// with a chevron in the brand colour) reads as a card to tap. The footer is the
+// first strip of the detail's paper body, so the card grows into the page
+// without a seam: the footer's words fade as the body's arrive.
+export const FOOTER_H = 52;
+
+function footerLine(scheme, t) {
+  const s = scheme.s;
+  if (s.state === STATE.SCHEDULED) return t.cardStarts(s.startLabel);
+  const n = s.ladder.length;
+  if (s.state === STATE.ENDED_MISSED) return t.cardMissed(n);
+  if (s.ended && s.earned) return t.cardWon(s.ladder.filter((g) => s.currentValue >= g.at).length, n);
+  return t.cardGifts(n);
+}
+
+export function CardFooter({ scheme, t, style }) {
+  return (
+    <View style={[styles.footer, style]} pointerEvents="none">
+      <Text style={styles.footerLine} numberOfLines={1} allowFontScaling={false}>{footerLine(scheme, t)}</Text>
+      <View style={styles.footerCta}>
+        <Text style={styles.footerCtaText} allowFontScaling={false}>{t.viewDetails}</Text>
+        <Svg width={16} height={16} viewBox="0 0 24 24">
+          <Path d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.42 1.41l4.59-4.59a1 1 0 0 0 0-1.41L10.71 6.7a1 1 0 0 0-1.42.01z" fill={SOLV.blue} />
+        </Svg>
+      </View>
+    </View>
+  );
+}
+
+function Card({ scheme, compact, onPress, onLayout, cardRef, dim, t }) {
   const press = usePressScale(0.97);
   return (
     <Animated.View ref={cardRef} onLayout={onLayout} style={[styles.card, { transform: [{ scale: press.scale }] }, dim && { opacity: 0 }]}>
-      <Pressable onPress={onPress} onPressIn={press.pressIn} onPressOut={press.pressOut} accessibilityRole="button" accessibilityLabel={scheme.title}>
+      <Pressable onPress={onPress} onPressIn={press.pressIn} onPressOut={press.pressOut} accessibilityRole="button" accessibilityLabel={`${scheme.title}, ${t.viewDetails}`}>
         <Stage scheme={scheme} compact={compact} card />
+        <CardFooter scheme={scheme} t={t} />
       </Pressable>
     </Animated.View>
   );
@@ -251,6 +284,7 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
                         onLayout={(e) => (cardLayouts.current[i] = { y: e.nativeEvent.layout.y, h: e.nativeEvent.layout.height })}
                         onPress={() => openCard(i)}
                         dim={open && open.index === i && phase !== 'list'}
+                        t={t}
                       />
                     ))}
                   </ScrollView>
@@ -278,6 +312,10 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
           <View style={{ width: '100%', flex: 1 }}>
             <SchemePage scheme={schemes[open.index]} active still compact={compact} edge={compact} bottomPad={24} bodyAnim={progress} eyebrowAnim={progress} />
           </View>
+          {/* The card's footer, where it was, fading as the body arrives. */}
+          <Animated.View style={[styles.layerFooter, { top: open.from.h - FOOTER_H, opacity: progress.interpolate({ inputRange: [0, 0.3], outputRange: [1, 0], extrapolate: 'clamp' }) }]} pointerEvents="none">
+            <CardFooter scheme={schemes[open.index]} t={t} />
+          </Animated.View>
         </Animated.View>
       ) : null}
     </View>
@@ -299,17 +337,24 @@ const styles = StyleSheet.create({
     marginBottom: GAP,
     borderRadius: CARD_RADIUS,
     overflow: 'hidden',
-    backgroundColor: '#1A1730',
+    backgroundColor: SOLV.paper,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.10)',
     shadowColor: '#000',
-    shadowOpacity: 0.16,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
+    shadowOpacity: 0.10,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
+  footer: { height: FOOTER_H, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 18, paddingRight: 12, backgroundColor: SOLV.paper },
+  footerLine: { flex: 1, color: SOLV.sub, fontFamily: F.regular, fontSize: 14, lineHeight: 18, marginRight: 12 },
+  footerCta: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  footerCtaText: { color: SOLV.blue, fontFamily: F.medium, fontSize: 14, lineHeight: 18 },
+  layerFooter: { position: 'absolute', left: 0, right: 0, height: FOOTER_H },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
   emptyBadge: { width: 64, height: 64, borderRadius: 32, backgroundColor: SOLV.blueBg, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { marginTop: 14, fontFamily: F.bold, fontSize: 15, lineHeight: 19, color: SOLV.ink },
   emptyLine: { marginTop: 4, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 18, color: SOLV.sub },
-  layer: { position: 'absolute', overflow: 'hidden', backgroundColor: '#F7F7F7', zIndex: 20 },
+  layer: { position: 'absolute', overflow: 'hidden', backgroundColor: '#F7F7F7', zIndex: 20, borderWidth: 1, borderColor: 'rgba(0,0,0,0.10)' },
   layerSheet: { shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 24, shadowOffset: { width: 0, height: 10 } },
 });
