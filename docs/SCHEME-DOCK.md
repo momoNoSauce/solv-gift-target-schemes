@@ -266,6 +266,29 @@ read as a second component inside the card.
 - A missed scheme's stage fills the page: one dark room, one line, one button to the
   running schemes.
 
+## The living stage (web)
+
+A festive scheme's stage moves, at the pace of a lit room, through one fragment
+shader (`src/schemes/ShaderStage.js`) laid over the SVG scene: Diwali breathes its
+key glow and lifts embers from the diya line, each on its own clock; Onam drops light
+rays from above with petals drifting through them; Holi folds three clouds of gulal
+through warped noise. Deterministic in time, no run-time randomness, one 2D canvas per
+festive page at up to 1.5x. Under capture and reduced motion it paints one frame at
+t = 12 s and stops. Native keeps the SVG scene.
+
+## Entry and deploy
+
+`/options` is the founder-review entry: Option A (dock) and Option B (arc), each with
+a device preview, one line, and a spring press. The deployed build sets
+`EXPO_PUBLIC_LANDING=options` so `/` lands there; the drawer stays the local root.
+`vercel.json` rewrites every path to `index.html` for the client router.
+
+Deploy:
+
+```bash
+EXPO_PUBLIC_LANDING=options npx expo export -p web && cp vercel.json dist/ && vercel deploy dist --prod
+```
+
 ## Motion policy
 
 `src/schemes/motion.js` gives one answer to "animate at all?":

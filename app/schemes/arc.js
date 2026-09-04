@@ -129,8 +129,10 @@ export default function MySchemesArc() {
 
         {/* Fixed chrome over the card: back, and the list of every scheme. */}
         <View style={[styles.chrome, { top: sheetTop + 4, left: SHEET_MARGIN + 6, right: SHEET_MARGIN + 6 }]} pointerEvents="box-none">
-          <Pressable onPress={() => router.back()} style={styles.chromeBtn} android_ripple={{ color: '#ffffff33', borderless: true }} accessibilityLabel="Back">
-            <IconBack size={24} color="#fff" />
+          {/* The same dark glass as the schemes pill, so the arrow reads on the light
+              list that scrolls under it as well as on the stage. */}
+          <Pressable onPress={() => router.back()} style={styles.backBtn} android_ripple={{ color: '#ffffff33', borderless: true }} accessibilityLabel="Back">
+            <IconBack size={22} color="#fff" />
           </Pressable>
           {n > 1 ? (
             <Pressable onPress={() => setListOpen(true)} style={styles.listBtn} accessibilityLabel="All schemes" android_ripple={{ color: '#ffffff33', borderless: true }}>
@@ -192,6 +194,7 @@ const styles = StyleSheet.create({
   },
   chrome: { position: 'absolute', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   chromeBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  backBtn: { width: 36, height: 36, marginVertical: 4, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.22)', alignItems: 'center', justifyContent: 'center' },
   // 36 px tall inside the 44 px chrome row: a glass pill that names what it opens.
   listBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 10, paddingRight: 12, height: 36, marginVertical: 4, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.22)' },
   listCount: { color: '#fff', fontFamily: F.medium, fontSize: 13, lineHeight: 16, flexShrink: 0, fontVariant: ['tabular-nums'] },

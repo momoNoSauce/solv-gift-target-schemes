@@ -116,7 +116,9 @@ export default function MySchemes() {
         {/* The fixed chrome: one back button for every page. */}
         <SafeAreaView style={styles.topBar} edges={['top']} pointerEvents="box-none">
           <Pressable onPress={() => router.back()} style={styles.backHit} android_ripple={{ color: '#ffffff33', borderless: true }} accessibilityLabel="Back">
-            <IconBack size={24} color="#fff" />
+            <View style={styles.backChip}>
+              <IconBack size={22} color="#fff" />
+            </View>
           </Pressable>
         </SafeAreaView>
 
@@ -158,7 +160,9 @@ const styles = StyleSheet.create({
   strip: { position: 'absolute', left: 0, top: 0, bottom: 0, flexDirection: 'row' },
   topBar: { position: 'absolute', left: 0, top: 0 },
   // A 44px target, the icon 16px from the edge and 14px from the top.
-  backHit: { marginLeft: 6, marginTop: 4, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  backHit: { marginLeft: 10, marginTop: 6, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  // Dark glass under the arrow, so it reads on the light list that scrolls under it.
+  backChip: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.22)', alignItems: 'center', justifyContent: 'center' },
 
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40, paddingBottom: 48 },
   emptyBadge: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },

@@ -24,6 +24,7 @@ import { F } from '../theme';
 import { IconRunningMan, IconTargetFlag } from '../icons';
 import GiftGlyph from '../gifts/icons';
 import StageScene from '../gifts/Scene';
+import ShaderStage from './ShaderStage';
 import { usePressScale, GiftThumb } from '../gifts/solv';
 import { STATE } from '../gifts/state';
 import { themeOf } from '../gifts/themes';
@@ -303,6 +304,7 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
             fills the page: one dark room, one line, one way out. ——— */}
         <View style={[styles.stage, compact && styles.stageCompact, missed && { flex: 1 }]}>
           <StageScene stage={st} festive={festive} focusY={missed ? 0.2 : 0.44} />
+          {festive && !missed ? <ShaderStage theme={th.key} stage={st} /> : null}
           <View style={styles.topBar} />
 
           <Pressable onPress={onTitlePress}>

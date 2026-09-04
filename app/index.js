@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { C, F } from '../src/theme';
 import { REMOTE } from '../src/remoteAssets';
 import { L12, L14, L16 } from '../src/textMetrics';
+import OptionsEntry from '../src/schemes/OptionsEntry';
 
 const MENU = [
   { key: 'orders', icon: REMOTE.hbMyOrders, label: 'My Orders' },
@@ -57,6 +58,7 @@ const GIFT_FLOWS = [
   ['SHIP touchpoint: cart', '/ship/cart'],
   ['SHIP touchpoint: order confirmed', '/ship/order-confirmation'],
   ['SHIP touchpoint: order confirmed, slab crossed', '/ship/order-confirmation?win=1'],
+  ['D. Entry page: Option A and Option B', '/options'],
   ['D. My Schemes, version A: scheme pager with a dock bar', '/schemes'],
   ['D. My Schemes, version B: sheet with the arc of schemes', '/schemes/arc'],
   ['A. Gift scheme in the current paradigm', '/gift-targets'],
@@ -64,7 +66,15 @@ const GIFT_FLOWS = [
   ['C. Entry points (banner, PDP, cart, push, WhatsApp)', '/mega-diwali/entries'],
 ];
 
-export default function Drawer() {
+// The deployed review build lands on the two options, not the drawer.
+const LANDING = process.env.EXPO_PUBLIC_LANDING;
+
+export default function Index() {
+  if (LANDING === 'options') return <OptionsEntry />;
+  return <Drawer />;
+}
+
+function Drawer() {
   const router = useRouter();
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
