@@ -25,15 +25,19 @@ import { STATE } from './state';
 import { themeOf } from './themes';
 import { BandScene } from './Scene';
 
+// Tokens from mainandroidapp, the solv flavour:
+// app/src/solv/res/values/colors.xml
 export const SOLV = {
-  blue: '#0A66E8',        // assumption: Solv primary
-  blueDark: '#0847A6',
-  blueBg: '#EAF2FF',
+  blue: '#004FFA',        // primary_color, brand_color (the toolbar, the tabs)
+  blueAccent: '#0066FF',  // accent_color, brand_secondary
+  blueDark: '#0038CC',    // primary_dark
+  blueBg: '#E6F0FF',      // light_green_cta, credit_lightest_green
+  bg: '#F5F8FF',          // background_green (the window ground)
+  orange: '#ff7711',      // indicator_background_color, target_scheme_native
   ink: '#1A1A1A',
   sub: '#6B6B6B',
   line: '#ECECEC',
   paper: '#FFFFFF',
-  bg: '#F5F7FA',
   green: '#177E36',
   greenBg: '#E9F5EC',
   red: '#C2410C',

@@ -2,8 +2,11 @@
 //
 // The list is a tab of the Solv app's bottom navigation (it takes the place of
 // All Brands), so it has the app's chrome and no back action: the blue toolbar,
-// the RUNNING and COMPLETED tabs with the sliding indicator, the app's grey
-// ground. The two tabs are pages of one pager (src/schemes/usePager.js), so a
+// the RUNNING and COMPLETED tabs with the orange indicator (the app's
+// indicator_background_color), the app's ground, and the bottom navigation
+// itself (src/schemes/SolvBottomNav.js) with Target Schemes selected.
+//
+// The two tabs are pages of one pager (src/schemes/usePager.js), so a
 // swipe moves them and the indicator together. Each page lists big cards, one
 // and a half to two per fold, each the exact stage of the detail it opens
 // (src/schemes/Stage.js draws both).
@@ -34,6 +37,7 @@ import Stage from './Stage';
 import SchemePage from './SchemePage';
 import ArcScreen, { arcSheetRect } from './ArcScreen';
 import DockScreen from './DockScreen';
+import SolvBottomNav, { NAV_H } from './SolvBottomNav';
 import { T } from './copy';
 import { SETTLED } from './motion';
 
@@ -145,7 +149,7 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
     const lay = cardLayouts.current[i];
     const sv = scrollRefs.current[g];
     if (lay && sv) {
-      const viewH = size.h - insets.top - TOOLBAR_H - TAB_H;
+      const viewH = size.h - insets.top - TOOLBAR_H - TAB_H - NAV_H - insets.bottom;
       const want = Math.max(0, lay.y - Math.max(GAP, (viewH - lay.h) / 2));
       if (Math.abs(want - scrollY.current[g]) > 2) {
         sv.scrollTo({ y: want, animated: false });
@@ -227,11 +231,11 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
             {groups.map((rows, g) => (
               <View key={g} style={{ width: w, flex: 1 }}>
                 {rows.length === 0 ? (
-                  <Empty title={emptyCopy[g][0]} line={emptyCopy[g][1]} bottom={insets.bottom + 48} />
+                  <Empty title={emptyCopy[g][0]} line={emptyCopy[g][1]} bottom={48} />
                 ) : (
                   <ScrollView
                     ref={(r) => (scrollRefs.current[g] = r)}
-                    contentContainerStyle={{ paddingTop: GAP, paddingBottom: insets.bottom + 24 }}
+                    contentContainerStyle={{ paddingTop: GAP, paddingBottom: 24 }}
                     scrollEventThrottle={16}
                     onScroll={(e) => {
                       scrollY.current[g] = e.nativeEvent.contentOffset.y;
@@ -255,6 +259,8 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
             ))}
           </Animated.View>
         ) : null}
+
+        <SolvBottomNav selected="schemes" bottomInset={insets.bottom} />
       </Animated.View>
 
       {/* The detail, mounted under the layer from the first frame of the move. */}
@@ -286,7 +292,7 @@ const styles = StyleSheet.create({
   toolbarTitle: { color: '#fff', fontFamily: F.medium, fontSize: 18, lineHeight: 22 },
   tabBar: { height: TAB_H, flexDirection: 'row' },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
-  indicator: { position: 'absolute', bottom: 0, left: 0, height: 3, borderTopLeftRadius: 2, borderTopRightRadius: 2, backgroundColor: '#fff' },
+  indicator: { position: 'absolute', bottom: 0, left: 0, height: 3, backgroundColor: SOLV.orange },
   pages: { flex: 1, flexDirection: 'row' },
   card: {
     marginHorizontal: CARD_MARGIN,
