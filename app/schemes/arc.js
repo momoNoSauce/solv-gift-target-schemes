@@ -114,6 +114,7 @@ export default function MySchemesArc() {
                   <SchemePage
                     scheme={sc}
                     active={index === i}
+                    near={Math.abs(index - i) <= 1}
                     first={i === firstIndex}
                     offset={offsets[i]}
                     bottomPad={24}

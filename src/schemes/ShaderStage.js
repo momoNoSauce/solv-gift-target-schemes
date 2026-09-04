@@ -251,15 +251,27 @@ void main(){
 const MODE = { diwali: 0, onam: 1, holi: 2 };
 const hex = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16) / 255);
 
-export default function ShaderStage({ theme, stage, focusY = 0.44 }) {
+// `near`: the page is on screen or one swipe away; a far page keeps its last
+// frame and stops drawing, so a phone never runs more than three shaders.
+export default function ShaderStage({ theme, stage, near = true }) {
   const [size, setSize] = useState({ w: 0, h: 0 });
+  const [lost, setLost] = useState(false);
   const canvasRef = useRef(null);
+  const nearRef = useRef(near);
+  nearRef.current = near;
   const mode = MODE[theme];
-  if (!web || !createElement || mode == null) return null;
+  if (!web || !createElement || mode == null || lost) return null;
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || size.w === 0) return;
+    // A lost context (Safari drops the oldest when too many are alive) must not
+    // leave a hole: the canvas unmounts and the SVG scene shows through.
+    const onLost = (e) => {
+      e.preventDefault();
+      setLost(true);
+    };
+    canvas.addEventListener('webglcontextlost', onLost, false);
     // 0.85 of a CSS px: the field is soft and upsamples cleanly; the loops stay cheap.
     const dpr = 0.85;
     canvas.width = Math.round(size.w * dpr);
@@ -313,19 +325,21 @@ export default function ShaderStage({ theme, stage, focusY = 0.44 }) {
       return;
     }
     const loop = () => {
-      draw();
+      if (nearRef.current) draw();
       raf = requestAnimationFrame(loop);
     };
+    draw();
     loop();
     return () => {
       cancelAnimationFrame(raf);
+      canvas.removeEventListener('webglcontextlost', onLost, false);
       const ext = gl.getExtension('WEBGL_lose_context');
       if (ext) ext.loseContext();
     };
   }, [size.w, size.h, mode, stage]);
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none" onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+    <View style={[StyleSheet.absoluteFill, { zIndex: 1 }]} pointerEvents="none" onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
       {size.w > 0
         ? createElement('canvas', { ref: canvasRef, style: { width: size.w, height: size.h, display: 'block' } })
         : null}

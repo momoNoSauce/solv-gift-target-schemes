@@ -106,6 +106,7 @@ export default function MySchemes() {
                   <SchemePage
                     scheme={sc}
                     active={index === i}
+                    near={Math.abs(index - i) <= 1}
                     first={i === firstIndex}
                     offset={offsets[i]}
                     bottomPad={bottomPad}

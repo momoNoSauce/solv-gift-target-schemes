@@ -124,7 +124,7 @@ const rise = (v, d = 10) => ({
 // material: an 88 px band where content fades into the card's colour, whose
 // opacity tracks the scroll left below; it is full while there is more, and gone
 // at the end.
-export default function SchemePage({ scheme, active, first, offset, bottomPad, onTitlePress, onSeeRunning, lang = 'en', compact = false, edge = false }) {
+export default function SchemePage({ scheme, active, near = true, first, offset, bottomPad, onTitlePress, onSeeRunning, lang = 'en', compact = false, edge = false }) {
   const t = T[lang] || T.en;
   const th = themeOf(scheme.theme);
   const st = th.stage;
@@ -304,7 +304,10 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
             fills the page: one dark room, one line, one way out. ——— */}
         <View style={[styles.stage, compact && styles.stageCompact, missed && { flex: 1 }]}>
           <StageScene stage={st} festive={festive} focusY={missed ? 0.2 : 0.44} />
-          {festive && !missed ? <ShaderStage theme={th.key} stage={st} /> : null}
+          {festive && !missed ? <ShaderStage theme={th.key} stage={st} near={near} /> : null}
+          {/* Everything on the stage sits above the canvas by explicit order: a
+              WebGL layer in Safari can otherwise paint over unordered siblings. */}
+          <View style={styles.stageContent}>
           <View style={styles.topBar} />
 
           <Pressable onPress={onTitlePress}>
@@ -492,6 +495,7 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
               ) : null}
             </>
           )}
+          </View>
         </View>
 
         {/* ——— Delivery, for the ended-with-win states ——— */}
@@ -686,6 +690,7 @@ const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: N.bg },
 
   stage: { paddingBottom: 28, overflow: 'hidden' },
+  stageContent: { zIndex: 2 },
   stageCompact: { paddingBottom: 20 },
   // Room for the pager's fixed back button (44px hit, 14px from the top).
   topBar: { height: 14 + 44 - 10 },

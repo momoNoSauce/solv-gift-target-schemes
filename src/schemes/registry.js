@@ -146,7 +146,7 @@ export const VIEWS = {
   typical: {
     label: 'Typical',
     running: [diwali(D(10, 19), 6.4 * L), bata(D(10, 19), 31200), prestige(D(10, 19), 16000)],
-    completed: [onam(D(10, 19), { orderedAt: D(9, 16), deliveredAt: D(9, 24) }), havells(D(10, 19))],
+    completed: [onam(D(10, 19), { orderedAt: D(9, 16), deliveredAt: D(9, 24) }), havells(D(10, 19)), holi(D(10, 19))],
   },
   start: {
     label: 'Season start',
