@@ -33,6 +33,10 @@ export const SOLV = {
   blueDark: '#0038CC',    // primary_dark
   blueBg: '#E6F0FF',      // light_green_cta, credit_lightest_green
   bg: '#F5F8FF',          // background_green (the window ground)
+  // The list's own ground, one step deeper than the window's. Android draws an
+  // 8 dp elevation shadow under a card; react-native-web renders a softer one,
+  // so a slightly deeper ground stands in for the depth the device shows.
+  listBg: '#EDF1F9',
   orange: '#ff7711',      // indicator_background_color, target_scheme_native
   ink: '#1A1A1A',
   sub: '#6B6B6B',

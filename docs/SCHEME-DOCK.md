@@ -337,7 +337,15 @@ The affordance (founder review, 4 Sep 2026: the stages read as a list of graphic
 does not reach the card's edge. Each card is a white surface with a 10 px frame on all four
 sides, an inset art panel, and the footer inside that frame under the art: the white is what
 makes the card a card and the stage its picture. Radii are concentric, 12 px on the art
-plus the 10 px frame = 22 px on the card. The footer's own edges line up with the art's,
+plus the 10 px frame = 22 px on the card.
+
+Depth. A white card on the app's near-white ground cannot lean on a flat outline: one
+hairline reads as a drawn border, two layered shadows read as a lifted surface. On web the
+card takes an injected `box-shadow` of two layers, a tight ambient one that holds the edge
+(where a soft shadow is weakest) and a wide key one that carries the lift; native keeps
+`elevation`, which Android draws itself. The list's ground is `SOLV.listBg` #EDF1F9, one
+step deeper than the window's #F5F8FF, because react-native-web renders a softer shadow
+than an 8 dp Android elevation and the deeper ground stands in for that depth. The footer's own edges line up with the art's,
 not the card's.
 
 The footer is one row, 52 px, with 11 px of frame under it: the window on the left ("Ends

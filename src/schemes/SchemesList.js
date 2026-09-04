@@ -45,6 +45,19 @@ import SolvBottomNav, { NAV_H } from './SolvBottomNav';
 import { T } from './copy';
 import { SETTLED } from './motion';
 
+// Depth, web only. A card on the app's near-white ground (#F5F8FF) cannot lean
+// on a flat 1px outline: one hairline reads as a drawn border, two layered
+// shadows read as a surface lifted off the ground. A tight ambient layer holds
+// the edge (where a soft shadow is weakest) and a wide key layer carries the
+// lift. Native keeps elevation, which Android draws itself.
+if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getElementById('scheme-card-depth')) {
+  const st = document.createElement('style');
+  st.id = 'scheme-card-depth';
+  st.textContent =
+    '[data-card="scheme"]{box-shadow:0 1px 2px rgba(16,24,40,0.08),0 12px 28px -10px rgba(16,24,40,0.22)!important;}';
+  document.head.appendChild(st);
+}
+
 const CARD_RADIUS = 22;   // = ART_RADIUS + FRAME, so the corners are concentric
 const ART_RADIUS = 12;
 const FRAME = 10;         // the white frame around the art
@@ -96,7 +109,7 @@ export function CardFooter({ scheme, t, style }) {
 function Card({ scheme, compact, onPress, onLayout, cardRef, dim, t }) {
   const press = usePressScale(0.96);
   return (
-    <Animated.View ref={cardRef} onLayout={onLayout} style={[styles.card, { transform: [{ scale: press.scale }] }, dim && { opacity: 0 }]}>
+    <Animated.View ref={cardRef} onLayout={onLayout} dataSet={{ card: 'scheme' }} style={[styles.card, { transform: [{ scale: press.scale }] }, dim && { opacity: 0 }]}>
       <Pressable onPress={onPress} onPressIn={press.pressIn} onPressOut={press.pressOut} accessibilityRole="button" accessibilityLabel={scheme.title}>
         {/* The art sits inside the card, not across it: the white frame is what
             makes the card a card and the stage its picture. */}
@@ -350,7 +363,7 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: SOLV.bg, overflow: 'hidden' },
+  root: { flex: 1, backgroundColor: SOLV.listBg, overflow: 'hidden' },
   listWrap: { flex: 1 },
   appBar: { backgroundColor: SOLV.blue },
   toolbar: { height: TOOLBAR_H, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
@@ -368,11 +381,11 @@ const styles = StyleSheet.create({
     padding: FRAME,
     backgroundColor: SOLV.paper,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-    shadowColor: '#000',
-    shadowOpacity: 0.10,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
+    borderColor: 'rgba(16,24,40,0.06)',
+    shadowColor: '#101828',
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
     elevation: 4,
   },
   art: { borderRadius: ART_RADIUS, overflow: 'hidden' },
