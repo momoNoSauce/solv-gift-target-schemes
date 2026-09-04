@@ -305,7 +305,11 @@ worse on the phone. This is the version that shipped.
 `/schemes/list?opt=a|b` is the scheme list. It is a tab of the Solv app's bottom
 navigation (it takes the place of All Brands), so it wears the app's chrome and has no
 back action: the blue toolbar with the title, the RUNNING and COMPLETED tabs with the
-sliding orange indicator, the app's ground, and the bottom navigation itself.
+sliding orange indicator (both labels at a fixed 14 sp; the shared TabLabel's fit
+measurement shrank the shorter word), the app's ground, and the bottom navigation itself.
+The details' scheme picker (the "N schemes" button and its sheet) is hidden for now
+(`SHOW_PICKER` in ArcScreen and DockScreen); the swipe and the dock still move between
+schemes.
 
 The colours are the Solv flavour's own, from `mainandroidapp/app/src/solv/res/values/colors.xml`
 (`src/gifts/solv.js`): toolbar and tabs `primary_color` #004FFA, ground `background_green`
@@ -330,9 +334,12 @@ the detail's chrome will be. An empty tab shows the app's empty state.
 
 The affordance (founder review, 4 Sep 2026: the stages alone read as a list of
 graphics; no "View details" link). Each stage sits inside a white card with a 1 px border,
-a shadow and a 56 px paper footer row: up to three gift thumbnails (the won gifts on a
-completed scheme, else the top of the ladder), a count ("8 gifts to win", "2 of 8 gifts
-won", "Starts 1 Oct"), and a round chevron in the brand colour. The footer is the first
+a shadow and a 56 px paper footer row: gift thumbnails (the one gift won on a completed
+scheme, else up to three from the top of the ladder), a line in the app's own word for a
+slab ("Targets ₹2L to ₹1.2Cr · 8 gifts", "Target ₹60,000 · 1 gift", "Won at the ₹5L
+target", "No target reached", "Starts 1 Oct · 8 gifts"), and a round chevron in the brand
+colour. A scheme pays one gift, the highest target crossed, so the footer never counts
+gifts won. The footer is the first
 strip of the detail's paper body, so the card still grows into the page without a seam:
 the footer fades over the first third of the move while the body arrives, and the layer
 carries the same hairline border as the card.

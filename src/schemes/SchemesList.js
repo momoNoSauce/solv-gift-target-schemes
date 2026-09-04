@@ -30,7 +30,6 @@ import Svg, { Path } from 'react-native-svg';
 import { STATE } from '../gifts/state';
 import { GiftThumb } from '../gifts/solv';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import TabLabel from '../components/TabLabel';
 import GiftGlyph from '../gifts/icons';
 import { SOLV, usePressScale } from '../gifts/solv';
 
@@ -62,21 +61,24 @@ const TAB_H = 44;
 // seam: the footer fades as the body arrives.
 export const FOOTER_H = 56;
 
+// A scheme pays one gift: the highest target crossed. The footer says what the
+// targets are, or which one paid.
 function footerLine(scheme, t) {
   const s = scheme.s;
   const n = s.ladder.length;
-  if (s.state === STATE.SCHEDULED) return t.cardStarts(s.startLabel);
-  if (s.state === STATE.ENDED_MISSED) return t.cardMissed(n);
-  if (s.ended && s.earned) return t.cardWon(s.ladder.filter((g) => s.currentValue >= g.at).length, n);
-  return t.cardGifts(n);
+  const slab = scheme.fmt;
+  if (s.state === STATE.SCHEDULED) return t.cardStarts(s.startLabel, n);
+  if (s.state === STATE.ENDED_MISSED) return t.cardMissed;
+  if (s.ended && s.earned) return t.cardWon(slab(s.secured.at));
+  return t.cardTargets(slab(s.ladder[0].at), slab(s.ladder[n - 1].at), n);
 }
 
-// Up to three gifts: the won ones on a completed scheme, else the top of the ladder.
+// The gifts in the footer: the one won on a completed scheme, else up to three
+// from the top of the ladder.
 function footerGifts(scheme) {
   const s = scheme.s;
-  const won = s.ladder.filter((g) => s.currentValue >= g.at);
-  const pick = s.ended && won.length ? won : s.ladder;
-  return pick.slice(-3).reverse();
+  if (s.ended && s.earned) return [s.secured];
+  return s.ladder.slice(-3).reverse();
 }
 
 export function CardFooter({ scheme, t, style }) {
@@ -266,9 +268,9 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
           <View style={styles.tabBar}>
             {[t.running, t.completed].map((label, i) => (
               <Pressable key={label} style={styles.tab} onPress={() => goTab(i)} android_ripple={{ color: '#ffffff26' }} accessibilityRole="tab" accessibilityState={{ selected: tab === i }}>
-                <Animated.View style={{ opacity: tabPos.interpolate({ inputRange: [i - 1, i, i + 1], outputRange: [0.64, 1, 0.64], extrapolate: 'clamp' }) }}>
-                  <TabLabel label={label} />
-                </Animated.View>
+                <Animated.Text style={[styles.tabLabel, { opacity: tabPos.interpolate({ inputRange: [i - 1, i, i + 1], outputRange: [0.64, 1, 0.64], extrapolate: 'clamp' }) }]} numberOfLines={1} allowFontScaling={false}>
+                  {label}
+                </Animated.Text>
               </Pressable>
             ))}
             {w > 0 ? <Animated.View style={[styles.indicator, { width: half, transform: [{ translateX: Animated.multiply(tabPos, half) }] }]} /> : null}
@@ -351,6 +353,8 @@ const styles = StyleSheet.create({
   toolbarTitle: { color: '#fff', fontFamily: F.medium, fontSize: 18, lineHeight: 22 },
   tabBar: { height: TAB_H, flexDirection: 'row' },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
+  // TabLayout's label: 14sp Roboto Medium, 0.0892857em tracking, white.
+  tabLabel: { color: '#fff', fontFamily: F.medium, fontSize: 14, lineHeight: 17, letterSpacing: 1.25, textAlign: 'center' },
   indicator: { position: 'absolute', bottom: 0, left: 0, height: 3, backgroundColor: SOLV.orange },
   pages: { flex: 1, flexDirection: 'row' },
   card: {

@@ -20,6 +20,10 @@ import AllSchemesSheet from './AllSchemesSheet';
 import { T } from './copy';
 import { backToEntry } from './nav';
 
+// The scheme picker (the "N schemes" button and its sheet) is hidden for now,
+// per the review of 4 Sep 2026. The swipe and the dock still move between schemes.
+const SHOW_PICKER = false;
+
 export const SHEET_MARGIN = 14;
 export const SHEET_RADIUS = 24;
 export const SHEET_TOP = 10;   // below the safe area
@@ -123,7 +127,7 @@ export default function ArcScreen({ schemes, viewKey = 'typical', initialIndex =
         <Pressable onPress={back} style={styles.backBtn} android_ripple={{ color: '#ffffff33', borderless: true }} accessibilityLabel="Back">
           <IconBack size={22} color="#fff" />
         </Pressable>
-        {n > 1 ? (
+        {SHOW_PICKER && n > 1 ? (
           <Pressable onPress={() => setListOpen(true)} style={styles.listBtn} accessibilityLabel="All schemes" android_ripple={{ color: '#ffffff33', borderless: true }}>
             <Svg width={18} height={18} viewBox="0 0 24 24">
               <Path d="M4 7h16M4 12h16M4 17h10" stroke="#fff" strokeWidth={2} strokeLinecap="round" />
@@ -137,7 +141,7 @@ export default function ArcScreen({ schemes, viewKey = 'typical', initialIndex =
         <ArcDock schemes={schemes} pos={pos} onSelect={goTo} panHandlers={dockPan} width={size.w} bottomInset={insets.bottom} />
       ) : null}
 
-      <AllSchemesSheet open={listOpen} schemes={schemes} index={index} onSelect={goTo} onClose={() => setListOpen(false)} height={size.h} bottomInset={insets.bottom} />
+      <AllSchemesSheet open={SHOW_PICKER && listOpen} schemes={schemes} index={index} onSelect={goTo} onClose={() => setListOpen(false)} height={size.h} bottomInset={insets.bottom} />
 
       {demoOpen && !embedded ? (
         <View style={[styles.demo, { bottom: zoneH + 8 }]}>
