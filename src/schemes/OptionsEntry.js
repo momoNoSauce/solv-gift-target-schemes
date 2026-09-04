@@ -11,9 +11,12 @@ import { SETTLED } from './motion';
 
 const INK = '#0B0A14';
 
+// EXPO_PUBLIC_ENTRY=detail keeps the first review build's rows, which open the
+// detail screens directly. The default opens the scheme list.
+const DETAIL = process.env.EXPO_PUBLIC_ENTRY === 'detail';
 const OPTIONS = [
-  { key: 'A', name: 'Arc', href: '/schemes/list?opt=a' },
-  { key: 'B', name: 'Dock', href: '/schemes/list?opt=b' },
+  { key: 'A', name: 'Arc', href: DETAIL ? '/schemes/arc' : '/schemes/list?opt=a' },
+  { key: 'B', name: 'Dock', href: DETAIL ? '/schemes' : '/schemes/list?opt=b' },
 ];
 
 function Row({ option, anim, onPress }) {

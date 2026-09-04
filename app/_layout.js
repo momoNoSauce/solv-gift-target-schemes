@@ -23,6 +23,19 @@ if (Platform.OS === 'web' && typeof window !== 'undefined' && !window.__rafShim)
     typeof document !== 'undefined' && document.hidden ? setTimeout(() => cb(performance.now()), 16) : raf(cb);
 }
 
+// Error aid, web only, in dev or with ?errtitle=1: an uncaught error is copied into
+// the document title so a browser without a console (Safari driven by AppleScript)
+// reveals it.
+if (Platform.OS === 'web' && typeof window !== 'undefined' && (__DEV__ || /errtitle/.test(window.location.search)) && !window.__errToTitle) {
+  window.__errToTitle = true;
+  const report = (m) => {
+    window.__lastError = m;
+    try { document.title = 'ERR: ' + String(m).slice(0, 600); } catch (e) {}
+  };
+  window.addEventListener('error', (e) => report((e.message || e.error) + ' @ ' + (e.filename || '') + ':' + e.lineno + ' ' + (e.error && e.error.stack ? e.error.stack.slice(0, 400) : '')));
+  window.addEventListener('unhandledrejection', (e) => report('rejection: ' + (e.reason && (e.reason.stack || e.reason.message || e.reason))));
+}
+
 // Crisper text on macOS browsers; native ignores this.
 if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getElementById('font-smoothing')) {
   const s = document.createElement('style');

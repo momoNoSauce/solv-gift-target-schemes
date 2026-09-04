@@ -160,47 +160,64 @@ export default function ShaderStage({ theme, stage, focusY = 0.44, near = true }
       setLost(true);
     };
     canvas.addEventListener('webglcontextlost', onLost);
-    const gl = canvas.getContext('webgl', { antialias: false, alpha: false, premultipliedAlpha: false });
-    if (!gl || gl.isContextLost()) {
+    // Safari returns a lost context when it is short of them, and then throws a
+    // TypeError on the first call with the null shader that createShader gives
+    // back (Chrome stays silent). A throw inside an effect unmounts the whole
+    // tree: a blank page. So every step of the setup is guarded, and any failure
+    // leaves the SVG scene in place.
+    let gl = null;
+    let uTime = null;
+    let uRes = null;
+    try {
+      gl = canvas.getContext('webgl', { antialias: false, alpha: false, premultipliedAlpha: false });
+      if (!gl || gl.isContextLost()) throw new Error('no webgl context');
+      const compile = (type, src) => {
+        const sh = gl.createShader(type);
+        if (!sh) throw new Error('createShader failed');
+        gl.shaderSource(sh, src);
+        gl.compileShader(sh);
+        if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh) || 'shader compile failed');
+        return sh;
+      };
+      const prog = gl.createProgram();
+      if (!prog) throw new Error('createProgram failed');
+      gl.attachShader(prog, compile(gl.VERTEX_SHADER, VERT));
+      gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG));
+      gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog) || 'program link failed');
+      gl.useProgram(prog);
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(prog, 'a');
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+      const u = (n) => gl.getUniformLocation(prog, n);
+      gl.uniform1i(u('u_mode'), mode);
+      gl.uniform3fv(u('u_g1'), hex(stage.ground));
+      gl.uniform3fv(u('u_g2'), hex(stage.ground2));
+      gl.uniform3fv(u('u_glow'), hex(stage.glowKey));
+      gl.uniform3fv(u('u_amb'), hex(stage.glowAmbient));
+      gl.uniform3fv(u('u_speck'), hex(stage.speck));
+      uTime = u('u_time');
+      uRes = u('u_res');
+    } catch (e) {
       setLost(true);
       return () => canvas.removeEventListener('webglcontextlost', onLost);
     }
-    const compile = (type, src) => {
-      const sh = gl.createShader(type);
-      gl.shaderSource(sh, src);
-      gl.compileShader(sh);
-      return sh;
-    };
-    const prog = gl.createProgram();
-    gl.attachShader(prog, compile(gl.VERTEX_SHADER, VERT));
-    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG));
-    gl.linkProgram(prog);
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-      setLost(true);
-      return () => canvas.removeEventListener('webglcontextlost', onLost);
-    }
-    gl.useProgram(prog);
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-    const loc = gl.getAttribLocation(prog, 'a');
-    gl.enableVertexAttribArray(loc);
-    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    const u = (n) => gl.getUniformLocation(prog, n);
-    gl.uniform1i(u('u_mode'), mode);
-    gl.uniform3fv(u('u_g1'), hex(stage.ground));
-    gl.uniform3fv(u('u_g2'), hex(stage.ground2));
-    gl.uniform3fv(u('u_glow'), hex(stage.glowKey));
-    gl.uniform3fv(u('u_amb'), hex(stage.glowAmbient));
-    gl.uniform3fv(u('u_speck'), hex(stage.speck));
-    glRef.current = { gl, uTime: u('u_time'), uRes: u('u_res') };
+    glRef.current = { gl, uTime, uRes };
 
     let raf = 0;
     const t0 = performance.now();
     // 12 s in, so the field is already alive on the first frame
     const draw = (t) => {
-      gl.uniform1f(glRef.current.uTime, t);
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      if (!glRef.current) return;
+      try {
+        gl.uniform1f(glRef.current.uTime, t);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      } catch (e) {
+        setLost(true);
+      }
     };
     const loop = () => {
       // Far from the screen the page holds its last frame; drawing resumes when
@@ -214,8 +231,10 @@ export default function ShaderStage({ theme, stage, focusY = 0.44, near = true }
       cancelAnimationFrame(raf);
       canvas.removeEventListener('webglcontextlost', onLost);
       glRef.current = null;
-      const ext = gl.getExtension('WEBGL_lose_context');
-      if (ext) ext.loseContext();
+      try {
+        const ext = gl.getExtension('WEBGL_lose_context');
+        if (ext) ext.loseContext();
+      } catch (e) {}
     };
   }, [size.w > 0, mode, stage, lost]);
 
@@ -232,12 +251,16 @@ export default function ShaderStage({ theme, stage, focusY = 0.44, near = true }
     }
     const g = glRef.current;
     if (!g) return;
-    g.gl.viewport(0, 0, w, h);
-    g.gl.uniform2f(g.uRes, w, h);
-    // Repaint at once, so a settled frame never shows a stretched buffer.
-    if (SETTLED || !nearRef.current) {
-      g.gl.uniform1f(g.uTime, 12.0);
-      g.gl.drawArrays(g.gl.TRIANGLE_STRIP, 0, 4);
+    try {
+      g.gl.viewport(0, 0, w, h);
+      g.gl.uniform2f(g.uRes, w, h);
+      // Repaint at once, so a settled frame never shows a stretched buffer.
+      if (SETTLED || !nearRef.current) {
+        g.gl.uniform1f(g.uTime, 12.0);
+        g.gl.drawArrays(g.gl.TRIANGLE_STRIP, 0, 4);
+      }
+    } catch (e) {
+      setLost(true);
     }
   }, [size.w, size.h]);
 
