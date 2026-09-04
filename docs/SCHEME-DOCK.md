@@ -289,12 +289,27 @@ read as a second component inside the card.
 ## The living stage (web)
 
 A festive scheme's stage moves, at the pace of a lit room, through one fragment
-shader (`src/schemes/ShaderStage.js`) laid over the SVG scene: Diwali breathes its
-key glow and lifts embers from the diya line, each on its own clock; Onam drops light
-rays from above with petals drifting through them; Holi folds three clouds of gulal
-through warped noise. Deterministic in time, no run-time randomness, one 2D canvas per
-festive page at up to 1.5x. Under capture and reduced motion it paints one frame at
-t = 12 s and stops. Native keeps the SVG scene.
+shader (`src/schemes/ShaderStage.js`) laid over the SVG scene. Each festival gets an
+image that could only be that festival, moving the way that thing moves:
+
+- Diwali: a night over lit lamps. Warm haze in two layers that breathes and turns, god
+  rays from the key light, embers rising with heat streaks, distant lamps out of focus
+  as bokeh, and two small fireworks blooming high on their own clocks, sparks drooping
+  under gravity.
+- Onam: a pookalam, laid on the floor behind the pedestal and seen whole from above.
+  Five rings of petal lobes turn against one another (saffron, vermilion, cream, leaf,
+  marigold), the gift in the flower's centre, dim like a floor pattern under stage
+  light. Dappled monsoon light drifts over it. Six fireflies pulse; nothing falls.
+- Holi: three clouds of gulal folding through warped noise, and thrown gulal blooming
+  in bursts that expand and thin out on a cycle.
+
+Two star layers with parallax sit over every festive stage. Deterministic in time, no
+run-time randomness, one canvas per festive page at 0.85 of a CSS pixel (the field is
+soft and upsamples cleanly). Under capture and reduced motion it paints one frame at
+t = 12 s and stops. Native keeps the SVG scene. A shader that fails to compile logs
+its reason instead of falling silently back to the SVG.
+
+The first Onam attempt dropped petals from the top; it read as snow. Rejected.
 
 ## Entry and deploy
 
