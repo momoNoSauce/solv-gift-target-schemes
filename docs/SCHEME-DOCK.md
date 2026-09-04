@@ -334,13 +334,15 @@ the detail's chrome will be. An empty tab shows the app's empty state.
 
 The affordance (founder review, 4 Sep 2026: the stages read as a list of graphics; no
 "View details" link; "a white border around the content" would make it a card). The art
-does not reach the card's edge. Each card is a white surface with a 10 px frame around an
-inset art panel, and the footer sits inside that frame under the art: the white is what
+does not reach the card's edge. Each card is a white surface with a 10 px frame on all four
+sides, an inset art panel, and the footer inside that frame under the art: the white is what
 makes the card a card and the stage its picture. Radii are concentric, 12 px on the art
 plus the 10 px frame = 22 px on the card. The footer's own edges line up with the art's,
 not the card's.
 
-The footer holds gift thumbnails (the one gift won on a completed scheme, else up to three
+The footer is 60 px, which leaves 14 px above and below its 32 px thumbnails, and 11 px of
+frame stays under it: the footer must never sit against the card's bottom edge. It holds
+gift thumbnails (the one gift won on a completed scheme, else up to three
 from the top of the ladder, the won one carrying a green check), the scheme window ("Ends
 9 Nov 2026 · 21 days left", "Ended 12 Sep 2026", "Starts 1 Oct"), and a round chevron in
 the brand colour.
@@ -351,15 +353,20 @@ scheme pays one gift, the highest target crossed, so nothing counts gifts won. T
 keeps the dates under the title, and the two readings cross in place over the first third
 of the move.
 
-Card size. Every card in a list stands the same height (454 px in option B, 422 px in
-option A, ±3 px on the won layout). `Stage` takes `cardAnim`, a 0..1 dial: at 0 (the list
-card) a running stage has no eyebrow, a 16 px top bar, a shorter pedestal, the tile at the
-won size, and the ask ("Buy ₹X more") collapsed to 0, while the amount tag over the bar
-and the qualified chip stay (the current buying is the card's signal); at 1 (the detail)
-everything is at full size. A card that carries the chip pays for it out of the pedestal
-and the stage's bottom padding, so the chip costs no height in the list. The contact
-shadow under the tile is an SVG ellipse whose position and size ride the same dial (audit,
-4 Sep 2026: a fixed viewBox let it slide behind the gift name on the shortened pedestal).
+Card size. `Stage` takes `cardAnim`, a 0..1 dial: at 0 (the list card) a running stage has
+no eyebrow, a 20 px top bar, a shorter pedestal, the tile at the won size, and the ask
+("Buy ₹X more") collapsed to 0, while the amount tag over the bar and the qualified chip
+stay (the current buying is the card's signal); at 1 (the detail) everything is at full
+size. The contact shadow under the tile is an SVG ellipse whose position and size ride the
+same dial (audit, 4 Sep 2026: a fixed viewBox let it slide behind the gift name on the
+shortened pedestal).
+
+Cards in a tab stand within 12 px of each other, except that a card carrying the qualified
+chip is 52 px taller. Do not pay for the chip out of the pedestal and the stage's bottom
+padding: that was tried on 4 Sep 2026 and it clipped the chip against the art panel's
+bottom edge. The pedestal cannot go below the tile's own height plus its 16 px margin, so
+equal heights with the chip would cost either a clipped chip or a smaller gift photo on
+every card, and both read worse than a taller card.
 
 The move is the App Store's card-to-detail:
 

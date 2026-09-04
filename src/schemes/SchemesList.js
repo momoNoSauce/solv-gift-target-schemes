@@ -61,7 +61,7 @@ const TAB_H = 44;
 // card has more inside, without a text link saying so. The footer is the first
 // strip of the detail's paper body, so the card grows into the page without a
 // seam: the footer fades as the body arrives.
-export const FOOTER_H = 46;
+export const FOOTER_H = 60;
 
 // The footer carries the window. The offer ("Targets ₹2L to ₹1.2Cr · 8 gifts")
 // sits under the title on the stage (see Stage's offerLine), where the eye lands
@@ -385,7 +385,6 @@ const styles = StyleSheet.create({
     marginBottom: GAP,
     borderRadius: CARD_RADIUS,
     padding: FRAME,
-    paddingBottom: 0,
     backgroundColor: SOLV.paper,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.08)',
@@ -398,6 +397,7 @@ const styles = StyleSheet.create({
   art: { borderRadius: ART_RADIUS, overflow: 'hidden' },
   // The footer's own edges line up with the art above it, not with the card.
   footer: { height: FOOTER_H, flexDirection: 'row', alignItems: 'center', backgroundColor: SOLV.paper },
+  // The footer's box starts where the art ends; its own top padding is the gap.
   thumbRow: { flexDirection: 'row', alignItems: 'center', marginRight: 12 },
   thumb: { width: 32, height: 32, borderRadius: 16, backgroundColor: SOLV.paper, borderWidth: 1, borderColor: 'rgba(0,0,0,0.10)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   wonBadge: { position: 'absolute', right: -3, bottom: -1, width: 14, height: 14, borderRadius: 7, backgroundColor: SOLV.green, borderWidth: 1.5, borderColor: SOLV.paper, alignItems: 'center', justifyContent: 'center', zIndex: 4 },

@@ -211,16 +211,11 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
   const tileLayout = hero.tone === 'won' ? (compact ? 128 : 136) : compact ? 148 : 168;
   const tileCardScale = showBar ? (compact ? 128 / 148 : 136 / 168) : 1;
   const tileTopMargin = compact ? 14 : 16;
-  // A card that carries the qualified chip pays for it out of the pedestal and
-  // the stage's bottom padding, so every card in the list stands the same height.
-  const chipOnCard = showBar && Boolean(securedCapsule);
-  const chipRoom = compact ? 46 : 52;
-  const padRoom = compact ? 20 : 24;
   const shadow = { rx: compact ? 68 : 76, ry: compact ? 8 : 9, gap: 10 };
   const shadowCard = { rx: compact ? 54 : 60, ry: compact ? 5 : 6, gap: compact ? 4 : 6 };
   const tileMid = (ped) => ped / 2 + tileTopMargin / 2;
   const contactTopDetail = tileMid(pedH) + tileLayout / 2 + shadow.gap - shadow.ry;
-  const contactTopCard = tileMid(chipOnCard ? pedCardH - (chipRoom - padRoom) : pedCardH) + (tileLayout / 2) * tileCardScale + shadowCard.gap - shadowCard.ry;
+  const contactTopCard = tileMid(pedCardH) + (tileLayout / 2) * tileCardScale + shadowCard.gap - shadowCard.ry;
   const contact = showBar
     ? { top: dial(contactTopCard, contactTopDetail), width: dial(2 * shadowCard.rx, 2 * shadow.rx), height: dial(2 * shadowCard.ry, 2 * shadow.ry), marginLeft: dial(-shadowCard.rx, -shadow.rx) }
     : { top: contactTopDetail, width: 2 * shadow.rx, height: 2 * shadow.ry, marginLeft: -shadow.rx };
@@ -271,7 +266,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
   );
 
   return (
-    <Animated.View style={[styles.stage, compact && styles.stageCompact, fill && { flex: 1 }, card && styles.stageCard, chipOnCard && { paddingBottom: dial(0, padRoom) }]}>
+    <View style={[styles.stage, compact && styles.stageCompact, fill && { flex: 1 }, card && styles.stageCard]}>
       <StageScene stage={st} festive={festive} focusY={missed ? 0.2 : 0.44} />
       {festive && !missed ? <ShaderStage theme={th.key} stage={st} near={near} /> : null}
       {/* Everything on the stage sits above the canvas by explicit order, and
@@ -279,7 +274,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
           compositor otherwise paints the WebGL canvas over siblings it has not
           promoted, and the stage shows the night with nothing on it. */}
       <View style={styles.stageContent} dataSet={{ layer: 'stage-content' }}>
-        <Animated.View style={[styles.topBar, { height: dial(16, TOPBAR_H) }]} />
+        <Animated.View style={[styles.topBar, { height: dial(20, TOPBAR_H) }]} />
 
         {card ? <View>{title}</View> : <Pressable onPress={onTitlePress}>{title}</Pressable>}
 
@@ -295,7 +290,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
           </View>
         ) : (
           <>
-            <Animated.View style={[styles.pedestal, compact && styles.pedestalCompact, lag, showBar && { height: dial(chipOnCard ? pedCardH - (chipRoom - padRoom) : pedCardH, pedH) }]}>
+            <Animated.View style={[styles.pedestal, compact && styles.pedestalCompact, lag, showBar && { height: dial(pedCardH, pedH) }]}>
               {/* The contact shadow: an ellipse 10 px under the tile's visible bottom
                   edge, following the pedestal height and the tile scale on the dial. */}
               <Animated.View pointerEvents="none" style={[styles.contact, contact]}>
@@ -447,7 +442,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
           </>
         )}
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
