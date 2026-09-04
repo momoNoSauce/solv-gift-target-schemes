@@ -59,6 +59,8 @@ const GIFT_FLOWS = [
   ['SHIP touchpoint: order confirmed', '/ship/order-confirmation'],
   ['SHIP touchpoint: order confirmed, slab crossed', '/ship/order-confirmation?win=1'],
   ['D. Entry page: Option A and Option B', '/options'],
+  ['D. Scheme list, cards open into the arc detail', '/schemes/list?opt=a'],
+  ['D. Scheme list, cards open into the dock detail', '/schemes/list?opt=b'],
   ['D. My Schemes, Option A: sheet with the arc of schemes', '/schemes/arc'],
   ['D. My Schemes, Option B: scheme pager with a dock bar', '/schemes'],
   ['A. Gift scheme in the current paradigm', '/gift-targets'],

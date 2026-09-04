@@ -300,6 +300,56 @@ A richer rewrite (fireworks and bokeh for Diwali, a pookalam for Onam, gulal bur
 for Holi) was tried on 4 Sep 2026 and rolled back the same day: it looked and ran
 worse on the phone. This is the version that shipped.
 
+## The list, and the move into the detail (4 Sep 2026)
+
+`/schemes/list?opt=a|b` is the scheme list. It is a tab of the Solv app's bottom
+navigation (it takes the place of All Brands), so it wears the app's chrome and has no
+back action: the blue toolbar with the title, the RUNNING and COMPLETED tabs with the
+sliding indicator, the app's grey ground (`SOLV.bg`). The two tabs are pages of one
+pager (`usePager`, `keys: false` so the detail's arrow keys stay its own): a swipe on
+the pages moves the tab and the indicator together; a tap on a tab springs there.
+Axis lock applies, so a vertical drag scrolls and never changes the tab.
+
+Each card is the exact stage of the detail it opens: `src/schemes/Stage.js` draws both
+the card and the top of the page, so they are the same pixels. Cards are big, one and a
+half to two per fold; a status eyebrow ("21 DAYS LEFT", "DELIVERED 24 SEP") sits where
+the detail's chrome will be. An empty tab shows the app's empty state.
+
+The move is the App Store's card-to-detail:
+
+1. On tap the card's rectangle is measured against the screen root.
+2. A transition layer showing the detail page appears in that exact rectangle and
+   springs to the detail's frame: the sheet (option A) or the full screen (option B),
+   corner radius easing from 20 to the frame's. The page lays out at the layer's live
+   width, so the centred stage stays centred as the frame grows.
+3. The card's eyebrow fades over the first third; the paper under the body turns from
+   the stage's night to the page ground in the first fifth, before the frame has grown
+   enough to show it; the body below the stage fades and lifts in from a third onward;
+   the list behind scales to 0.96 and dims to 50 %.
+4. Underneath, the real detail screen mounts on the opening scheme with its stage
+   settled (`still`: no intro, no arrival sweep, no confetti) and fades in over the
+   last stretch. When the layer lifts at the end, nothing moves. Below the layer's
+   growing edge the detail shows through at its fade, on the same paper.
+5. Back reverses the move into the card of the scheme on screen: the list switches
+   to that scheme's tab, scrolls its card into view, measures it, and shrinks the
+   layer into it.
+
+One spring (stiffness 190, damping 26, ratio 0.94) drives every part and can be
+reversed mid-flight. Under capture and reduced motion the move is a cut.
+
+The two detail screens are components (`ArcScreen`, `DockScreen`) so the list can
+host them; the routes are thin wrappers.
+
+WebGL contexts. The list mounts one shader canvas per festive card, the detail one per
+festive page, and the layer one more. `ShaderStage` therefore makes its context once
+per canvas and only resizes the buffer when the frame changes; an earlier version made
+a new context on every size change, so the growing layer burned through the browser's
+context budget in a few frames and came back with a lost context, which paints white
+over the scene. A context that cannot be made, or is lost later, unmounts the canvas
+and the SVG scene under it stands in.
+
+Frame audit: `window.__list.open(i)`, `.close(i)`, `.tab(0|1)`, `.freeze(0..1)`.
+
 ## Entry and deploy
 
 `/options` is the founder-review entry: Option A (arc) and Option B (dock), each with

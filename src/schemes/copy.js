@@ -58,6 +58,8 @@ export const T = {
     completed: 'COMPLETED',
     emptyTitle: 'No schemes yet',
     emptyLine: 'When a scheme starts for your shop, it shows here.',
+    emptyDoneTitle: 'No completed schemes',
+    emptyDoneLine: 'A scheme moves here when its window ends.',
   },
   hi: {
     startsLine: (d) => `${d} से शुरू`,
@@ -112,5 +114,7 @@ export const T = {
     completed: 'पूरी हुई',
     emptyTitle: 'अभी कोई स्कीम नहीं',
     emptyLine: 'जब आपकी दुकान के लिए स्कीम शुरू होगी, यहाँ दिखेगी।',
+    emptyDoneTitle: 'कोई पूरी हुई स्कीम नहीं',
+    emptyDoneLine: 'स्कीम की अवधि खत्म होने पर वह यहाँ आती है।',
   },
 };

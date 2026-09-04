@@ -136,20 +136,35 @@ void main(){
 const MODE = { diwali: 0, onam: 1, holi: 2 };
 const hex = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16) / 255);
 
-export default function ShaderStage({ theme, stage, focusY = 0.44 }) {
+export default function ShaderStage({ theme, stage, focusY = 0.44, near = true }) {
   const [size, setSize] = useState({ w: 0, h: 0 });
+  const [lost, setLost] = useState(false);
   const canvasRef = useRef(null);
+  const glRef = useRef(null);     // { gl, uTime, uRes }
+  const nearRef = useRef(near);
+  nearRef.current = near;
   const mode = MODE[theme];
   if (!web || !createElement || mode == null) return null;
 
+  // One WebGL context per canvas, made once. A canvas whose frame changes (the
+  // card growing into the detail) only resizes its buffer; it never makes a
+  // new context, because a browser keeps a small number of live contexts and
+  // a context made every frame soon comes back lost, and a lost context paints
+  // white over the scene. If the context cannot be made, or is lost later, the
+  // canvas unmounts and the SVG scene under it stands in.
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || size.w === 0) return;
-    const dpr = Math.min(1.5, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
-    canvas.width = Math.round(size.w * dpr);
-    canvas.height = Math.round(size.h * dpr);
+    if (!canvas || lost) return;
+    const onLost = (e) => {
+      e.preventDefault();
+      setLost(true);
+    };
+    canvas.addEventListener('webglcontextlost', onLost);
     const gl = canvas.getContext('webgl', { antialias: false, alpha: false, premultipliedAlpha: false });
-    if (!gl) return;
+    if (!gl || gl.isContextLost()) {
+      setLost(true);
+      return () => canvas.removeEventListener('webglcontextlost', onLost);
+    }
     const compile = (type, src) => {
       const sh = gl.createShader(type);
       gl.shaderSource(sh, src);
@@ -160,7 +175,10 @@ export default function ShaderStage({ theme, stage, focusY = 0.44 }) {
     gl.attachShader(prog, compile(gl.VERTEX_SHADER, VERT));
     gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG));
     gl.linkProgram(prog);
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return;
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      setLost(true);
+      return () => canvas.removeEventListener('webglcontextlost', onLost);
+    }
     gl.useProgram(prog);
     const buf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
@@ -169,45 +187,69 @@ export default function ShaderStage({ theme, stage, focusY = 0.44 }) {
     gl.enableVertexAttribArray(loc);
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     const u = (n) => gl.getUniformLocation(prog, n);
-    gl.uniform2f(u('u_res'), canvas.width, canvas.height);
     gl.uniform1i(u('u_mode'), mode);
     gl.uniform3fv(u('u_g1'), hex(stage.ground));
     gl.uniform3fv(u('u_g2'), hex(stage.ground2));
     gl.uniform3fv(u('u_glow'), hex(stage.glowKey));
     gl.uniform3fv(u('u_amb'), hex(stage.glowAmbient));
     gl.uniform3fv(u('u_speck'), hex(stage.speck));
-    const uTime = u('u_time');
-    gl.viewport(0, 0, canvas.width, canvas.height);
+    glRef.current = { gl, uTime: u('u_time'), uRes: u('u_res') };
 
     let raf = 0;
     const t0 = performance.now();
-    const draw = () => {
-      // 12 s in, so the field is already alive on the first frame
-      gl.uniform1f(uTime, 12.0 + (performance.now() - t0) / 1000);
+    // 12 s in, so the field is already alive on the first frame
+    const draw = (t) => {
+      gl.uniform1f(glRef.current.uTime, t);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
-    if (SETTLED) {
-      gl.uniform1f(uTime, 12.0);
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      return;
-    }
     const loop = () => {
-      draw();
+      // Far from the screen the page holds its last frame; drawing resumes when
+      // it comes near, mid-motion, as a room does.
+      if (nearRef.current) draw(12.0 + (performance.now() - t0) / 1000);
       raf = requestAnimationFrame(loop);
     };
-    loop();
+    if (SETTLED) draw(12.0);
+    else loop();
     return () => {
       cancelAnimationFrame(raf);
+      canvas.removeEventListener('webglcontextlost', onLost);
+      glRef.current = null;
       const ext = gl.getExtension('WEBGL_lose_context');
       if (ext) ext.loseContext();
     };
-  }, [size.w, size.h, mode, stage]);
+  }, [size.w > 0, mode, stage, lost]);
+
+  // The frame: the buffer follows the layout, the context stays.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || size.w === 0) return;
+    const dpr = Math.min(1.5, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
+    const w = Math.round(size.w * dpr);
+    const h = Math.round(size.h * dpr);
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+    const g = glRef.current;
+    if (!g) return;
+    g.gl.viewport(0, 0, w, h);
+    g.gl.uniform2f(g.uRes, w, h);
+    // Repaint at once, so a settled frame never shows a stretched buffer.
+    if (SETTLED || !nearRef.current) {
+      g.gl.uniform1f(g.uTime, 12.0);
+      g.gl.drawArrays(g.gl.TRIANGLE_STRIP, 0, 4);
+    }
+  }, [size.w, size.h]);
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none" onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
-      {size.w > 0
+    <View style={styles.host} pointerEvents="none" onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+      {size.w > 0 && !lost
         ? createElement('canvas', { ref: canvasRef, style: { width: size.w, height: size.h, display: 'block' } })
         : null}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  host: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
+});

@@ -1,7 +1,5 @@
-// One scheme's page inside the pager. The stage, the meter, the ask, the gift
-// list, the rules, the CTA and the facts: the Mega Diwali detail page, made to
-// render ANY scheme (a full ladder, a one-gift trade scheme, a voucher scheme,
-// and every ended state).
+// One scheme's page inside the pager: the stage (src/schemes/Stage.js) and,
+// below it, the delivery cards, the gift list, the rules, the CTA and the facts.
 //
 // Motion contract with the pager:
 //   - The page that opens first plays the full staged intro (label, tile, name,
@@ -10,42 +8,27 @@
 //     the pager lands on it the fill sweeps and the ask rises: the page reads as
 //     arriving, and the swipe never shows a full bar that then resets.
 //   - Each page plays its arrival once.
+//   - `still` renders everything settled with no arrival and no confetti: the
+//     page a card has just grown into must not move again.
+//   - `bodyAnim` (0..1) fades and lifts everything below the stage: the detail
+//     content arriving as the card opens.
 //   - While the pager moves, the pedestal lags the page by 36px per page of
-//     travel (parallax), so the hero has depth against the sliding chrome.
-//
-// The page draws no back button; the pager owns the fixed one. Tapping the
-// scheme title calls `onTitlePress` (the prototype's demo panel).
+//     travel (parallax).
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Image, Pressable, ScrollView, StyleSheet, Animated, Easing, Platform } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Ellipse, Path, Circle, Defs, Text as SvgText, TextPath } from 'react-native-svg';
 import { F } from '../theme';
-import { IconRunningMan, IconTargetFlag } from '../icons';
 import GiftGlyph from '../gifts/icons';
 import StageScene from '../gifts/Scene';
-import ShaderStage from './ShaderStage';
-import { usePressScale, GiftThumb } from '../gifts/solv';
 import { STATE } from '../gifts/state';
-import { themeOf } from '../gifts/themes';
 import { RIMG } from '../rewards/assets';
 import { T } from './copy';
-import SchemeArt from './SchemeArt';
 import { SETTLED } from './motion';
 import { ddMMM, SHOP_ADDRESS } from './registry';
+import Stage, { deriveStage, CtaButton, rise, N, TABULAR } from './Stage';
 
-const N = {
-  ink: '#1A1A1A',
-  sub: '#6B6B6B',
-  line: '#ECECEC',
-  paper: '#FFFFFF',
-  bg: '#F7F7F7',
-  green: '#177E36',
-};
 const PHOTO_EDGE = 'rgba(0,0,0,0.08)';
-const TABULAR = { fontVariant: ['tabular-nums'] };
-
-// Capture and reduced motion render the settled state directly.
 const STATIC = SETTLED;
 
 function stepsFor(state) {
@@ -54,82 +37,10 @@ function stepsFor(state) {
   return ['done', 'done', 'done', 'done'];
 }
 
-// The primary pill: a top sheen for depth, a soft glow in its own color, and a
-// spring press to 0.96 that can be interrupted mid-motion.
-export function CtaButton({ label, bg, fg, glow = false, onPress, containerStyle }) {
-  const p = usePressScale(0.96);
-  return (
-    <Animated.View style={{ transform: [{ scale: p.scale }] }}>
-      <Pressable
-        onPress={onPress}
-        onPressIn={p.pressIn}
-        onPressOut={p.pressOut}
-        android_ripple={{ color: '#00000022' }}
-        style={[styles.cta, containerStyle, { backgroundColor: bg }, glow && [styles.ctaGlow, { shadowColor: bg }]]}
-      >
-        <LinearGradient colors={['rgba(255,255,255,0.30)', 'rgba(255,255,255,0)']} style={styles.ctaSheen} pointerEvents="none" />
-        <Text style={[styles.ctaText, { color: fg }]} allowFontScaling={false}>{label}</Text>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
-// The stamp on a won gift. A seal, the way a real one is cut: a heavy outer
-// ring with its ink slightly uneven, a hairline inner ring, the word on the top
-// arc and the date on the bottom arc in letterspaced caps (both read upright),
-// a heavy check at the centre. Set 12 degrees off square, pressed onto the
-// tile's corner, it lands with the tile and settles from 1.3 to 1. One ink for
-// every surface, a green that reads on the white tile and on the night behind.
-const STAMP_INK = '#2BB05B';
-function WonStamp({ word, date, anim }) {
-  const id = React.useRef(`st${Math.random().toString(36).slice(2, 7)}`).current;
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[styles.stamp, { opacity: anim, transform: [{ rotate: '-12deg' }, { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [1.3, 1] }) }] }]}
-    >
-      <Svg width={96} height={96} viewBox="0 0 100 100">
-        <Defs>
-          {/* top arc, left to right over the top; bottom arc, left to right under the bottom */}
-          <Path id={`${id}top`} d="M 14 50 A 36 36 0 0 1 86 50" />
-          <Path id={`${id}bot`} d="M 14 50 A 36 36 0 0 0 86 50" />
-        </Defs>
-        {/* the impression: a faint lift under the ink so the seal reads on a green stage as well as on white */}
-        <Circle cx="50" cy="50" r="48" fill="#FFFFFF" opacity="0.10" />
-        <Circle cx="50" cy="50" r="46" stroke={STAMP_INK} strokeWidth="3.2" fill="none" opacity="0.92" />
-        {/* uneven ink: a dashed hairline in the tile's colour eats small bites of the outer ring */}
-        <Circle cx="50" cy="50" r="46" stroke="#FFFFFF" strokeWidth="1.2" fill="none" opacity="0.35" strokeDasharray="1 27 2 41 1 33 2 52 1 38" />
-        <Circle cx="50" cy="50" r="28" stroke={STAMP_INK} strokeWidth="1.4" fill="none" opacity="0.9" />
-        <SvgText fill={STAMP_INK} fontFamily={F.bold} fontSize="9.5" letterSpacing="2.2" textAnchor="middle">
-          <TextPath href={`#${id}top`} startOffset="50%">{word}</TextPath>
-        </SvgText>
-        <SvgText fill={STAMP_INK} fontFamily={F.bold} fontSize="8" letterSpacing="1.6" textAnchor="middle">
-          <TextPath href={`#${id}bot`} startOffset="50%">{date}</TextPath>
-        </SvgText>
-        <Circle cx="12" cy="50" r="1.6" fill={STAMP_INK} />
-        <Circle cx="88" cy="50" r="1.6" fill={STAMP_INK} />
-        <Path d="M38 51.5l8.5 8.5L63 41" stroke={STAMP_INK} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.94" />
-      </Svg>
-    </Animated.View>
-  );
-}
-
-const rise = (v, d = 10) => ({
-  opacity: v,
-  transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [d, 0] }) }],
-});
-
-// `compact` tightens the stage for a page that lives inside a sheet, so a row of
-// the list is always sliced at the sheet's fold. `edge` draws the fold as a
-// material: an 88 px band where content fades into the card's colour, whose
-// opacity tracks the scroll left below; it is full while there is more, and gone
-// at the end.
-export default function SchemePage({ scheme, active, near = true, first, offset, bottomPad, onTitlePress, onSeeRunning, lang = 'en', compact = false, edge = false }) {
+export default function SchemePage({ scheme, active, near = true, first, still = false, bodyAnim = null, eyebrowAnim = null, offset, bottomPad, onTitlePress, onSeeRunning, lang = 'en', compact = false, edge = false }) {
   const t = T[lang] || T.en;
-  const th = themeOf(scheme.theme);
-  const st = th.stage;
-  const festive = Boolean(th.motif);
-  const s = scheme.s;
+  const d = deriveStage(scheme, t);
+  const { th, st, s, missed, withDelivery, showBar, multiGift, running, festive } = d;
   const slab = scheme.fmt;
   const money = scheme.money;
   const [addressConfirmed, setAddressConfirmed] = useState(false);
@@ -143,63 +54,22 @@ export default function SchemePage({ scheme, active, near = true, first, offset,
   const edgeOpacity = scrollMax > 8
     ? scrollY.interpolate({ inputRange: [Math.max(0, scrollMax - 48), scrollMax], outputRange: [1, 0], extrapolate: 'clamp' })
     : 0;
-  // On arrival the platform's own indicator flashes once (native only).
   useEffect(() => {
-    if (active && Platform.OS !== 'web') {
+    if (active && !still && Platform.OS !== 'web') {
       const id = setTimeout(() => scrollRef.current?.flashScrollIndicators?.(), 350);
       return () => clearTimeout(id);
     }
   }, [active]);
 
-  const running = s.started && !s.ended;
-  const withDelivery = s.state === STATE.ENDED_PENDING || s.state === STATE.GIFT_ORDERED || s.state === STATE.DELIVERED;
-  const missed = s.state === STATE.ENDED_MISSED;
-  const runningWithNext = running && s.next;
-
-  const hero = missed
-    ? null
-    : s.state === STATE.SCHEDULED
-    ? { gift: s.top, label: t.topGift, tone: 'goal' }
-    : runningWithNext
-    ? { gift: s.next, label: t.nextGift, tone: 'goal' }
-    : { gift: s.secured, label: s.state === STATE.TOP_REACHED ? t.wonTop : t.youWon, tone: 'won' };
-  const securedCapsule = runningWithNext && s.earned ? s.secured : null;
-
-  const showBar = running && s.next;
-  const prevAt = s.secured ? s.secured.at : 0;
-  const localPct = s.next ? Math.min(1, (s.currentValue - prevAt) / (s.next.at - prevAt)) : 1;
-  const [trackW, setTrackW] = useState(0);
-  const [dTagW, setDTagW] = useState(84);
-
-  const deliveredLabel = scheme.fulfilment.deliveredAt ? ddMMM(scheme.fulfilment.deliveredAt) : '';
-  const heroNote =
-    s.state === STATE.SCHEDULED ? t.startsNote(s.startLabel)
-    : null;
-  // The stepper below carries the delivery story; the stage does not repeat it.
-  // The stamp reads the state and its date.
-  const stampWord = s.state === STATE.DELIVERED ? t.stampDelivered : s.state === STATE.GIFT_ORDERED ? t.stampOnTheWay : t.stampWon;
-  const stampDate = (
-    s.state === STATE.DELIVERED && scheme.fulfilment.deliveredAt ? ddMMM(scheme.fulfilment.deliveredAt)
-    : s.state === STATE.GIFT_ORDERED && scheme.fulfilment.orderedAt ? ddMMM(scheme.fulfilment.orderedAt)
-    : s.ended ? ddMMM(scheme.endTime + 24 * 60 * 60 * 1000)
-    : ddMMM(scheme.now)
-  ).toUpperCase() + ' ' + new Date(scheme.endTime).getUTCFullYear();
-  // The won state's one status line, in the colour of its meaning.
-  const wonStatus =
-    s.state === STATE.DELIVERED ? { text: t.wonStatusDelivered(deliveredLabel), color: st.good, icon: 'check' }
-    : s.state === STATE.GIFT_ORDERED ? { text: t.wonStatusOnTheWay(scheme.deliverBy), color: st.accent, icon: 'truck' }
-    : s.state === STATE.TOP_REACHED ? { text: t.wonStatusTop(s.endLabel), color: st.sub, icon: 'gift' }
-    : { text: t.wonStatusPending, color: st.sub, icon: 'gift' };
-
   // Entrance values. The first page starts everything at 0 and stages it in.
   // Any other page starts its stage settled (1) and its meter empty (0), then
-  // sweeps the meter on arrival.
-  const settled = STATIC || !first;
-  const intro = useRef([...Array(6)].map((_, i) => new Animated.Value(STATIC ? 1 : settled && (i === 0 || i === 1 || i === 2 || i === 5) ? 1 : 0))).current;
+  // sweeps the meter on arrival. A still page is settled throughout.
+  const settled = STATIC || still || !first;
+  const intro = useRef([...Array(6)].map((_, i) => new Animated.Value(STATIC || still ? 1 : settled && (i === 0 || i === 1 || i === 2 || i === 5) ? 1 : 0))).current;
   const [labelA, tileA, nameA, barA, amountA, ctaA] = intro;
-  const arrived = useRef(false);
+  const arrived = useRef(still);
   useEffect(() => {
-    if (STATIC || !active || arrived.current) return;
+    if (STATIC || still || !active || arrived.current) return;
     arrived.current = true;
     const out = (v, duration) => Animated.timing(v, { toValue: 1, duration, easing: Easing.out(Easing.cubic), useNativeDriver: false });
     if (first) {
@@ -212,28 +82,13 @@ export default function SchemePage({ scheme, active, near = true, first, offset,
         out(ctaA, 320),
       ]).start();
     } else {
-      // Arrival: the meter sweeps as the spring lands; the ask follows.
       Animated.stagger(120, [out(barA, 640), out(amountA, 300)]).start();
     }
   }, [active]);
 
-  const sparkleAnim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    if (STATIC || !festive) return;
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(sparkleAnim, { toValue: 1, duration: 1400, easing: Easing.inOut(Easing.quad), useNativeDriver: false }),
-        Animated.timing(sparkleAnim, { toValue: 0, duration: 1400, easing: Easing.inOut(Easing.quad), useNativeDriver: false }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [sparkleAnim, festive]);
-  const sparkleOpacity = sparkleAnim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.9] });
-
   // Delight: a short confetti burst greets the arrival on a page that holds a
-  // won gift. Once per page; it fades out and never loops.
-  const celebrate = !STATIC && active && ((s.earned && !s.ended) || s.state === STATE.DELIVERED);
+  // won gift. Once per page; it fades out and never loops. Never on a still page.
+  const celebrate = !STATIC && !still && active && ((s.earned && !s.ended) || s.state === STATE.DELIVERED);
   const [confetti, setConfetti] = useState(false);
   const confettiA = useRef(new Animated.Value(0)).current;
   const celebrated = useRef(false);
@@ -249,17 +104,6 @@ export default function SchemePage({ scheme, active, near = true, first, offset,
     return () => clearTimeout(id);
   }, [celebrate]);
 
-  const h2 = s.state === STATE.SCHEDULED
-    ? <Text style={[styles.h2, TABULAR, { color: st.sub }]} allowFontScaling={false}>{t.startsLine(s.startLabel)}</Text>
-    : s.ended
-    ? <Text style={[styles.h2, TABULAR, { color: st.sub }]} allowFontScaling={false}>{t.endedLine(s.endLabel)}</Text>
-    : (
-      <Text style={[styles.h2, TABULAR, { color: st.sub }]} allowFontScaling={false}>
-        {t.endsLine(s.endLabel)}
-        <Text style={{ color: st.accent, fontFamily: F.medium }} allowFontScaling={false}>{t.daysLeft(s.daysLeft)}</Text>
-      </Text>
-    );
-
   const stepStates = withDelivery ? stepsFor(s.state) : null;
   const stepDates = withDelivery
     ? [
@@ -270,21 +114,26 @@ export default function SchemePage({ scheme, active, near = true, first, offset,
       ]
     : null;
 
-  const amountParts = s.next
-    ? s.nearSlab
-      ? { pre: t.onlyPrefix, amt: money(s.remaining), post: t.onlySuffix, color: st.urgent }
-      : { pre: t.morePrefix, amt: money(s.remaining), post: t.moreSuffix, color: st.accent }
-    : null;
-
-  // Parallax: the pedestal lags the page as the pager moves.
   const lag = offset
     ? { transform: [{ translateX: offset.interpolate({ inputRange: [-1, 0, 1], outputRange: [-36, 0, 36], extrapolate: 'clamp' }) }] }
     : null;
 
-  const multiGift = s.ladder.length > 1;
+  const bodyStyle = bodyAnim
+    ? { opacity: bodyAnim.interpolate({ inputRange: [0.35, 1], outputRange: [0, 1], extrapolate: 'clamp' }), transform: [{ translateY: bodyAnim.interpolate({ inputRange: [0, 1], outputRange: [24, 0], extrapolate: 'clamp' }) }] }
+    : null;
+
+  // While a card grows into the page, the paper under the body arrives with the
+  // body: the page's ground starts as the stage's night and turns to paper in
+  // the first fifth of the move, before the frame has grown enough to show it,
+  // so the paper slides out from under the stage and no grey mid-tone shows.
+  const pageBg = missed
+    ? st.ground2
+    : bodyAnim
+    ? bodyAnim.interpolate({ inputRange: [0, 0.2], outputRange: [st.ground2, N.bg], extrapolate: 'clamp' })
+    : N.bg;
 
   return (
-    <View style={[styles.page, missed && { backgroundColor: st.ground2 }]}>
+    <Animated.View style={[styles.page, { backgroundColor: pageBg }]}>
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={[{ paddingBottom: missed ? 0 : bottomPad }, missed && { flexGrow: 1 }]}
@@ -300,204 +149,9 @@ export default function SchemePage({ scheme, active, near = true, first, offset,
           onSizes();
         }}
       >
-        {/* ——— The stage. A missed scheme has nothing below it, so its stage
-            fills the page: one dark room, one line, one way out. ——— */}
-        <View style={[styles.stage, compact && styles.stageCompact, missed && { flex: 1 }]}>
-          <StageScene stage={st} festive={festive} focusY={missed ? 0.2 : 0.44} />
-          {festive && !missed ? <ShaderStage theme={th.key} stage={st} near={near} /> : null}
-          {/* Everything on the stage sits above the canvas by explicit order: a
-              WebGL layer in Safari can otherwise paint over unordered siblings. */}
-          <View style={styles.stageContent}>
-          <View style={styles.topBar} />
+        <Stage scheme={scheme} compact={compact} anim={{ labelA, tileA, nameA, barA, amountA, ctaA }} lag={lag} near={near} onTitlePress={onTitlePress} onSeeRunning={onSeeRunning} lang={lang} fill={missed} eyebrowAnim={eyebrowAnim} />
 
-          <Pressable onPress={onTitlePress}>
-            <View style={styles.titleRow}>
-              <View>
-                {th.motif ? (
-                  <View style={styles.motifHang}>
-                    <GiftGlyph kind={th.motif} size={22} color={st.accent} strokeWidth={1.5} />
-                  </View>
-                ) : scheme.art?.logo ? (
-                  // A brand scheme wears its mark where a festive scheme wears its motif.
-                  <View style={[styles.motifHang, { top: 0 }]}>
-                    <SchemeArt scheme={scheme} size={26} />
-                  </View>
-                ) : null}
-                <Text style={[styles.h1, { color: st.ink }]} allowFontScaling={false}>{scheme.title}</Text>
-              </View>
-            </View>
-            {h2}
-          </Pressable>
-
-          {missed ? (
-            <View style={styles.missedBlock}>
-              <Text style={[styles.missedTitle, { color: st.ink }]} allowFontScaling={false}>{t.missedTitle}</Text>
-              <Text style={[styles.missedNote, { color: st.sub }]} allowFontScaling={false}>{t.missedNote}</Text>
-              {onSeeRunning ? (
-                <View style={styles.missedCta}>
-                  <CtaButton label={t.ctaEnded} bg={st.accent} fg={st.accentInk} onPress={onSeeRunning} />
-                </View>
-              ) : null}
-            </View>
-          ) : (
-            <>
-              <Animated.View style={[styles.pedestal, compact && styles.pedestalCompact, lag]}>
-                {/* The contact shadow sits 11 px under the tile's bottom edge in both
-                    stage sizes: 236/168 (full) and 204/148 (compact). */}
-                <Svg width="100%" height="100%" viewBox={compact ? '0 0 412 204' : '0 0 412 250'} preserveAspectRatio="xMidYMid slice" style={StyleSheet.absoluteFill} pointerEvents="none">
-                  {compact ? (
-                    <Ellipse cx="206" cy="194" rx="68" ry="8" fill="#000" opacity="0.3" />
-                  ) : (
-                    <Ellipse cx="206" cy="234" rx="76" ry="9" fill="#000" opacity="0.3" />
-                  )}
-                </Svg>
-                {festive ? (
-                  <>
-                    <Animated.View style={[styles.sparkleL, { opacity: sparkleOpacity }]}>
-                      <GiftGlyph kind="sparkle" size={16} color={st.accent} />
-                    </Animated.View>
-                    <Animated.View style={[styles.sparkleR, { opacity: sparkleOpacity }]}>
-                      <GiftGlyph kind="sparkle" size={12} color={st.accent} />
-                    </Animated.View>
-                  </>
-                ) : null}
-                {hero.tone === 'won' ? null : (
-                  <Animated.Text style={[styles.heroLabel, { color: st.accent, opacity: labelA }]} allowFontScaling={false}>
-                    {hero.label}
-                  </Animated.Text>
-                )}
-                {/* A won gift wears the system's "yours" ring, 2 px of the settled green
-                    at a 6 px gap, concentric with the tile; the goal state wears none. */}
-                <View style={[styles.tileWrap, compact && styles.tileWrapCompact]}>
-                <Animated.View
-                  style={[
-                    styles.tile,
-                    compact && styles.tileCompact,
-                    hero.tone === 'won' && (compact ? styles.tileWonCompact : styles.tileWon),
-                    { opacity: tileA, transform: [{ scale: tileA.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] },
-                  ]}
-                >
-                  {hero.gift.voucher ? (
-                    <GiftThumb gift={hero.gift} size={hero.tone === 'won' ? (compact ? 92 : 104) : compact ? 112 : 128} />
-                  ) : hero.gift.image ? (
-                    <Image source={hero.gift.image} style={[styles.tileImg, compact && styles.tileImgCompact, hero.tone === 'won' && (compact ? styles.tileImgWonCompact : styles.tileImgWon)]} resizeMode="contain" />
-                  ) : (
-                    <GiftGlyph kind={hero.gift.icon} size={80} color={st.accentDeep} strokeWidth={1.2} />
-                  )}
-                </Animated.View>
-                {hero.tone === 'won' ? <WonStamp word={stampWord} date={stampDate} anim={tileA} /> : null}
-                </View>
-              </Animated.View>
-              {hero.tone === 'won' ? (
-                <Animated.View style={[rise(nameA, 8), lag]}>
-                  <Text style={[styles.wonHeadline, { color: st.ink }]} allowFontScaling={false}>{t.wonHeadline(hero.gift.shortName || hero.gift.name)}</Text>
-                  <View style={styles.wonStatusRow}>
-                    <GiftGlyph kind={wonStatus.icon} size={16} color={wonStatus.color} strokeWidth={2} />
-                    <Text style={[styles.wonStatus, { color: wonStatus.color }]} allowFontScaling={false}>{wonStatus.text}</Text>
-                  </View>
-                </Animated.View>
-              ) : (
-                <Animated.Text style={[styles.giftName, { color: st.ink }, rise(nameA, 8), lag]} allowFontScaling={false}>
-                  {hero.gift.name}
-                </Animated.Text>
-              )}
-
-              {showBar ? (
-                <>
-                  {trackW > 0 && localPct > 0 ? (
-                    <View style={[styles.dTagRow, compact && { marginTop: 8 }]}>
-                      <Animated.View
-                        style={[
-                          styles.tagWrap,
-                          {
-                            opacity: barA,
-                            left: barA.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: [32 + Math.min(Math.max(0 - dTagW / 2, 0), Math.max(0, trackW - dTagW)), 32 + Math.min(Math.max(localPct * trackW - dTagW / 2, 0), Math.max(0, trackW - dTagW))],
-                            }),
-                          },
-                        ]}
-                        onLayout={(e) => setDTagW(e.nativeEvent.layout.width)}
-                      >
-                        <View style={styles.dTag}>
-                          <Text style={[styles.dTagText, TABULAR]} numberOfLines={1} allowFontScaling={false}>
-                            {money(s.currentValue)}
-                          </Text>
-                        </View>
-                        <View style={styles.dTagCaret} />
-                      </Animated.View>
-                    </View>
-                  ) : (
-                    <View style={[styles.dTagRow, compact && { marginTop: 8 }]} />
-                  )}
-
-                  <View style={styles.barZone}>
-                    <View style={[styles.barTrack, { backgroundColor: st.track }]} onLayout={(e) => setTrackW(e.nativeEvent.layout.width)}>
-                      <Animated.View
-                        style={[styles.barFill, { backgroundColor: st.accent, width: barA.interpolate({ inputRange: [0, 1], outputRange: ['0%', `${localPct * 100}%`] }) }]}
-                      />
-                    </View>
-                    {trackW > 0 ? (
-                      <View style={[styles.flagD, { left: trackW - 14 }]}>
-                        <IconTargetFlag width={12} height={22} color={st.accent} />
-                      </View>
-                    ) : null}
-                    {trackW > 0 && localPct > 0 ? (
-                      <Animated.View
-                        style={[
-                          styles.runnerD,
-                          { left: barA.interpolate({ inputRange: [0, 1], outputRange: [0, Math.min(Math.max(localPct * trackW - 11, 0), trackW - 26)] }) },
-                        ]}
-                      >
-                        <IconRunningMan height={22} color="#fff" />
-                      </Animated.View>
-                    ) : null}
-                  </View>
-                  <View style={styles.barEnds}>
-                    <Text style={[styles.barEnd, TABULAR, { color: st.sub }]} allowFontScaling={false}>{slab(prevAt)}</Text>
-                    <Text style={[styles.barEnd, TABULAR, { color: st.sub }]} allowFontScaling={false}>
-                      {t.targetWord} <Text style={{ color: st.ink, fontFamily: F.bold }}>{slab(s.next.at)}</Text>
-                    </Text>
-                  </View>
-
-                  <Animated.View style={rise(amountA, 10)}>
-                    <Text style={[styles.bigMore, TABULAR, { color: amountParts.color }]} allowFontScaling={false}>
-                      {amountParts.pre ? <Text style={styles.bigMoreWord}>{amountParts.pre}</Text> : null}
-                      {amountParts.amt}
-                      <Text style={styles.bigMoreWord}>{amountParts.post}</Text>
-                    </Text>
-                    <Text style={[styles.bigRest, { color: st.sub }]} allowFontScaling={false}>{t.rest(s.next.shortName)}</Text>
-                  </Animated.View>
-
-                  {securedCapsule ? (
-                    <Animated.View style={[styles.securedWrap, rise(ctaA, 6)]}>
-                      <View style={styles.secured}>
-                        <View style={styles.securedThumb}>
-                          {securedCapsule.image ? (
-                            <Image source={securedCapsule.image} style={{ width: 22, height: 22 }} resizeMode="contain" />
-                          ) : (
-                            <GiftGlyph kind={securedCapsule.icon} size={16} color={st.accentDeep} strokeWidth={1.7} />
-                          )}
-                        </View>
-                        <Text style={[styles.securedText, { color: st.ink }]} allowFontScaling={false}>{t.securedRow(securedCapsule.shortName)}</Text>
-                        <GiftGlyph kind="check" size={15} color={st.good} strokeWidth={2} />
-                      </View>
-                    </Animated.View>
-                  ) : null}
-                </>
-              ) : heroNote || s.earned ? (
-                <Animated.View style={rise(nameA, 8)}>
-                  {heroNote ? <Text style={[styles.heroNote, { color: st.sub }]} allowFontScaling={false}>{heroNote}</Text> : null}
-                  {s.earned ? (
-                    <Text style={[styles.finalBought, TABULAR, { color: heroNote ? st.ink : st.sub }, !heroNote && { marginTop: 10, fontSize: 13, lineHeight: 17 }]} allowFontScaling={false}>{t.finalBought(money(s.currentValue))}</Text>
-                  ) : null}
-                </Animated.View>
-              ) : null}
-            </>
-          )}
-          </View>
-        </View>
-
+        <Animated.View style={bodyStyle}>
         {/* ——— Delivery, for the ended-with-win states ——— */}
         {withDelivery ? (
           <>
@@ -648,14 +302,11 @@ export default function SchemePage({ scheme, active, near = true, first, offset,
             ))}
           </View>
         )}
+        </Animated.View>
       </ScrollView>
 
       {edge ? (
         <Animated.View pointerEvents="none" style={[styles.edge, { opacity: edgeOpacity }]}>
-          {/* A pure fade to the card's colour, eased so it has no visible start
-              line: the way a list end fades on iOS. No blur: blurred text reads as
-              a smudge, and a backdrop filter samples the ground behind the card
-              into its rounded corners. */}
           <LinearGradient
             colors={['rgba(247,247,247,0)', 'rgba(247,247,247,0.12)', 'rgba(247,247,247,0.42)', 'rgba(247,247,247,0.78)', 'rgba(247,247,247,0.97)', N.bg]}
             locations={[0, 0.2, 0.42, 0.64, 0.86, 1]}
@@ -669,7 +320,7 @@ export default function SchemePage({ scheme, active, near = true, first, offset,
           <LottieView source={RIMG.ribbon} autoPlay loop={false} style={{ flex: 1 }} />
         </Animated.View>
       ) : null}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -688,102 +339,7 @@ const CARD = {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: N.bg },
-
-  stage: { paddingBottom: 28, overflow: 'hidden' },
-  stageContent: { zIndex: 2 },
-  stageCompact: { paddingBottom: 20 },
-  // Room for the pager's fixed back button (44px hit, 14px from the top).
-  topBar: { height: 14 + 44 - 10 },
-  titleRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 0 },
-  motifHang: { position: 'absolute', right: '100%', marginRight: 8, top: 3 },
-  h1: { fontFamily: F.bold, fontSize: 22, lineHeight: 27, letterSpacing: 0.2, textAlign: 'center', paddingHorizontal: 8 },
-  h2: { marginTop: 4, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 17 },
-
-  secured: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.16)',
-    borderRadius: 20,
-    paddingLeft: 6,
-    paddingRight: 12,
-    height: 40,
-  },
-  securedThumb: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  securedText: { fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
-
-  pedestal: { height: 236, alignItems: 'center', justifyContent: 'center', marginTop: 0 },
-  pedestalCompact: { height: 204 },
-  sparkleL: { position: 'absolute', left: '20%', top: 64 },
-  sparkleR: { position: 'absolute', right: '22%', top: 148 },
-  heroLabel: { position: 'absolute', top: 18, fontFamily: F.bold, fontSize: 11, lineHeight: 15, letterSpacing: 1.2 },
-  tileWrap: { marginTop: 16 },
-  tileWrapCompact: { marginTop: 14 },
-  tileWon: { width: 136, height: 136, borderRadius: 24 },
-  tileWonCompact: { width: 128, height: 128, borderRadius: 24 },
-  tileImgWon: { width: 104, height: 104 },
-  tileImgWonCompact: { width: 98, height: 98 },
-  // The stamp crosses the tile's top-right corner and lands on the stage: its
-  // centre sits 6 px outside the tile, so the ink reads on the dark ground and
-  // only clips the photo's empty corner.
-  stamp: { position: 'absolute', right: -54, top: -34, width: 96, height: 96 },
-  wonHeadline: { marginTop: 6, textAlign: 'center', fontFamily: F.bold, fontSize: 22, lineHeight: 28, paddingHorizontal: 24, letterSpacing: 0.1 },
-  wonStatusRow: { marginTop: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 24 },
-  wonStatus: { fontFamily: F.medium, fontSize: 14, lineHeight: 18, fontVariant: ['tabular-nums'] },
-  tile: {
-    width: 168,
-    height: 168,
-    borderRadius: 24,
-    backgroundColor: N.paper,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 12 },
-  },
-  tileCompact: { width: 148, height: 148, borderRadius: 22 },
-  tileImg: { width: 128, height: 128, borderRadius: 12 },
-  tileImgCompact: { width: 112, height: 112 },
-  giftName: { marginTop: 2, textAlign: 'center', fontFamily: F.bold, fontSize: 17, lineHeight: 22, paddingHorizontal: 24, letterSpacing: 0.1 },
-  heroNote: { marginTop: 12, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: 44 },
-  finalBought: { marginTop: 8, textAlign: 'center', fontFamily: F.medium, fontSize: 15, lineHeight: 19 },
-
-  dTagRow: { height: 38, marginTop: 14 },
-  tagWrap: { position: 'absolute', alignItems: 'center' },
-  dTag: { backgroundColor: '#fff', borderRadius: 9, paddingHorizontal: 11, height: 30, justifyContent: 'center' },
-  dTagText: { color: N.ink, fontFamily: F.bold, fontSize: 15, lineHeight: 18 },
-  dTagCaret: { width: 9, height: 9, marginTop: -6, backgroundColor: '#fff', transform: [{ rotate: '45deg' }] },
-
-  securedWrap: { alignItems: 'center', marginTop: 22 },
-
-  barZone: { marginTop: 0, marginHorizontal: 32, height: 34, justifyContent: 'flex-end' },
-  barTrack: { height: 10, borderRadius: 5, overflow: 'hidden' },
-  barFill: { height: 10, borderRadius: 5 },
-  runnerD: { position: 'absolute', bottom: 8 },
-  flagD: { position: 'absolute', bottom: 8 },
-  barEnds: { marginTop: 6, marginHorizontal: 32, flexDirection: 'row', justifyContent: 'space-between' },
-  barEnd: { fontFamily: F.medium, fontSize: 12, lineHeight: 16 },
-
-  // The ask leads, but by a step, not a leap: 26 over the tag's 15 and the ends' 12.
-  bigMore: { marginTop: 12, textAlign: 'center', fontFamily: F.bold, fontSize: 26, lineHeight: 32 },
-  bigMoreWord: { fontFamily: F.medium, fontSize: 16, lineHeight: 32 },
-  bigRest: { marginTop: 2, textAlign: 'center', fontFamily: F.medium, fontSize: 14, lineHeight: 19, paddingHorizontal: 24 },
-
-  cta: { marginTop: 10, marginHorizontal: 32, height: 52, borderRadius: 26, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  ctaSheen: { position: 'absolute', left: 0, right: 0, top: 0, height: 26 },
-  ctaGlow: { shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 6 },
-  ctaText: { fontFamily: F.bold, fontSize: 15, lineHeight: 19, letterSpacing: 0.2 },
-
-  missedBlock: { alignItems: 'center', paddingTop: 30, paddingBottom: 6, alignSelf: 'stretch' },
-  missedTitle: { fontFamily: F.bold, fontSize: 17, lineHeight: 22 },
-  missedNote: { marginTop: 6, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: 44 },
-  missedCta: { alignSelf: 'stretch', marginTop: 4 },
   bottomCta: { marginTop: 16, marginHorizontal: 16 },
-
   listLabel: { marginTop: 20, marginHorizontal: 16, fontFamily: F.bold, fontSize: 11, lineHeight: 15, color: N.sub, letterSpacing: 1 },
   list: { ...CARD, marginTop: 8, paddingHorizontal: 14, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', minHeight: 62, paddingVertical: 8, gap: 12 },

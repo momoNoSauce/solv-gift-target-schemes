@@ -26,7 +26,7 @@ const SPRING = REDUCED_MOTION
   ? { stiffness: 900, damping: 60, mass: 1, restDisplacementThreshold: 0.0005, restSpeedThreshold: 0.0005, useNativeDriver: false }
   : { stiffness: 320, damping: 34, mass: 1, restDisplacementThreshold: 0.0005, restSpeedThreshold: 0.0005, useNativeDriver: false };
 
-export function usePager({ count, initial = 0 }) {
+export function usePager({ count, initial = 0, keys = true }) {
   const pos = useRef(new Animated.Value(initial)).current;
   const posNow = useRef(initial);
   const startPos = useRef(initial);
@@ -71,7 +71,7 @@ export function usePager({ count, initial = 0 }) {
   // animate (it repeats hundreds of times a day); here it stands in for the
   // swipe it demonstrates, so it takes the same spring.
   useEffect(() => {
-    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    if (!keys || Platform.OS !== 'web' || typeof window === 'undefined') return;
     const onKey = (e) => {
       if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === 'ArrowRight') settle(Math.round(posNow.current) + 1, 0);
@@ -81,7 +81,7 @@ export function usePager({ count, initial = 0 }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [last]);
+  }, [last, keys]);
 
   // `unit` is the finger travel, in px, that moves the position by one page.
   // The page claims a drag only on clear horizontal intent (6 px, 1.4 times its

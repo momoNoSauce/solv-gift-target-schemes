@@ -1,4 +1,4 @@
-// The back arrow on a scheme page returns to the Option A / Option B entry.
+// The back arrow on the list returns to the Option A / Option B entry.
 // In the deployed review build the entry is `/`; locally it is `/options`. A
 // deep link has no history, so the arrow never relies on router.back() alone.
 export function backToEntry(router) {

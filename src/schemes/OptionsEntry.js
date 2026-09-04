@@ -12,8 +12,8 @@ import { SETTLED } from './motion';
 const INK = '#0B0A14';
 
 const OPTIONS = [
-  { key: 'A', name: 'Arc', href: '/schemes/arc' },
-  { key: 'B', name: 'Dock', href: '/schemes' },
+  { key: 'A', name: 'Arc', href: '/schemes/list?opt=a' },
+  { key: 'B', name: 'Dock', href: '/schemes/list?opt=b' },
 ];
 
 function Row({ option, anim, onPress }) {
