@@ -14,7 +14,7 @@
 // title is not a control, and a status eyebrow sits where the detail's chrome
 // will be.
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Image, Pressable, StyleSheet, Animated, Easing } from 'react-native';
+import { View, Text, Image, Pressable, StyleSheet, Animated, Easing, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Ellipse, Path, Circle, Defs, Text as SvgText, TextPath } from 'react-native-svg';
 import { F } from '../theme';
@@ -104,6 +104,23 @@ export function CtaButton({ label, bg, fg, glow = false, onPress, containerStyle
 // a heavy check at the centre. Set 12 degrees off square, pressed onto the
 // tile's corner, it lands with the tile and settles from 1.3 to 1.
 const STAMP_INK = '#2BB05B';
+// The stage content's own compositing layer, WebKit only (Safari, and every
+// browser on iOS). z-index alone orders the layers for Chrome; WebKit's
+// compositor also needs the sibling of a WebGL canvas to be composited, or it
+// paints the canvas over it and the stage shows the night with nothing on it.
+// Chrome must not get this rule: a promoted layer inside the list's clipped,
+// scaled cards drops their images and icons.
+if (Platform.OS === 'web' && typeof document !== 'undefined' && typeof navigator !== 'undefined' && !document.getElementById('stage-layer')) {
+  const ua = navigator.userAgent || '';
+  const webkit = /AppleWebKit/.test(ua) && !/Chrome\/|Chromium|Edg\//.test(ua);
+  if (webkit) {
+    const st = document.createElement('style');
+    st.id = 'stage-layer';
+    st.textContent = '[data-layer="stage-content"]{position:relative;isolation:isolate;will-change:transform;-webkit-transform:translateZ(0);transform:translateZ(0);}';
+    document.head.appendChild(st);
+  }
+}
+
 export function WonStamp({ word, date, anim }) {
   const id = React.useRef(`st${Math.random().toString(36).slice(2, 7)}`).current;
   return (
@@ -195,9 +212,11 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
     <View style={[styles.stage, compact && styles.stageCompact, fill && { flex: 1 }, card && styles.stageCard]}>
       <StageScene stage={st} festive={festive} focusY={missed ? 0.2 : 0.44} />
       {festive && !missed ? <ShaderStage theme={th.key} stage={st} near={near} /> : null}
-      {/* Everything on the stage sits above the canvas by explicit order: a
-          WebGL layer in Safari can otherwise paint over unordered siblings. */}
-      <View style={styles.stageContent}>
+      {/* Everything on the stage sits above the canvas by explicit order, and
+          on its own compositing layer (data-layer, CSS below): Safari's
+          compositor otherwise paints the WebGL canvas over siblings it has not
+          promoted, and the stage shows the night with nothing on it. */}
+      <View style={styles.stageContent} dataSet={{ layer: 'stage-content' }}>
         <View style={styles.topBar}>
           {card || eyebrowAnim ? (
             // Where the detail's chrome will sit, the card says where the scheme
