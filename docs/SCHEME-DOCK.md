@@ -201,18 +201,28 @@ peek nudge on arrival.
 
 ## Completed schemes
 
-A completed scheme with a gift reads as settled before a word is read:
+A completed scheme with a gift reads as settled before a word is read, in the
+system's own language for "this one is yours":
 
-- The won gift's tile carries a stamp on its top-right corner, a hair off square
-  (rotated 8 degrees): WON, ON THE WAY, or DELIVERED, in the settled green on white,
-  2.5 px border. It lands with the tile and settles from 1.25 to 1, the way a stamp
-  meets paper.
-- The tile glows green from within (the theme's `good` colour at 55 %, 28 px).
-- The stage carries no meter, no ask, and no note that repeats the stepper. It shows
-  the gift, the stamp and "Final buying".
-- After delivery the address card is gone; the gift has arrived. The list starts one
-  card earlier, so the fold slices a gift row again.
-- On the arc and in the list, the scheme's art dims and carries the green check.
+- The won gift's tile wears a 2 px ring of the settled green at a 6 px gap,
+  concentric with the tile (outer radius = tile radius + 8). The goal state wears no
+  ring.
+- A 34 px green seal with a white check sits in the ring's top-right corner, cut out
+  of the ring by a 3 px border in the stage's own colour. It lands with the tile and
+  settles from 0.6 to 1. This is the same check the medallions, the dock thumbs and
+  the arc thumbs carry for a won gift, at tile scale.
+- The tile is smaller than a goal tile (124 px in the sheet, 136 px full), because the
+  object is no longer the thing to reach for.
+- The sentence leads: "You won the Air Fryer" at 22 px Bold, the title's weight. Under
+  it, one status line in the colour of its meaning, with its glyph: "Delivered to your
+  shop, 24 Sep" in green with a check; "On the way. Arrives by 21 Nov 2026" in the
+  accent with a truck; "Your gift is being confirmed" muted with a gift.
+- "Final buying" follows, muted, 13 px.
+- No meter, no ask, no note that repeats the stepper. After delivery the address card
+  is gone.
+
+A rubber stamp was tried and rejected: it is a cliché, and it fights the tile instead
+of changing what the tile is.
 
 ## Numbers
 

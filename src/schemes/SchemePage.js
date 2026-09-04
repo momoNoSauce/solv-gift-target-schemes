@@ -19,7 +19,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Image, Pressable, ScrollView, StyleSheet, Animated, Easing, Platform } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Ellipse } from 'react-native-svg';
+import Svg, { Ellipse, Path } from 'react-native-svg';
 import { F } from '../theme';
 import { IconRunningMan, IconTargetFlag } from '../icons';
 import GiftGlyph from '../gifts/icons';
@@ -73,15 +73,17 @@ export function CtaButton({ label, bg, fg, glow = false, onPress, containerStyle
   );
 }
 
-// The stamp on a won gift: pressed onto the tile's corner, it lands with the
-// tile (opacity) and settles from 1.25 to 1, the way a stamp meets paper.
-function Stamp({ text, anim }) {
+// The seal on a won gift: the system's own "yours" mark, the green check, at
+// tile scale, set into the ring's top-right corner. It lands with the tile.
+function Seal({ anim, fill, cutout }) {
   return (
     <Animated.View
       pointerEvents="none"
-      style={[styles.stamp, { opacity: anim, transform: [{ rotate: '-8deg' }, { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [1.25, 1] }) }] }]}
+      style={[styles.seal, { backgroundColor: fill, borderColor: cutout, opacity: anim, transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }]}
     >
-      <Text style={styles.stampText} allowFontScaling={false}>{text}</Text>
+      <Svg width={18} height={18} viewBox="0 0 24 24">
+        <Path d="M6 12.5l4 4 8-9" stroke="#fff" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      </Svg>
     </Animated.View>
   );
 }
@@ -146,13 +148,14 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
   const deliveredLabel = scheme.fulfilment.deliveredAt ? ddMMM(scheme.fulfilment.deliveredAt) : '';
   const heroNote =
     s.state === STATE.SCHEDULED ? t.startsNote(s.startLabel)
-    : s.state === STATE.TOP_REACHED ? t.topNote(s.endLabel)
     : null;
   // The stepper below carries the delivery story; the stage does not repeat it.
-  const stampText =
-    s.state === STATE.DELIVERED ? t.stampDelivered
-    : s.state === STATE.GIFT_ORDERED ? t.stampOnTheWay
-    : t.stampWon;
+  // The won state's one status line, in the colour of its meaning.
+  const wonStatus =
+    s.state === STATE.DELIVERED ? { text: t.wonStatusDelivered(deliveredLabel), color: st.good, icon: 'check' }
+    : s.state === STATE.GIFT_ORDERED ? { text: t.wonStatusOnTheWay(scheme.deliverBy), color: st.accent, icon: 'truck' }
+    : s.state === STATE.TOP_REACHED ? { text: t.wonStatusTop(s.endLabel), color: st.sub, icon: 'gift' }
+    : { text: t.wonStatusPending, color: st.sub, icon: 'gift' };
 
   // Entrance values. The first page starts everything at 0 and stages it in.
   // Any other page starts its stage settled (1) and its meter empty (0), then
@@ -325,30 +328,47 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
                     {hero.label}
                   </Animated.Text>
                 )}
-                <View style={[styles.tileWrap, compact && styles.tileWrapCompact]}>
+                {/* A won gift wears the system's "yours" ring, 2 px of the settled green
+                    at a 6 px gap, concentric with the tile; the goal state wears none. */}
+                <Animated.View
+                  style={[
+                    styles.tileWrap,
+                    compact && styles.tileWrapCompact,
+                    hero.tone === 'won' && [styles.tileRing, { borderColor: st.good, opacity: tileA }],
+                  ]}
+                >
                 <Animated.View
                   style={[
                     styles.tile,
                     compact && styles.tileCompact,
-                    // A won gift is lit from within: a green glow, the settled colour.
-                    hero.tone === 'won' && { shadowColor: st.good, shadowOpacity: 0.55, shadowRadius: 28, shadowOffset: { width: 0, height: 8 } },
+                    hero.tone === 'won' && (compact ? styles.tileWonCompact : styles.tileWon),
                     { opacity: tileA, transform: [{ scale: tileA.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] },
                   ]}
                 >
                   {hero.gift.voucher ? (
-                    <GiftThumb gift={hero.gift} size={compact ? 112 : 128} />
+                    <GiftThumb gift={hero.gift} size={hero.tone === 'won' ? (compact ? 92 : 104) : compact ? 112 : 128} />
                   ) : hero.gift.image ? (
-                    <Image source={hero.gift.image} style={[styles.tileImg, compact && styles.tileImgCompact]} resizeMode="contain" />
+                    <Image source={hero.gift.image} style={[styles.tileImg, compact && styles.tileImgCompact, hero.tone === 'won' && (compact ? styles.tileImgWonCompact : styles.tileImgWon)]} resizeMode="contain" />
                   ) : (
                     <GiftGlyph kind={hero.gift.icon} size={80} color={st.accentDeep} strokeWidth={1.2} />
                   )}
                 </Animated.View>
-                {hero.tone === 'won' ? <Stamp text={stampText} anim={tileA} /> : null}
-                </View>
+                {hero.tone === 'won' ? <Seal anim={tileA} fill={th.card.good} cutout={st.ground2} /> : null}
+                </Animated.View>
               </Animated.View>
-              <Animated.Text style={[styles.giftName, { color: st.ink }, rise(nameA, 8), lag]} allowFontScaling={false}>
-                {hero.gift.name}
-              </Animated.Text>
+              {hero.tone === 'won' ? (
+                <Animated.View style={[rise(nameA, 8), lag]}>
+                  <Text style={[styles.wonHeadline, { color: st.ink }]} allowFontScaling={false}>{t.wonHeadline(hero.gift.shortName || hero.gift.name)}</Text>
+                  <View style={styles.wonStatusRow}>
+                    <GiftGlyph kind={wonStatus.icon} size={16} color={wonStatus.color} strokeWidth={2} />
+                    <Text style={[styles.wonStatus, { color: wonStatus.color }]} allowFontScaling={false}>{wonStatus.text}</Text>
+                  </View>
+                </Animated.View>
+              ) : (
+                <Animated.Text style={[styles.giftName, { color: st.ink }, rise(nameA, 8), lag]} allowFontScaling={false}>
+                  {hero.gift.name}
+                </Animated.Text>
+              )}
 
               {showBar ? (
                 <>
@@ -437,7 +457,7 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
                 <Animated.View style={rise(nameA, 8)}>
                   {heroNote ? <Text style={[styles.heroNote, { color: st.sub }]} allowFontScaling={false}>{heroNote}</Text> : null}
                   {s.earned ? (
-                    <Text style={[styles.finalBought, TABULAR, { color: st.ink }, !heroNote && { marginTop: 10 }]} allowFontScaling={false}>{t.finalBought(money(s.currentValue))}</Text>
+                    <Text style={[styles.finalBought, TABULAR, { color: heroNote ? st.ink : st.sub }, !heroNote && { marginTop: 10, fontSize: 13, lineHeight: 17 }]} allowFontScaling={false}>{t.finalBought(money(s.currentValue))}</Text>
                   ) : null}
                 </Animated.View>
               ) : null}
@@ -667,9 +687,18 @@ const styles = StyleSheet.create({
   heroLabel: { position: 'absolute', top: 18, fontFamily: F.bold, fontSize: 11, lineHeight: 15, letterSpacing: 1.2 },
   tileWrap: { marginTop: 16 },
   tileWrapCompact: { marginTop: 14 },
-  // The stamp: pressed onto the tile's corner, a hair off square, the settled green.
-  stamp: { position: 'absolute', top: -12, right: -18, borderWidth: 2.5, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: 'rgba(255,255,255,0.94)', borderColor: N.green },
-  stampText: { color: N.green, fontFamily: F.bold, fontSize: 12, lineHeight: 15, letterSpacing: 1.6 },
+  // The won ring: 2 px at a 6 px gap, outer radius = tile radius + 8 (concentric).
+  tileRing: { padding: 6, borderWidth: 2, borderRadius: 32 },
+  tileWon: { width: 136, height: 136, borderRadius: 24 },
+  tileWonCompact: { width: 124, height: 124, borderRadius: 24 },
+  tileImgWon: { width: 104, height: 104 },
+  tileImgWonCompact: { width: 94, height: 94 },
+  // The seal: a 34 px green disc with a white check, cut out of the ring's corner
+  // by a 3 px border in the stage's own colour.
+  seal: { position: 'absolute', top: -8, right: -8, width: 34, height: 34, borderRadius: 17, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
+  wonHeadline: { marginTop: 6, textAlign: 'center', fontFamily: F.bold, fontSize: 22, lineHeight: 28, paddingHorizontal: 24, letterSpacing: 0.1 },
+  wonStatusRow: { marginTop: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 24 },
+  wonStatus: { fontFamily: F.medium, fontSize: 14, lineHeight: 18, fontVariant: ['tabular-nums'] },
   tile: {
     width: 168,
     height: 168,
