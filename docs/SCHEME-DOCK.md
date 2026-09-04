@@ -337,11 +337,14 @@ strip of the detail's paper body, so the card still grows into the page without 
 the footer fades over the first third of the move while the body arrives, and the layer
 carries the same hairline border as the card.
 
-Card size. Every card stands the same height as a completed one (411 px stage, 467 px
-card). `Stage` takes `cardAnim`, a 0..1 dial: at 0 (the list card) a running stage has no
-eyebrow, a 16 px top bar, the pedestal 40 px shorter, the tile at the won size, and the
-amount tag, the second ask line and the secured capsule collapsed to 0; at 1 (the detail)
-everything is at full size. The layer drives the dial with the move's progress, so those
+Card size. Every card stands the same height as a completed one (467 px in option B,
+435 px in option A). `Stage` takes `cardAnim`, a 0..1 dial: at 0 (the list card) a running
+stage has no eyebrow, a 16 px top bar, the pedestal 50 px shorter (48 px compact), the tile
+at the won size, the amount tag, the second ask line and the secured capsule collapsed to
+0, and the bar keeping a 10 px gap under the gift name; at 1 (the detail) everything is at
+full size. The contact shadow under the tile is an SVG ellipse whose position and size ride
+the same dial (audit, 4 Sep 2026: a fixed viewBox let it slide behind the gift name on the
+shortened pedestal). The layer drives the dial with the move's progress, so those
 parts grow back in place as the card opens. The eyebrow ("21 DAYS LEFT") is gone from
 the card: the stage's own status line already says it.
 

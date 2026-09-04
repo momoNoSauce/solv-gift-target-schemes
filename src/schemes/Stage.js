@@ -158,7 +158,7 @@ export const rise = (v, d = 10) => ({
 // `cardAnim` (0..1) is the card-to-detail dial: at 0 the stage is a list card,
 // at 1 the top of the detail page. On a running stage the card form hides the
 // amount tag, the second ask line and the secured capsule, shrinks the pedestal
-// by 40px and the tile to the won size, and shortens the top bar, so a running
+// (by 50px, 48px in the compact stage) and the tile to the won size, and shortens the top bar, so a running
 // card stands the same height as a completed one. The move drives the dial from
 // 0 to 1 and every part grows back in place. null means the detail (1).
 export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, lag = null, near = true, onTitlePress, onSeeRunning, card = false, cardAnim = null, lang = 'en', fill = false }) {
@@ -186,6 +186,23 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
     return () => loop.stop();
   }, [sparkleAnim, festive]);
   const sparkleOpacity = sparkleAnim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.9] });
+
+  // Pedestal geometry. On the dial (see cardAnim) a running stage's pedestal is
+  // shorter and its tile at the won size; the contact shadow under the tile
+  // follows, smaller and closer on the card so it stays inside the pedestal.
+  const pedH = compact ? 204 : 236;
+  const pedCardH = compact ? 156 : 186;
+  const tileLayout = hero.tone === 'won' ? (compact ? 128 : 136) : compact ? 148 : 168;
+  const tileCardScale = showBar ? (compact ? 128 / 148 : 136 / 168) : 1;
+  const tileTopMargin = compact ? 14 : 16;
+  const shadow = { rx: compact ? 68 : 76, ry: compact ? 8 : 9, gap: 10 };
+  const shadowCard = { rx: compact ? 54 : 60, ry: compact ? 5 : 6, gap: compact ? 4 : 6 };
+  const tileMid = (ped) => ped / 2 + tileTopMargin / 2;
+  const contactTopDetail = tileMid(pedH) + tileLayout / 2 + shadow.gap - shadow.ry;
+  const contactTopCard = tileMid(pedCardH) + (tileLayout / 2) * tileCardScale + shadowCard.gap - shadowCard.ry;
+  const contact = showBar
+    ? { top: dial(contactTopCard, contactTopDetail), width: dial(2 * shadowCard.rx, 2 * shadow.rx), height: dial(2 * shadowCard.ry, 2 * shadow.ry), marginLeft: dial(-shadowCard.rx, -shadow.rx) }
+    : { top: contactTopDetail, width: 2 * shadow.rx, height: 2 * shadow.ry, marginLeft: -shadow.rx };
 
   const h2 = s.state === STATE.SCHEDULED
     ? <Text style={[styles.h2, TABULAR, { color: st.sub }]} allowFontScaling={false}>{t.startsLine(s.startLabel)}</Text>
@@ -243,12 +260,14 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
           </View>
         ) : (
           <>
-            <Animated.View style={[styles.pedestal, compact && styles.pedestalCompact, lag, showBar && { height: dial(compact ? 164 : 196, compact ? 204 : 236) }]}>
-              {/* The contact shadow sits 11 px under the tile's bottom edge in both
-                  stage sizes: 236/168 (full) and 204/148 (compact). */}
-              <Svg width="100%" height="100%" viewBox={compact ? '0 0 412 204' : '0 0 412 250'} preserveAspectRatio="xMidYMid slice" style={StyleSheet.absoluteFill} pointerEvents="none">
-                {compact ? <Ellipse cx="206" cy="194" rx="68" ry="8" fill="#000" opacity="0.3" /> : <Ellipse cx="206" cy="234" rx="76" ry="9" fill="#000" opacity="0.3" />}
-              </Svg>
+            <Animated.View style={[styles.pedestal, compact && styles.pedestalCompact, lag, showBar && { height: dial(pedCardH, pedH) }]}>
+              {/* The contact shadow: an ellipse 10 px under the tile's visible bottom
+                  edge, following the pedestal height and the tile scale on the dial. */}
+              <Animated.View pointerEvents="none" style={[styles.contact, contact]}>
+                <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <Ellipse cx="50" cy="50" rx="50" ry="50" fill="#000" opacity="0.3" />
+                </Svg>
+              </Animated.View>
               {festive ? (
                 <>
                   <Animated.View style={[styles.sparkleL, { opacity: sparkleOpacity }]}>
@@ -274,7 +293,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                       opacity: tileA,
                       transform: [{
                         scale: showBar
-                          ? Animated.multiply(tileA.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }), dial(compact ? 128 / 148 : 136 / 168, 1))
+                          ? Animated.multiply(tileA.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }), dial(tileCardScale, 1))
                           : tileA.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }),
                       }],
                     },
@@ -309,7 +328,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
             {showBar ? (
               <>
                 {trackW > 0 && localPct > 0 ? (
-                  <Animated.View style={[styles.dTagRow, { height: dial(0, 38), marginTop: dial(0, compact ? 8 : 14), opacity: k }]}>
+                  <Animated.View style={[styles.dTagRow, { height: dial(0, 38), marginTop: dial(compact ? 8 : 10, compact ? 8 : 14), opacity: k }]}>
                     <Animated.View
                       style={[
                         styles.tagWrap,
@@ -330,7 +349,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                     </Animated.View>
                   </Animated.View>
                 ) : (
-                  <Animated.View style={[styles.dTagRow, { height: dial(0, 38), marginTop: dial(0, compact ? 8 : 14) }]} />
+                  <Animated.View style={[styles.dTagRow, { height: dial(0, 38), marginTop: dial(compact ? 8 : 10, compact ? 8 : 14) }]} />
                 )}
 
                 <View style={styles.barZone}>
@@ -418,6 +437,7 @@ const styles = StyleSheet.create({
   // The dial collapses dTagRow, the second ask line and securedWrap to 0 on the card.
 
   pedestal: { height: 236, alignItems: 'center', justifyContent: 'center', marginTop: 0 },
+  contact: { position: 'absolute', left: '50%' },
   pedestalCompact: { height: 204 },
   sparkleL: { position: 'absolute', left: '20%', top: 64 },
   sparkleR: { position: 'absolute', right: '22%', top: 148 },
