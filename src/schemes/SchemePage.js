@@ -122,18 +122,15 @@ export default function SchemePage({ scheme, active, near = true, first, still =
     ? { opacity: bodyAnim.interpolate({ inputRange: [0.35, 1], outputRange: [0, 1], extrapolate: 'clamp' }), transform: [{ translateY: bodyAnim.interpolate({ inputRange: [0, 1], outputRange: [24, 0], extrapolate: 'clamp' }) }] }
     : null;
 
-  // While a card grows into the page, the paper under the body arrives with the
-  // body: the page's ground starts as the stage's night and turns to paper in
-  // the first fifth of the move, before the frame has grown enough to show it,
-  // so the paper slides out from under the stage and no grey mid-tone shows.
-  const pageBg = missed
-    ? st.ground2
-    : bodyAnim
-    ? bodyAnim.interpolate({ inputRange: [0, 0.2], outputRange: [st.ground2, N.bg], extrapolate: 'clamp' })
-    : N.bg;
+  // The page's ground is the paper from the first frame of the move. An earlier
+  // version ramped it up from the stage's night over the first fifth, from when
+  // a card had no white of its own; the card now carries a white footer band, so
+  // paper from frame 0 is what matches it. Anything in between reads as a grey
+  // flash under the stage.
+  const pageBg = missed ? st.ground2 : N.bg;
 
   return (
-    <Animated.View style={[styles.page, { backgroundColor: pageBg }]}>
+    <View style={[styles.page, { backgroundColor: pageBg }]}>
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={[{ paddingBottom: missed ? 0 : bottomPad }, missed && { flexGrow: 1 }]}
@@ -320,7 +317,7 @@ export default function SchemePage({ scheme, active, near = true, first, still =
           <LottieView source={RIMG.ribbon} autoPlay loop={false} style={{ flex: 1 }} />
         </Animated.View>
       ) : null}
-    </Animated.View>
+    </View>
   );
 }
 

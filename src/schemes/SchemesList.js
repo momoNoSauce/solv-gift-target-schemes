@@ -37,7 +37,7 @@ const ZERO = new Animated.Value(0);
 import { F } from '../theme';
 import { schemesFor } from './registry';
 import { usePager } from './usePager';
-import Stage from './Stage';
+import Stage, { N } from './Stage';
 import SchemePage from './SchemePage';
 import ArcScreen, { arcSheetRect } from './ArcScreen';
 import DockScreen from './DockScreen';
@@ -73,7 +73,7 @@ const TAB_H = 44;
 // card has more inside, without a text link saying so. The footer is the first
 // strip of the detail's paper body, so the card grows into the page without a
 // seam: the footer fades as the body arrives.
-export const FOOTER_H = 52;
+export const FOOTER_H = 56;
 
 // The footer carries the window. The offer ("Targets ₹2L to ₹1.2Cr · 8 gifts")
 // sits under the title on the stage (see Stage's offerLine), where the eye lands
@@ -258,6 +258,8 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
     : null;
   const listDim = { opacity: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0.5] }), transform: [{ scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0.96] }) }] };
   const detailFade = progress.interpolate({ inputRange: [0.55, 1], outputRange: [0, 1], extrapolate: 'clamp' });
+  // The white frame's inset, shared by the art panel and the footer over it.
+  const frameInset = progress.interpolate({ inputRange: [0, 0.34], outputRange: [FRAME, 0], extrapolate: 'clamp' });
   const layerFade = progress.interpolate({ inputRange: [0.92, 1], outputRange: [1, 0], extrapolate: 'clamp' });
   const Detail = compact ? ArcScreen : DockScreen;
 
@@ -346,14 +348,21 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
             style={{
               flex: 1,
               overflow: 'hidden',
-              margin: progress.interpolate({ inputRange: [0, 0.34], outputRange: [FRAME, 0], extrapolate: 'clamp' }),
+              // The frame paints the page's own paper: while the stage is still
+              // card-sized, the band under it belongs to the page, not to the
+              // dimmed list showing through.
+              backgroundColor: N.bg,
+              margin: frameInset,
               borderRadius: progress.interpolate({ inputRange: [0, 0.34], outputRange: [ART_RADIUS, open.to.radius], extrapolate: 'clamp' }),
             }}
           >
             <SchemePage scheme={schemes[open.index]} active still compact={compact} edge={compact} bottomPad={24} bodyAnim={progress} cardAnim={progress} />
           </Animated.View>
-          {/* The card's footer, where it was, fading as the body arrives. */}
-          <Animated.View style={[styles.layerFooter, { top: open.from.h - FOOTER_H, opacity: progress.interpolate({ inputRange: [0, 0.3], outputRange: [1, 0], extrapolate: 'clamp' }) }]} pointerEvents="none">
+          {/* The card's footer, on the layer's bottom edge, which is where the
+              card's own footer sits; it fades as the body arrives. Anchoring it
+              to a fixed offset from the top instead let the growing stage pass
+              under it, and its half-faded white cut a grey strip across the art. */}
+          <Animated.View style={[styles.layerFooter, { left: frameInset, right: frameInset, opacity: progress.interpolate({ inputRange: [0, 0.3], outputRange: [1, 0], extrapolate: 'clamp' }) }]} pointerEvents="none">
             <CardFooter scheme={schemes[open.index]} t={t} />
           </Animated.View>
         </Animated.View>
@@ -378,7 +387,13 @@ const styles = StyleSheet.create({
     marginHorizontal: CARD_MARGIN,
     marginBottom: GAP,
     borderRadius: CARD_RADIUS,
+    // The frame runs on three sides; the footer owns the whole band below the
+    // art, so its content centres in that band instead of sitting a frame's
+    // width high in it. overflow keeps the footer's square corners inside the
+    // card's radius (a box-shadow is drawn outside and is not clipped by it).
     padding: FRAME,
+    paddingBottom: 0,
+    overflow: 'hidden',
     backgroundColor: SOLV.paper,
     borderWidth: 1,
     borderColor: 'rgba(16,24,40,0.06)',
@@ -391,11 +406,12 @@ const styles = StyleSheet.create({
   art: { borderRadius: ART_RADIUS, overflow: 'hidden' },
   // The footer's own edges line up with the art above it, not with the card.
   footer: { height: FOOTER_H, flexDirection: 'row', alignItems: 'center', backgroundColor: SOLV.paper },
+  // 56 - 18 px of text = 19 px above and below it; the chevron gets 13 px.
   // The footer's box starts where the art ends; its own top padding is the gap.
   footerLine: { flex: 1, color: SOLV.sub, fontFamily: F.regular, fontSize: 14, lineHeight: 18, marginRight: 12, fontVariant: ['tabular-nums'] },
   footerDays: { color: SOLV.ink, fontFamily: F.medium },
   chev: { width: 30, height: 30, borderRadius: 15, backgroundColor: SOLV.blueBg, alignItems: 'center', justifyContent: 'center' },
-  layerFooter: { position: 'absolute', left: FRAME, right: FRAME, height: FOOTER_H },
+  layerFooter: { position: 'absolute', bottom: 0, height: FOOTER_H },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
   emptyBadge: { width: 64, height: 64, borderRadius: 32, backgroundColor: SOLV.blueBg, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { marginTop: 14, fontFamily: F.bold, fontSize: 15, lineHeight: 19, color: SOLV.ink },

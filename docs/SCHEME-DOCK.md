@@ -348,9 +348,13 @@ step deeper than the window's #F5F8FF, because react-native-web renders a softer
 than an 8 dp Android elevation and the deeper ground stands in for that depth. The footer's own edges line up with the art's,
 not the card's.
 
-The footer is one row, 52 px, with 11 px of frame under it: the window on the left ("Ends
-9 Nov 2026 · 21 days left", "Ended 12 Sep 2026", "Starts 1 Oct") and a round chevron in the
-brand colour on the right. Its edges line up with the art's, not the card's.
+The footer is one row, 56 px, and it owns the whole band under the art: the window on the
+left ("Ends 9 Nov 2026 · 21 days left", "Ended 12 Sep 2026", "Starts 1 Oct") and a round
+chevron in the brand colour on the right, with 19 px above and below the text and 13 px
+around the chevron. Its edges line up with the art's, not the card's. The card's frame runs
+on three sides (`paddingBottom: 0`) so the footer centres its content in that band; a frame
+under the footer as well put the content a frame's width high in the white, which is what
+the 4 Sep 2026 review caught.
 
 No gift thumbnails there (founder review, 4 Sep 2026). The card already has one gift photo,
 the hero tile; a row of 22 px discs was a second, weaker one that showed the same product
@@ -390,6 +394,11 @@ The move is the App Store's card-to-detail:
    the stage's night to the page ground in the first fifth, before the frame has grown
    enough to show it; the body below the stage fades and lifts in from a third onward;
    the list behind scales to 0.96 and dims to 50 %.
+3a. The card's footer rides the layer's bottom edge (where the card's own footer sits) and
+   fades out by 0.3. Do not pin it a fixed distance from the layer's top: the stage grows
+   during the move, passes under it, and the half-faded white cuts a grey strip across the
+   art. The layer's inner frame paints the page's paper for the same reason, so the band
+   under a still card-sized stage belongs to the page and not to the dimmed list behind.
 4. Underneath, the real detail screen mounts on the opening scheme with its stage
    settled (`still`: no intro, no arrival sweep, no confetti) and fades in over the
    last stretch. When the layer lifts at the end, nothing moves. Below the layer's
