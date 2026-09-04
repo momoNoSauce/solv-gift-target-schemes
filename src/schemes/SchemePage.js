@@ -93,9 +93,9 @@ const rise = (v, d = 10) => ({
 
 // `compact` tightens the stage for a page that lives inside a sheet, so a row of
 // the list is always sliced at the sheet's fold. `edge` draws the fold as a
-// material: a 64 px band where content dissolves into the card's colour, whose
+// material: an 88 px band where content fades into the card's colour, whose
 // opacity tracks the scroll left below; it is full while there is more, and gone
-// at the end. On the web the band also blurs what passes under it.
+// at the end.
 export default function SchemePage({ scheme, active, first, offset, bottomPad, onTitlePress, onSeeRunning, lang = 'en', compact = false, edge = false }) {
   const t = T[lang] || T.en;
   const th = themeOf(scheme.theme);
@@ -599,12 +599,15 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
 
       {edge ? (
         <Animated.View pointerEvents="none" style={[styles.edge, { opacity: edgeOpacity }]}>
-          {/* Five stacked backdrop blurs, each masked to its own slice, so the blur
-              builds gradually down the band instead of switching on at a line. */}
-          {[0, 1, 2, 3, 4].map((k) => (
-            <View key={k} style={styles.edgeBlur} dataSet={{ dissolve: String(k) }} />
-          ))}
-          <LinearGradient colors={['rgba(247,247,247,0)', 'rgba(247,247,247,0.5)', 'rgba(247,247,247,0.96)']} locations={[0, 0.55, 1]} style={StyleSheet.absoluteFill} />
+          {/* A pure fade to the card's colour, eased so it has no visible start
+              line: the way a list end fades on iOS. No blur: blurred text reads as
+              a smudge, and a backdrop filter samples the ground behind the card
+              into its rounded corners. */}
+          <LinearGradient
+            colors={['rgba(247,247,247,0)', 'rgba(247,247,247,0.12)', 'rgba(247,247,247,0.42)', 'rgba(247,247,247,0.78)', 'rgba(247,247,247,0.97)', N.bg]}
+            locations={[0, 0.2, 0.42, 0.64, 0.86, 1]}
+            style={StyleSheet.absoluteFill}
+          />
         </Animated.View>
       ) : null}
 
@@ -768,7 +771,6 @@ const styles = StyleSheet.create({
   confirmedText: { fontFamily: F.medium, fontSize: 13, lineHeight: 16, color: N.green },
 
   confetti: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
-  // The fold as a material: content dissolves into the card over 64 px.
-  edge: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 72 },
-  edgeBlur: { ...StyleSheet.absoluteFillObject },
+  // The fold as a material: content fades into the card over 88 px.
+  edge: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 88 },
 });

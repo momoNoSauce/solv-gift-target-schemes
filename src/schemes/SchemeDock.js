@@ -53,15 +53,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getEle
   s.textContent =
     '[data-glass]{backdrop-filter:blur(22px) saturate(1.35);-webkit-backdrop-filter:blur(22px) saturate(1.35);}' +
     '[data-noselect]{user-select:none;-webkit-user-select:none;}' +
-    '[data-noselect] img{-webkit-user-drag:none;pointer-events:none;}' +
-    // Progressive blur: five layers, each blurring a little more and masked to
-    // its own slice of the band, stack into one gradual dissolve.
-    [[0, 1, 0, 30], [1, 1.5, 20, 50], [2, 2.5, 40, 70], [3, 4, 60, 90], [4, 6, 78, 100]]
-      .map(([k, b, from, to]) =>
-        `[data-dissolve="${k}"]{backdrop-filter:blur(${b}px);-webkit-backdrop-filter:blur(${b}px);` +
-        `mask-image:linear-gradient(to bottom,rgba(0,0,0,0) ${from}%,rgba(0,0,0,1) ${to}%);` +
-        `-webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,0) ${from}%,rgba(0,0,0,1) ${to}%);}`)
-      .join('');
+    '[data-noselect] img{-webkit-user-drag:none;pointer-events:none;}';
   document.head.appendChild(s);
 }
 
