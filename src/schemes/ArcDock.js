@@ -71,7 +71,7 @@ function Thumb({ scheme, i, pos, cx, onPress }) {
   const opacity = pos.interpolate({ inputRange: s.input, outputRange: s.op, extrapolate: 'clamp' });
   // The ring and the full-colour art belong to the apex only.
   const focus = pos.interpolate({ inputRange: [i - 0.5, i, i + 0.5], outputRange: [0, 1, 0], extrapolate: 'clamp' });
-  const dimmed = pos.interpolate({ inputRange: [i - 0.5, i, i + 0.5], outputRange: [0.55, 0, 0.55], extrapolate: 'clamp' });
+  const dimmed = pos.interpolate({ inputRange: [i - 0.5, i, i + 0.5], outputRange: [0.4, 0, 0.4], extrapolate: 'clamp' });
   // Press feedback: a spring to 0.96 that the release reverses mid-motion.
   const press = usePressScale(0.96);
 
@@ -106,8 +106,9 @@ export default function ArcDock({ schemes, pos, onSelect, panHandlers, width, bo
       {/* The focused scheme's name and status, cross-fading as the arc turns. */}
       <View pointerEvents="none" style={styles.labels}>
         {schemes.map((sc, i) => {
-          const o = n > 1 ? pos.interpolate({ inputRange: [i - 0.5, i, i + 0.5], outputRange: [0, 1, 0], extrapolate: 'clamp' }) : 1;
-          const rise = n > 1 ? pos.interpolate({ inputRange: [i - 0.5, i, i + 0.5], outputRange: [5, 0, 5], extrapolate: 'clamp' }) : 0;
+          // The label holds until 0.3 of a page, then commits to the neighbour by 0.5.
+          const o = n > 1 ? pos.interpolate({ inputRange: [i - 0.5, i - 0.3, i, i + 0.3, i + 0.5], outputRange: [0, 1, 1, 1, 0], extrapolate: 'clamp' }) : 1;
+          const rise = n > 1 ? pos.interpolate({ inputRange: [i - 0.5, i - 0.3, i, i + 0.3, i + 0.5], outputRange: [5, 0, 0, 0, 5], extrapolate: 'clamp' }) : 0;
           const th = themeOf(sc.theme);
           return (
             <Animated.View key={sc.id} style={[styles.label, { opacity: o, transform: [{ translateY: rise }] }]}>

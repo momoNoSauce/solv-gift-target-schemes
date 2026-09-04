@@ -29,6 +29,7 @@ import { STATE } from '../gifts/state';
 import { themeOf } from '../gifts/themes';
 import { RIMG } from '../rewards/assets';
 import { T } from './copy';
+import SchemeArt from './SchemeArt';
 import { SETTLED } from './motion';
 import { ddMMM, SHOP_ADDRESS } from './registry';
 
@@ -68,6 +69,19 @@ export function CtaButton({ label, bg, fg, glow = false, onPress, containerStyle
         <LinearGradient colors={['rgba(255,255,255,0.30)', 'rgba(255,255,255,0)']} style={styles.ctaSheen} pointerEvents="none" />
         <Text style={[styles.ctaText, { color: fg }]} allowFontScaling={false}>{label}</Text>
       </Pressable>
+    </Animated.View>
+  );
+}
+
+// The stamp on a won gift: pressed onto the tile's corner, it lands with the
+// tile (opacity) and settles from 1.25 to 1, the way a stamp meets paper.
+function Stamp({ text, anim }) {
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[styles.stamp, { opacity: anim, transform: [{ rotate: '-8deg' }, { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [1.25, 1] }) }] }]}
+    >
+      <Text style={styles.stampText} allowFontScaling={false}>{text}</Text>
     </Animated.View>
   );
 }
@@ -133,10 +147,12 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
   const heroNote =
     s.state === STATE.SCHEDULED ? t.startsNote(s.startLabel)
     : s.state === STATE.TOP_REACHED ? t.topNote(s.endLabel)
-    : s.state === STATE.ENDED_PENDING ? t.pendingNote
-    : s.state === STATE.GIFT_ORDERED ? t.orderedNote(scheme.deliverBy)
-    : s.state === STATE.DELIVERED ? t.deliveredNote(deliveredLabel)
     : null;
+  // The stepper below carries the delivery story; the stage does not repeat it.
+  const stampText =
+    s.state === STATE.DELIVERED ? t.stampDelivered
+    : s.state === STATE.GIFT_ORDERED ? t.stampOnTheWay
+    : t.stampWon;
 
   // Entrance values. The first page starts everything at 0 and stages it in.
   // Any other page starts its stage settled (1) and its meter empty (0), then
@@ -260,6 +276,11 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
                   <View style={styles.motifHang}>
                     <GiftGlyph kind={th.motif} size={22} color={st.accent} strokeWidth={1.5} />
                   </View>
+                ) : scheme.art?.logo ? (
+                  // A brand scheme wears its mark where a festive scheme wears its motif.
+                  <View style={[styles.motifHang, { top: 0 }]}>
+                    <SchemeArt scheme={scheme} size={26} />
+                  </View>
                 ) : null}
                 <Text style={[styles.h1, { color: st.ink }]} allowFontScaling={false}>{scheme.title}</Text>
               </View>
@@ -299,11 +320,20 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
                     </Animated.View>
                   </>
                 ) : null}
-                <Animated.Text style={[styles.heroLabel, { color: hero.tone === 'won' ? st.good : st.accent, opacity: labelA }]} allowFontScaling={false}>
-                  {hero.label}
-                </Animated.Text>
+                {hero.tone === 'won' ? null : (
+                  <Animated.Text style={[styles.heroLabel, { color: st.accent, opacity: labelA }]} allowFontScaling={false}>
+                    {hero.label}
+                  </Animated.Text>
+                )}
+                <View style={[styles.tileWrap, compact && styles.tileWrapCompact]}>
                 <Animated.View
-                  style={[styles.tile, compact && styles.tileCompact, { opacity: tileA, transform: [{ scale: tileA.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}
+                  style={[
+                    styles.tile,
+                    compact && styles.tileCompact,
+                    // A won gift is lit from within: a green glow, the settled colour.
+                    hero.tone === 'won' && { shadowColor: st.good, shadowOpacity: 0.55, shadowRadius: 28, shadowOffset: { width: 0, height: 8 } },
+                    { opacity: tileA, transform: [{ scale: tileA.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] },
+                  ]}
                 >
                   {hero.gift.voucher ? (
                     <GiftThumb gift={hero.gift} size={compact ? 112 : 128} />
@@ -313,6 +343,8 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
                     <GiftGlyph kind={hero.gift.icon} size={80} color={st.accentDeep} strokeWidth={1.2} />
                   )}
                 </Animated.View>
+                {hero.tone === 'won' ? <Stamp text={stampText} anim={tileA} /> : null}
+                </View>
               </Animated.View>
               <Animated.Text style={[styles.giftName, { color: st.ink }, rise(nameA, 8), lag]} allowFontScaling={false}>
                 {hero.gift.name}
@@ -371,7 +403,9 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
                   </View>
                   <View style={styles.barEnds}>
                     <Text style={[styles.barEnd, TABULAR, { color: st.sub }]} allowFontScaling={false}>{slab(prevAt)}</Text>
-                    <Text style={[styles.barEnd, TABULAR, { color: st.sub }]} allowFontScaling={false}>{slab(s.next.at)}</Text>
+                    <Text style={[styles.barEnd, TABULAR, { color: st.sub }]} allowFontScaling={false}>
+                      {t.targetWord} <Text style={{ color: st.ink, fontFamily: F.bold }}>{slab(s.next.at)}</Text>
+                    </Text>
                   </View>
 
                   <Animated.View style={rise(amountA, 10)}>
@@ -399,11 +433,11 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
                     </Animated.View>
                   ) : null}
                 </>
-              ) : heroNote ? (
+              ) : heroNote || s.earned ? (
                 <Animated.View style={rise(nameA, 8)}>
-                  <Text style={[styles.heroNote, { color: st.sub }]} allowFontScaling={false}>{heroNote}</Text>
+                  {heroNote ? <Text style={[styles.heroNote, { color: st.sub }]} allowFontScaling={false}>{heroNote}</Text> : null}
                   {s.earned ? (
-                    <Text style={[styles.finalBought, TABULAR, { color: st.ink }]} allowFontScaling={false}>{t.finalBought(money(s.currentValue))}</Text>
+                    <Text style={[styles.finalBought, TABULAR, { color: st.ink }, !heroNote && { marginTop: 10 }]} allowFontScaling={false}>{t.finalBought(money(s.currentValue))}</Text>
                   ) : null}
                 </Animated.View>
               ) : null}
@@ -443,6 +477,7 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
               {s.state !== STATE.ENDED_PENDING ? <Text style={[styles.orderNo, TABULAR]} allowFontScaling={false}>{scheme.orderNo}</Text> : null}
             </View>
 
+            {s.state === STATE.DELIVERED ? null : (
             <View style={styles.card}>
               <Text style={styles.cardTitle} allowFontScaling={false}>{t.shipsHere}</Text>
               <Text style={styles.shopName} allowFontScaling={false}>{SHOP_ADDRESS.shop}</Text>
@@ -467,6 +502,7 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
                 </View>
               )}
             </View>
+            )}
           </>
         ) : null}
 
@@ -549,22 +585,26 @@ export default function SchemePage({ scheme, active, first, offset, bottomPad, o
           </Animated.View>
         ) : null}
 
-        {!s.ended ? (
+        {missed ? null : (
           <View style={styles.facts}>
-            {t.facts(scheme.deliverBy).map(([icon, text], i) => (
+            {t.facts(scheme.deliverBy, `${scheme.startLabel} to ${scheme.endLabel}`, s.ended).map(([icon, text], i) => (
               <View key={icon} style={[styles.factRow, i > 0 && styles.rowDivider]}>
                 <GiftGlyph kind={icon} size={18} color={N.sub} strokeWidth={1.6} />
                 <Text style={styles.factText} allowFontScaling={false}>{text}</Text>
               </View>
             ))}
           </View>
-        ) : null}
+        )}
       </ScrollView>
 
       {edge ? (
         <Animated.View pointerEvents="none" style={[styles.edge, { opacity: edgeOpacity }]}>
-          <View style={styles.edgeBlur} dataSet={{ dissolve: 'true' }} />
-          <LinearGradient colors={['rgba(247,247,247,0)', 'rgba(247,247,247,0.88)', N.bg]} locations={[0, 0.6, 1]} style={StyleSheet.absoluteFill} />
+          {/* Five stacked backdrop blurs, each masked to its own slice, so the blur
+              builds gradually down the band instead of switching on at a line. */}
+          {[0, 1, 2, 3, 4].map((k) => (
+            <View key={k} style={styles.edgeBlur} dataSet={{ dissolve: String(k) }} />
+          ))}
+          <LinearGradient colors={['rgba(247,247,247,0)', 'rgba(247,247,247,0.5)', 'rgba(247,247,247,0.96)']} locations={[0, 0.55, 1]} style={StyleSheet.absoluteFill} />
         </Animated.View>
       ) : null}
 
@@ -622,10 +662,14 @@ const styles = StyleSheet.create({
   sparkleL: { position: 'absolute', left: '20%', top: 64 },
   sparkleR: { position: 'absolute', right: '22%', top: 148 },
   heroLabel: { position: 'absolute', top: 18, fontFamily: F.bold, fontSize: 11, lineHeight: 15, letterSpacing: 1.2 },
+  tileWrap: { marginTop: 16 },
+  tileWrapCompact: { marginTop: 14 },
+  // The stamp: pressed onto the tile's corner, a hair off square, the settled green.
+  stamp: { position: 'absolute', top: -12, right: -18, borderWidth: 2.5, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: 'rgba(255,255,255,0.94)', borderColor: N.green },
+  stampText: { color: N.green, fontFamily: F.bold, fontSize: 12, lineHeight: 15, letterSpacing: 1.6 },
   tile: {
     width: 168,
     height: 168,
-    marginTop: 16,
     borderRadius: 24,
     backgroundColor: N.paper,
     alignItems: 'center',
@@ -636,17 +680,17 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 12 },
   },
-  tileCompact: { width: 148, height: 148, marginTop: 14, borderRadius: 22 },
+  tileCompact: { width: 148, height: 148, borderRadius: 22 },
   tileImg: { width: 128, height: 128, borderRadius: 12 },
   tileImgCompact: { width: 112, height: 112 },
   giftName: { marginTop: 2, textAlign: 'center', fontFamily: F.bold, fontSize: 17, lineHeight: 22, paddingHorizontal: 24, letterSpacing: 0.1 },
   heroNote: { marginTop: 12, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: 44 },
-  finalBought: { marginTop: 8, textAlign: 'center', fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
+  finalBought: { marginTop: 8, textAlign: 'center', fontFamily: F.medium, fontSize: 15, lineHeight: 19 },
 
-  dTagRow: { height: 34, marginTop: 14 },
+  dTagRow: { height: 38, marginTop: 14 },
   tagWrap: { position: 'absolute', alignItems: 'center' },
-  dTag: { backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 10, height: 26, justifyContent: 'center' },
-  dTagText: { color: N.ink, fontFamily: F.bold, fontSize: 13, lineHeight: 16 },
+  dTag: { backgroundColor: '#fff', borderRadius: 9, paddingHorizontal: 11, height: 30, justifyContent: 'center' },
+  dTagText: { color: N.ink, fontFamily: F.bold, fontSize: 15, lineHeight: 18 },
   dTagCaret: { width: 9, height: 9, marginTop: -6, backgroundColor: '#fff', transform: [{ rotate: '45deg' }] },
 
   securedWrap: { alignItems: 'center', marginTop: 22 },
@@ -657,10 +701,11 @@ const styles = StyleSheet.create({
   runnerD: { position: 'absolute', bottom: 8 },
   flagD: { position: 'absolute', bottom: 8 },
   barEnds: { marginTop: 6, marginHorizontal: 32, flexDirection: 'row', justifyContent: 'space-between' },
-  barEnd: { fontFamily: F.medium, fontSize: 11, lineHeight: 15 },
+  barEnd: { fontFamily: F.medium, fontSize: 12, lineHeight: 16 },
 
-  bigMore: { marginTop: 12, textAlign: 'center', fontFamily: F.bold, fontSize: 30, lineHeight: 36 },
-  bigMoreWord: { fontFamily: F.medium, fontSize: 17, lineHeight: 36 },
+  // The ask leads, but by a step, not a leap: 26 over the tag's 15 and the ends' 12.
+  bigMore: { marginTop: 12, textAlign: 'center', fontFamily: F.bold, fontSize: 26, lineHeight: 32 },
+  bigMoreWord: { fontFamily: F.medium, fontSize: 16, lineHeight: 32 },
   bigRest: { marginTop: 2, textAlign: 'center', fontFamily: F.medium, fontSize: 14, lineHeight: 19, paddingHorizontal: 24 },
 
   cta: { marginTop: 10, marginHorizontal: 32, height: 52, borderRadius: 26, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
@@ -724,6 +769,6 @@ const styles = StyleSheet.create({
 
   confetti: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
   // The fold as a material: content dissolves into the card over 64 px.
-  edge: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 64 },
+  edge: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 72 },
   edgeBlur: { ...StyleSheet.absoluteFillObject },
 });

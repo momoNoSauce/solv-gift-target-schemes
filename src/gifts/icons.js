@@ -128,6 +128,14 @@ const GLYPHS = {
   sparkle: (s) => (
     <Path {...P} {...s} d="M12 4.5l1.4 4.6 4.6 1.4-4.6 1.4L12 16.5l-1.4-4.6L6 10.5l4.6-1.4L12 4.5z" />
   ),
+  calendar: (s) => (
+    <>
+      <Rect {...P} {...s} x="4" y="5.5" width="16" height="14.5" rx="2" />
+      <Line {...s} x1="4" y1="10" x2="20" y2="10" strokeLinecap="round" />
+      <Line {...s} x1="8.5" y1="3.5" x2="8.5" y2="7.5" strokeLinecap="round" />
+      <Line {...s} x1="15.5" y1="3.5" x2="15.5" y2="7.5" strokeLinecap="round" />
+    </>
+  ),
   truck: (s) => (
     <>
       <Path {...P} {...s} d="M3 7.5h10.5V16H3z" />

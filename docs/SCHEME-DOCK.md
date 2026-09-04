@@ -13,6 +13,10 @@ closer match to the reference video.
 The scheme page is a floating card: 14 px side margins, 24 px corners, from 10 px
 below the status bar to the top of the dock zone. Below it the schemes sit on an arc.
 
+Non-apex thumbs on the arc wear a 40 % veil of the night colour (not 55 %), so a
+brand's red still reads as red while the thumb recedes. The name under the apex holds
+until 0.3 of a page and commits to the neighbour by 0.5.
+
 The ground is one cool near-black (`#0B0A14`) with 18 % of the active theme's night
 mixed in, blending as the pager crosses. The card carries the theme; the floor
 recedes (Apple HIG: deference, materials). The earlier ground, the theme's night at
@@ -194,6 +198,40 @@ The sheet's bottom edge must say "more below" without a hint label. Three moves:
 Not done, on purpose: a pinned CTA bar (it stacks about 240 px of chrome above the
 arc and rewrites the page's ending), a chevron or "scroll for details" label, and a
 peek nudge on arrival.
+
+## Completed schemes
+
+A completed scheme with a gift reads as settled before a word is read:
+
+- The won gift's tile carries a stamp on its top-right corner, a hair off square
+  (rotated 8 degrees): WON, ON THE WAY, or DELIVERED, in the settled green on white,
+  2.5 px border. It lands with the tile and settles from 1.25 to 1, the way a stamp
+  meets paper.
+- The tile glows green from within (the theme's `good` colour at 55 %, 28 px).
+- The stage carries no meter, no ask, and no note that repeats the stepper. It shows
+  the gift, the stamp and "Final buying".
+- After delivery the address card is gone; the gift has arrived. The list starts one
+  card earlier, so the fold slices a gift row again.
+- On the arc and in the list, the scheme's art dims and carries the green check.
+
+## Numbers
+
+The ask leads, but by a step, not a leap: the ask is 26 px Bold, the bought-so-far
+tag 15 px Bold, the slab values at the ends 12 px Medium, "Final buying" 15 px
+Medium. The bar's right end reads "Target ₹10L", the word in the muted colour and the
+value in ink, so the domain word "target" sits on the goal.
+
+## Facts
+
+The facts card shows on every page except a missed scheme: the scheme window
+("Scheme window: 1 Oct 2026 to 9 Nov 2026"), the one-gift rule, and, while the
+scheme runs, the delivery date.
+
+## Brand schemes on the stage
+
+A brand scheme wears its mark (26 px, on white) where a festive scheme wears its
+motif, next to the title. The stage keeps the Solv theme; the mark is what tells
+Bata from Prestige at a glance.
 
 ## Gift list
 
