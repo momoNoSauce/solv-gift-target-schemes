@@ -208,7 +208,8 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
   // follows, smaller and closer on the card so it stays inside the pedestal.
   const pedH = compact ? 204 : 236;
   const pedCardH = compact ? 162 : 188;
-  const tileLayout = hero.tone === 'won' ? (compact ? 128 : 136) : compact ? 148 : 168;
+  // hero is null on a missed scheme, which draws no pedestal at all.
+  const tileLayout = hero && hero.tone === 'won' ? (compact ? 128 : 136) : compact ? 148 : 168;
   const tileCardScale = showBar ? (compact ? 128 / 148 : 136 / 168) : 1;
   const tileTopMargin = compact ? 14 : 16;
   const shadow = { rx: compact ? 68 : 76, ry: compact ? 8 : 9, gap: 10 };

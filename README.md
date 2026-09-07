@@ -192,10 +192,15 @@ deviations found and fixed, and the ones that remain.
 | `/schemes/list?opt=a\|b` | The scheme list, as the Solv bottom-nav tab that replaces All Brands: blue toolbar, RUNNING and COMPLETED tabs, no back. Big cards (the detail's own stage) grow into the detail the App Store way. `opt=a` opens the arc detail, `opt=b` the dock detail. |
 | `/options` | The founder-review entry: Option A (arc) and Option B (dock). The deployed build (`EXPO_PUBLIC_LANDING=options`) lands here at `/`. Live: https://solvts.vercel.app |
 
+Screens: `python3 scripts/capture-list.py <base-url> <out-dir>` shoots every list and
+detail state in WebKit (Safari's engine, and every browser on iOS) at 412 x 915 dp, 2x.
+The latest set is in `exploration-screenshots/list/`.
+
 Two lines of work. `master` (this copy) carries the scheme list and the App Store
 card-to-detail move, and ships to a new link. `review-live` (working copy
 `../target-schemes-live`, tag `live-review-2026-09-04`) is what https://solvts.vercel.app
-serves: the Option A / Option B entry that opens the detail screens directly. Fixes to
+serves: the Option A / Option B entry that opens the detail screens directly. `master`
+ships to https://solvts-list.vercel.app (project `solvts-list`). Fixes to
 the review experience go to that branch; see its `DEPLOY.md`.
 | `/schemes/arc` | My Schemes, Option A (3 Sep 2026): the scheme page is a floating sheet that ends above an ARC of scheme thumbs (the reference video's arrangement); the focused scheme's name and status read under the apex; a "N schemes" button opens the full list. Same `?view=`, `?i=`, `?pos=`, `?static=1`. See [docs/SCHEME-DOCK.md](docs/SCHEME-DOCK.md) |
 | `/schemes` | My Schemes, Option B (3 Sep 2026): the main scheme's page opens first; every scheme sits in a dock near the thumb; swipe the page or the dock, or tap a thumb. `?view=typical\|start\|over\|many\|empty`, `?i=`, `?pos=`, `?static=1`. See [docs/SCHEME-DOCK.md](docs/SCHEME-DOCK.md) |
