@@ -256,6 +256,15 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
         borderRadius: progress.interpolate({ inputRange: [0, 1], outputRange: [open.from.radius, open.to.radius] }),
       }
     : null;
+  // The detail's dock (or arc) holds only the group the card came from: a card
+  // opened from RUNNING pages through the running schemes, one from COMPLETED
+  // through the completed ones. `rows` maps the detail's own indexes back to
+  // the list's, for the arrival and for the way back.
+  const rows = open ? groups[groupOf(open.index)] : [];
+  const detailSchemes = rows.map(([sc]) => sc);
+  const detailIndex = Math.max(0, rows.findIndex(([, i]) => i === open?.index));
+  const toListIndex = (i) => (rows[i] ? rows[i][1] : current.current);
+
   const listDim = { opacity: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0.5] }), transform: [{ scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0.96] }) }] };
   const detailFade = progress.interpolate({ inputRange: [0.55, 1], outputRange: [0, 1], extrapolate: 'clamp' });
   // The white frame's inset, shared by the art panel and the footer over it.
@@ -278,9 +287,14 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
           <View style={styles.tabBar}>
             {[t.running, t.completed].map((label, i) => (
               <Pressable key={label} style={styles.tab} onPress={() => goTab(i)} android_ripple={{ color: '#ffffff26' }} accessibilityRole="tab" accessibilityState={{ selected: tab === i }}>
-                <Animated.Text style={[styles.tabLabel, { opacity: tabPos.interpolate({ inputRange: [i - 1, i, i + 1], outputRange: [0.64, 1, 0.64], extrapolate: 'clamp' }) }]} numberOfLines={1} allowFontScaling={false}>
-                  {label}
-                </Animated.Text>
+                <Animated.View style={[styles.tabInner, { opacity: tabPos.interpolate({ inputRange: [i - 1, i, i + 1], outputRange: [0.64, 1, 0.64], extrapolate: 'clamp' }) }]}>
+                  <Text style={styles.tabLabel} numberOfLines={1} allowFontScaling={false}>{label}</Text>
+                  {groups[i].length ? (
+                    <View style={styles.tabCount}>
+                      <Text style={styles.tabCountText} allowFontScaling={false}>{groups[i].length}</Text>
+                    </View>
+                  ) : null}
+                </Animated.View>
               </Pressable>
             ))}
             {w > 0 ? <Animated.View style={[styles.indicator, { width: half, transform: [{ translateX: Animated.multiply(tabPos, half) }] }]} /> : null}
@@ -333,7 +347,7 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
       {/* The detail, mounted under the layer from the first frame of the move. */}
       {open ? (
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: detailFade }]} pointerEvents={phase === 'open' ? 'auto' : 'none'}>
-          <Detail schemes={schemes} viewKey={viewKey} initialIndex={open.index} still embedded onBack={(i) => closeDetail(i)} onIndexChange={(i) => (current.current = i)} />
+          <Detail schemes={detailSchemes} viewKey={viewKey} initialIndex={detailIndex} still embedded onBack={(i) => closeDetail(toListIndex(i))} onIndexChange={(i) => (current.current = toListIndex(i))} />
         </Animated.View>
       ) : null}
 
@@ -379,8 +393,13 @@ const styles = StyleSheet.create({
   toolbarTitle: { color: '#fff', fontFamily: F.medium, fontSize: 18, lineHeight: 22 },
   tabBar: { height: TAB_H, flexDirection: 'row' },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
+  tabInner: { flexDirection: 'row', alignItems: 'center' },
   // TabLayout's label: 14sp Roboto Medium, 0.0892857em tracking, white.
   tabLabel: { color: '#fff', fontFamily: F.medium, fontSize: 14, lineHeight: 17, letterSpacing: 1.25, textAlign: 'center' },
+  // The count rides the label: a hug-width pill, tuned so single and double
+  // digits both sit centred (min width 18, 5 px of side padding).
+  tabCount: { marginLeft: 7, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 5, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' },
+  tabCountText: { color: '#fff', fontFamily: F.bold, fontSize: 11, lineHeight: 14, fontVariant: ['tabular-nums'] },
   indicator: { position: 'absolute', bottom: 0, left: 0, height: 3, backgroundColor: SOLV.orange },
   pages: { flex: 1, flexDirection: 'row' },
   card: {

@@ -42,8 +42,8 @@ const TIER_WATCH = [{ at: 60000, name: 'Fire-Boltt Brillia Smart Watch', shortNa
 const TIER_KETTLE = [{ at: 40000, name: 'Pigeon Amaze Plus Electric Kettle', shortName: 'Kettle', icon: 'kettle', image: IMG.kettle }];
 const TIER_MIXER = [{ at: 50000, name: 'NutriPro Juicer Mixer Grinder', shortName: 'Mixer', icon: 'mixer', image: IMG.mixer }];
 const TIER_MICROWAVE = [{ at: 120000, name: 'Godrej 20 L Solo Microwave Oven', shortName: 'Microwave', icon: 'microwave', image: IMG.microwave }];
-const TIER_V2000 = [{ at: 80000, name: '₹2,000 Solv voucher', shortName: '₹2,000 voucher', icon: 'voucher', voucher: '₹2,000' }];
-const TIER_V1000 = [{ at: 30000, name: '₹1,000 Solv voucher', shortName: '₹1,000 voucher', icon: 'voucher', voucher: '₹1,000' }];
+const TIER_JC2000 = [{ at: 80000, name: '₹2,000 JumboCash', shortName: '₹2,000 JumboCash', icon: 'jumbocash', cash: '₹2,000' }];
+const TIER_JC1000 = [{ at: 30000, name: '₹1,000 JumboCash', shortName: '₹1,000 JumboCash', icon: 'jumbocash', cash: '₹1,000' }];
 
 const D = (m, d, y = 2026) => Date.UTC(y, m - 1, d);
 const DAY = 24 * 60 * 60 * 1000;
@@ -125,13 +125,13 @@ const bata = (now, currentValue, { start = D(9, 20), end = D(10, 28) } = {}) =>
   scheme({ id: 'bata', title: 'Bata Scheme', dockName: 'Bata', art: { logo: BRAND.bata }, tiers: TIER_WATCH, currentValue, startTime: start, endTime: end, now, rules: RULES_BATA });
 
 const prestige = (now, currentValue, { end = D(11, 9) } = {}) =>
-  scheme({ id: 'prestige', title: 'Prestige Scheme', dockName: 'Prestige', art: { logo: BRAND.prestige }, tiers: TIER_V2000, currentValue, startTime: D(10, 1), endTime: end, now, rules: RULES_PRESTIGE });
+  scheme({ id: 'prestige', title: 'Prestige Scheme', dockName: 'Prestige', art: { logo: BRAND.prestige }, tiers: TIER_JC2000, currentValue, startTime: D(10, 1), endTime: end, now, rules: RULES_PRESTIGE });
 
 const bombay = (now, currentValue) =>
   scheme({ id: 'bombaydyeing', title: 'Bombay Dyeing Scheme', dockName: 'B. Dyeing', art: { logo: BRAND.bombaydyeing, wide: true }, tiers: TIER_MIXER, currentValue, startTime: D(10, 5), endTime: D(11, 5), now, rules: RULES_BOMBAY });
 
 const funskool = (now, currentValue) =>
-  scheme({ id: 'funskool', title: 'Funskool Scheme', dockName: 'Funskool', art: { logo: BRAND.funskool }, tiers: TIER_V1000, currentValue, startTime: D(10, 10), endTime: D(10, 24), now, rules: RULES_FUNSKOOL });
+  scheme({ id: 'funskool', title: 'Funskool Scheme', dockName: 'Funskool', art: { logo: BRAND.funskool }, tiers: TIER_JC1000, currentValue, startTime: D(10, 10), endTime: D(10, 24), now, rules: RULES_FUNSKOOL });
 
 const onam = (now, fulfilment) =>
   scheme({ id: 'onam', title: 'Onam Scheme', dockName: 'Onam', theme: 'onam', tiers: LIFESTYLE.tiers, currentValue: 7.1 * L, startTime: D(8, 15), endTime: D(9, 12), now, fulfilment, fmt: lakh, rules: RULES_CAMPAIGN });

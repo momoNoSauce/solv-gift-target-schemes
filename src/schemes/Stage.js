@@ -53,13 +53,16 @@ export function deriveStage(scheme, t) {
   const withDelivery = s.state === STATE.ENDED_PENDING || s.state === STATE.GIFT_ORDERED || s.state === STATE.DELIVERED;
   const missed = s.state === STATE.ENDED_MISSED;
   const runningWithNext = running && s.next;
+  // The eyebrow over the tile names what the slab pays: a gift, or JumboCash.
+  const cashTop = Boolean(s.top && s.top.cash);
+  const cashNext = Boolean(s.next && s.next.cash);
   const hero = missed
     ? null
     : s.state === STATE.SCHEDULED
-    ? { gift: s.top, label: t.topGift, tone: 'goal' }
+    ? { gift: s.top, label: cashTop ? t.topCash : t.topGift, tone: 'goal' }
     : runningWithNext
-    ? { gift: s.next, label: t.nextGift, tone: 'goal' }
-    : { gift: s.secured, label: s.state === STATE.TOP_REACHED ? t.wonTop : t.youWon, tone: 'won' };
+    ? { gift: s.next, label: cashNext ? t.nextCash : t.nextGift, tone: 'goal' }
+    : { gift: s.secured, label: s.state === STATE.TOP_REACHED ? (cashTop ? t.wonTopCash : t.wonTop) : t.youWon, tone: 'won' };
   const securedCapsule = runningWithNext && s.earned ? s.secured : null;
   const showBar = Boolean(running && s.next);
   const prevAt = s.secured ? s.secured.at : 0;
@@ -158,10 +161,13 @@ export function offerLine(scheme, t) {
   const s = scheme.s;
   const n = s.ladder.length;
   const slab = scheme.fmt;
-  if (s.state === STATE.SCHEDULED) return t.cardStarts(s.startLabel, n);
+  // A scheme whose whole ladder pays JumboCash names the cash, not a gift count.
+  const cash = s.ladder.every((g) => g.cash);
+  const reward = !cash ? null : n === 1 ? t.cardCash(s.ladder[0].cash) : t.cardCashMany(n);
+  if (s.state === STATE.SCHEDULED) return t.cardStarts(s.startLabel, n, reward);
   if (s.state === STATE.ENDED_MISSED) return t.cardMissed;
   if (s.ended && s.earned) return t.cardWon(slab(s.secured.at));
-  return t.cardTargets(slab(s.ladder[0].at), slab(s.ladder[n - 1].at), n);
+  return t.cardTargets(slab(s.ladder[0].at), slab(s.ladder[n - 1].at), n, reward);
 }
 
 export const rise = (v, d = 10) => ({
@@ -330,7 +336,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                     },
                   ]}
                 >
-                  {hero.gift.voucher ? (
+                  {hero.gift.cash || hero.gift.voucher ? (
                     <GiftThumb gift={hero.gift} size={hero.tone === 'won' ? (compact ? 92 : 104) : compact ? 112 : 128} />
                   ) : hero.gift.image ? (
                     <Image source={hero.gift.image} style={[styles.tileImg, compact && styles.tileImgCompact, hero.tone === 'won' && (compact ? styles.tileImgWonCompact : styles.tileImgWon)]} resizeMode="contain" />
@@ -344,7 +350,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
 
             {hero.tone === 'won' ? (
               <Animated.View style={[rise(nameA, 8), lag]}>
-                <Text style={[styles.wonHeadline, { color: st.ink }]} allowFontScaling={false}>{t.wonHeadline(hero.gift.shortName || hero.gift.name)}</Text>
+                <Text style={[styles.wonHeadline, { color: st.ink }]} allowFontScaling={false}>{(hero.gift.cash ? t.wonHeadlineCash : t.wonHeadline)(hero.gift.shortName || hero.gift.name)}</Text>
                 <View style={styles.wonStatusRow}>
                   <GiftGlyph kind={wonStatus.icon} size={16} color={wonStatus.color} strokeWidth={2} />
                   <Text style={[styles.wonStatus, { color: wonStatus.color }]} allowFontScaling={false}>{wonStatus.text}</Text>

@@ -215,7 +215,7 @@ export default function SchemePage({ scheme, active, near = true, first, still =
             page of lost gifts (peak-end). ——— */}
         {missed || !multiGift ? null : (
           <>
-            <Text style={styles.listLabel} allowFontScaling={false}>{t.giftList}</Text>
+            <Text style={styles.listLabel} allowFontScaling={false}>{s.ladder.every((g) => g.cash) ? t.cashList : t.giftList}</Text>
             <View style={styles.list}>
               {s.ladder.map((tier, i) => {
                 const isTop = tier.at === s.top.at;

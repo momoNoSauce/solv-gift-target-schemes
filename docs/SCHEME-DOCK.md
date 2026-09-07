@@ -348,6 +348,14 @@ step deeper than the window's #F5F8FF, because react-native-web renders a softer
 than an 8 dp Android elevation and the deeper ground stands in for that depth. The footer's own edges line up with the art's,
 not the card's.
 
+Tab counts. Each tab carries the number of schemes in its group, in a hug-width pill
+(min width 18 px, 5 px of side padding, so one and two digits both sit centred) at 22 %
+white, riding the label and dimming with it.
+
+The detail sees one group. A card opened from RUNNING pages through the running schemes;
+one opened from COMPLETED pages through the completed ones. The list passes the filtered
+array and maps the detail's indexes back to its own, for the arrival and for the way back.
+
 The footer is one row, 56 px, and it owns the whole band under the art: the window on the
 left ("Ends 9 Nov 2026 · 21 days left", "Ended 12 Sep 2026", "Starts 1 Oct") and a round
 chevron in the brand colour on the right, with 19 px above and below the text and 13 px

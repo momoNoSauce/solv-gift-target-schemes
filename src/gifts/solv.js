@@ -18,6 +18,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Image, Pressable, StyleSheet, Animated, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
+import { JUMBOCASH_TAG_ICON } from '../jumbocash/tagIcon';
 import { F } from '../theme';
 import { IconRunningMan, IconTargetFlag } from '../icons';
 import GiftGlyph from './icons';
@@ -50,6 +51,9 @@ export const SOLV = {
 // A 1px outline on photos, pure black at low alpha so it reads as the image's
 // edge on any surface (never a tinted grey).
 const PHOTO_EDGE = 'rgba(0,0,0,0.08)';
+// jumbocash_offer_green / _full_amount_covered_using_jumbocash: the app's cash green.
+const JC_GREEN = '#1F6F2C';
+const JC_GREEN_LIGHT = '#E7F4EA';
 const TABULAR = { fontVariant: ['tabular-nums'] };
 
 // Rail geometry: the flag (the target) plants RAIL_END px in from the right so
@@ -57,8 +61,26 @@ const TABULAR = { fontVariant: ['tabular-nums'] };
 const RAIL_END = 18;
 const MEDAL = 36;
 
+// A JumboCash reward has no product photo; it renders as the app's own banknote
+// (src/jumbocash/tagIcon.js, from ic_jumbocash_white_bg.xml) with the amount
+// beside it. `gift.cash` carries the amount label. There is no Solv voucher:
+// a scheme that does not pay a product pays JumboCash.
+export function CashThumb({ size = 40 }) {
+  // Only the note: the amount belongs to the reward's name ("₹2,000
+  // JumboCash"), and printing it here too would say it twice in one tile.
+  const w = size;
+  return (
+    <Svg width={w} height={w * 12 / 20} viewBox={JUMBOCASH_TAG_ICON.viewBox}>
+      <Path d={JUMBOCASH_TAG_ICON.paths[0]} fill={JC_GREEN} />
+      <Path d={JUMBOCASH_TAG_ICON.paths[1]} fill={JC_GREEN_LIGHT} />
+      <Path d={JUMBOCASH_TAG_ICON.paths[2]} fill={JC_GREEN} />
+    </Svg>
+  );
+}
+
 // A voucher has no product photo; it renders as a small voucher card, never as a
-// line glyph. `gift.voucher` carries the amount label.
+// line glyph. `gift.voucher` carries the amount label. Kept for the older
+// prototype pages; the scheme pages pay JumboCash instead.
 export function VoucherThumb({ amount, size = 40 }) {
   const w = size * 0.96;
   const h = size * 0.66;
@@ -86,6 +108,7 @@ export function VoucherThumb({ amount, size = 40 }) {
 // glyph only as a last-resort fallback for a gift with no verified photo yet.
 export function GiftThumb({ gift, size = 40, accent = SOLV.blue }) {
   if (!gift) return null;
+  if (gift.cash) return <CashThumb size={size} />;
   if (gift.voucher && size < 30) {
     // Below 30px the amount cannot be read; a ₹ disc says "money" at a glance.
     return (
@@ -455,7 +478,7 @@ const styles = StyleSheet.create({
   stripText: { flex: 1, color: SOLV.sub, fontFamily: F.medium, fontSize: 11.5, lineHeight: 15 },
 });
 
-const gift = (t) => (t ? { at: t.at, name: t.name, short: t.shortName, image: t.image, icon: t.icon, voucher: t.voucher } : null);
+const gift = (t) => (t ? { at: t.at, name: t.name, short: t.shortName, image: t.image, icon: t.icon, voucher: t.voucher, cash: t.cash } : null);
 
 // Map a schemeState() result onto a card. The list and the states page both call this,
 // so a state can never be drawn two different ways in the same app.
