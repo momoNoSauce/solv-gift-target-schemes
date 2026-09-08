@@ -13,18 +13,13 @@
 // from `pos`, sampled every quarter page so the piecewise-linear Animated
 // interpolation follows the circle to within half a pixel.
 //
-// The list pill. The leftmost control always goes back to the list of scheme
-// cards. It is a labelled pill, not a disc: leaving the page is a different
-// move from changing the scheme, and a disc in the corner read as one more
-// thumb that had fallen off the arc. It lights up in the theme's accent as the
-// arc is pulled past the first scheme, the gesture that also reaches it. It
-// cannot ride the arc: the arc's
-// own nodes sweep the whole curve as the pager turns, so a node pinned on the
-// curve would be run over at the last page. It sits in the zone's bottom-left
-// corner instead, below the lowest point the arc's left tail reaches (measured:
-// the tail's visible edge stops at 867 px on a 915 px screen, the pill starts at
-// 875, and a bottom inset widens the gap), so the two never tangle. The house mark carries it: the corner has no
-// room for a label under the disc, and the dock version's label does that work.
+// All. The leftmost circle on the arc is always "All", the way back to the list
+// of cards. It is a node of the arc's own family, a disc at the far-thumb size
+// sitting on the curve where it meets the left margin, told apart by glass and
+// a grid glyph instead of art, and never ringed. The arc's left tail ENDS at
+// it: thumbs to the left of the apex fade out by 1.4 pages, before their disc
+// could reach it, while the right tail keeps its long fade, where more schemes
+// come from. The arc reads left to right: All, then the schemes.
 //
 // Recognition: the thumb is the SCHEME'S OWN ART (festival illustration or
 // brand mark), never a gift photo. The focused scheme's full name and its
@@ -37,12 +32,12 @@ import { themeOf } from '../gifts/themes';
 import SchemeArt from './SchemeArt';
 import { usePressScale } from '../gifts/solv';
 import { statusLine } from './registry';
-import { IconList } from '../icons';
+import { IconGrid } from '../icons';
 
 export const ARC_PITCH = 86;          // apex spacing, px per page
-const LIST_H = 32;                    // the list pill
-const LIST_X = 16;                    // its left margin
-const LIST_BOTTOM = 8;                // clear of the arc's lowest left node
+const ALL_D = 50;                     // the All disc, the far-thumb size
+const ALL_CX = 44;                    // its centre, from the left edge
+const LEFT_END = 1.4;                 // pages left of the apex where the tail has gone
 const R = 520;                        // arc radius
 const THETA = ARC_PITCH / R;          // rad per page
 const APEX = 76;                      // focused thumb
@@ -57,6 +52,8 @@ const VISIBLE = 3.2;                  // thumbs past this distance are not drawn
 // Size and opacity by distance from the apex (linear between the samples).
 const sizeAt = (d) => (d <= 1 ? APEX - (APEX - 58) * d : d <= 2 ? 58 - 8 * (d - 1) : 50);
 const alphaAt = (d) => (d <= 1 ? 1 - 0.15 * d : d <= 2 ? 0.85 - 0.35 * (d - 1) : Math.max(0, 0.5 - 0.5 * (d - 2)));
+// The left tail: gone by LEFT_END, so no thumb reaches the All disc.
+const alphaLeft = (d) => (d <= 1 ? 1 - 0.15 * d : Math.max(0, 0.85 * (LEFT_END - d) / (LEFT_END - 1)));
 
 function samples(i, cx) {
   const input = [];
@@ -72,7 +69,7 @@ function samples(i, cx) {
     y.push(APEX_TOP + APEX / 2 + R * (1 - Math.cos(a)));
     const d = Math.abs(k / 4);
     sc.push(sizeAt(d) / APEX);
-    op.push(alphaAt(d));
+    op.push(k < 0 ? alphaLeft(d) : alphaAt(d));
   }
   // inputRange must ascend: the loop above descends in p.
   return { input: input.reverse(), x: x.reverse(), y: y.reverse(), sc: sc.reverse(), op: op.reverse() };
@@ -112,35 +109,30 @@ function Thumb({ scheme, i, pos, cx, onPress }) {
   );
 }
 
-function ListPill({ onPress, label, hint, bottomInset, over, accent }) {
-  const press = usePressScale(0.94);
-  const lift = over ? over.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] }) : 1;
+function AllNode({ onPress, label, hint }) {
+  const press = usePressScale(0.96);
+  // On the curve: the angle at which the arc reaches ALL_CX, and its drop there.
+  const a = Math.asin(Math.min(1, (ARC_CX_REF - ALL_CX) / R));
+  const top = APEX_TOP + APEX / 2 + R * (1 - Math.cos(a)) - ALL_D / 2;
   return (
-    <Pressable
-      onPress={onPress}
-      onPressIn={press.pressIn}
-      onPressOut={press.pressOut}
-      accessibilityRole="button"
-      accessibilityLabel={hint}
-      style={[styles.listHit, { bottom: bottomInset + LIST_BOTTOM }]}
-    >
-      <Animated.View style={[styles.listPill, { transform: [{ scale: Animated.multiply(press.scale, lift) }] }]}>
-        <Animated.View pointerEvents="none" style={[styles.listFill, { backgroundColor: accent, opacity: over || 0 }]} />
-        <IconList size={18} color="#fff" strokeWidth={2} />
-        <Text style={styles.listText} numberOfLines={1} allowFontScaling={false}>{label}</Text>
-      </Animated.View>
-    </Pressable>
+    <View style={[styles.allBox, { left: ALL_CX - ALL_D / 2, top }]}>
+      <Pressable onPress={onPress} onPressIn={press.pressIn} onPressOut={press.pressOut} accessibilityRole="button" accessibilityLabel={hint} style={styles.allHit}>
+        <Animated.View style={[styles.allDisc, { transform: [{ scale: press.scale }] }]}>
+          <IconGrid size={22} color="#fff" />
+        </Animated.View>
+        <Text style={styles.allLabel} numberOfLines={1} allowFontScaling={false}>{label}</Text>
+      </Pressable>
+    </View>
   );
 }
+const ARC_CX_REF = 206;   // the arc's centre on the 412 dp reference width
 
-export default function ArcDock({ schemes, pos, over = null, onSelect, onList, panHandlers, width, bottomInset = 0, listLabel = 'Schemes', listHint = 'All schemes' }) {
+export default function ArcDock({ schemes, pos, onSelect, onAll, panHandlers, width, bottomInset = 0, allLabel = 'All', allHint = 'All schemes' }) {
   const cx = width / 2;
   const n = schemes.length;
-  const accents = schemes.map((x) => themeOf(x.theme).stage.accent);
-  const accent = n > 1 ? pos.interpolate({ inputRange: schemes.map((_, i) => i), outputRange: accents, extrapolate: 'clamp' }) : accents[0] || '#fff';
   return (
     <View style={[styles.zone, { height: ZONE_H + bottomInset }]} dataSet={{ touch: 'none' }} {...panHandlers}>
-      {onList ? <ListPill onPress={onList} label={listLabel} hint={listHint} bottomInset={bottomInset} over={over} accent={accent} /> : null}
+      {onAll ? <AllNode onPress={onAll} label={allLabel} hint={allHint} /> : null}
       {schemes.map((sc, i) => (
         <Thumb key={sc.id} scheme={sc} i={i} pos={pos} cx={cx} onPress={() => onSelect(i)} />
       ))}
@@ -175,12 +167,12 @@ const styles = StyleSheet.create({
   // The disc's edge: pure black at low alpha, so a white brand disc still has a rim on the dark ground.
   edge: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, borderRadius: APEX / 2, borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)' },
   badge: { position: 'absolute', right: 2, top: 2, width: 22, height: 22, borderRadius: 11, backgroundColor: '#177E36', borderWidth: 2, borderColor: '#1A1730', alignItems: 'center', justifyContent: 'center' },
-  listHit: { position: 'absolute', left: LIST_X, zIndex: 3 },
-  listPill: { height: LIST_H, borderRadius: LIST_H / 2, paddingLeft: 10, paddingRight: 13, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', overflow: 'hidden' },
-  listFill: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 },
-  listText: { color: '#fff', fontFamily: F.medium, fontSize: 12, lineHeight: 15, letterSpacing: 0.1 },
+  allBox: { position: 'absolute', width: ALL_D, alignItems: 'center', zIndex: 3 },
+  allHit: { alignItems: 'center' },
+  allDisc: { width: ALL_D, height: ALL_D, borderRadius: ALL_D / 2, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' },
+  allLabel: { marginTop: 5, color: '#fff', opacity: 0.72, fontFamily: F.medium, fontSize: 11, lineHeight: 14, letterSpacing: 0.1 },
   labels: { position: 'absolute', left: 0, right: 0, top: NAME_TOP, alignItems: 'center' },
-  label: { position: 'absolute', left: 120, right: 120, top: 0, alignItems: 'center' },
+  label: { position: 'absolute', left: 24, right: 24, top: 0, alignItems: 'center' },
   name: { color: '#FFFFFF', fontFamily: F.medium, fontSize: 15, lineHeight: 19, letterSpacing: 0.1 },
   status: { marginTop: 2, color: 'rgba(255,255,255,0.72)', fontFamily: F.regular, fontSize: 12, lineHeight: 16, fontVariant: ['tabular-nums'] },
 });

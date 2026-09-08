@@ -17,14 +17,13 @@
 //     fades from 55% to 100% white.
 //   - The ring's colour is the ACTIVE THEME'S ACCENT, blending across pages.
 //
-// The list cell. The leftmost control always goes back to the list of scheme
-// cards. It is pinned to the pill's left edge, outside the scrolling row, so it
-// stays put however far the schemes scroll, and it is not a thumb: a rounded
-// square, never ringed, carrying the list mark and the word "Schemes" (this is
-// the target schemes' own list, not the app's home). Leaving the page is a
-// different move from changing the scheme, and the cell says so twice: by its
-// shape, and by lighting up in the theme's accent as the strip is pulled past
-// the first scheme, the gesture that also reaches it.
+// All. The leftmost circle is always "All": the way back to the list of cards,
+// the way the Finder is the first icon in the Dock and "Your story" the first
+// circle in the tray. It is of the thumbs' family (a circle, the resting size,
+// a label on the same baseline) so the bar reads as one row, and it is told
+// apart by what a thumb never has: a glyph instead of art, glass instead of a
+// photo, a hairline after it, and no ring, ever. Tapping it does not glide the
+// ring; the whole page folds back into its card.
 //
 // Groups: running schemes first, then completed ones behind a hairline. A
 // completed thumb dims its art to 70% and carries the green check when a gift
@@ -39,11 +38,11 @@ import GiftGlyph from '../gifts/icons';
 import { themeOf } from '../gifts/themes';
 import SchemeArt from './SchemeArt';
 import { usePressScale } from '../gifts/solv';
-import { IconList } from '../icons';
+import { IconGrid } from '../icons';
 import { SETTLED } from './motion';
 
 export const PITCH = 64;
-const LIST_W = 58;         // the pinned list cell, left of the scheme row
+const LIST_W = 58;         // the pinned All cell, left of the scheme row
 const PAD = 10;            // glass around the row, left and right
 const THUMB = 52;          // focused photo circle
 const THUMB_MIN = 42;      // resting photo circle
@@ -67,7 +66,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getEle
     '[data-noselect] img{-webkit-user-drag:none;pointer-events:none;}' +
     // Who owns a touch: the page strip keeps vertical scroll for the browser and
     // hands horizontal to the pager; the dock and the arc hand over everything.
-    '[data-touch="pan-y"]{touch-action:pan-y;}[data-touch="none"]{touch-action:none;}';
+    '[data-touch="pan-y"]{touch-action:pan-y;overscroll-behavior:contain;}[data-touch="none"]{touch-action:none;}';
   document.head.appendChild(s);
 }
 
@@ -104,28 +103,25 @@ function Thumb({ scheme, i, pos, onPress, first, selected }) {
   );
 }
 
-function ListCell({ onPress, label, hint, over, accent }) {
-  const press = usePressScale(0.94);
-  const lift = over ? over.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }) : 1;
+function AllCell({ onPress, label, hint }) {
+  const press = usePressScale(0.96);
   return (
-    <View style={styles.listCell}>
-      <Pressable onPress={onPress} onPressIn={press.pressIn} onPressOut={press.pressOut} accessibilityRole="button" accessibilityLabel={hint} style={styles.listHit}>
-        <Animated.View style={[styles.listSquare, { transform: [{ scale: Animated.multiply(press.scale, lift) }] }]}>
-          {/* the accent fill rises with the pull */}
-          <Animated.View pointerEvents="none" style={[styles.listFill, { backgroundColor: accent, opacity: over || 0 }]} />
-          <IconList size={22} color="#fff" strokeWidth={2} />
+    <View style={styles.allCell}>
+      <Pressable onPress={onPress} onPressIn={press.pressIn} onPressOut={press.pressOut} accessibilityRole="button" accessibilityLabel={hint} style={styles.allHit}>
+        <Animated.View style={[styles.allDisc, { transform: [{ scale: press.scale }] }]}>
+          <IconGrid size={20} color="#fff" />
         </Animated.View>
-        <Animated.Text style={[styles.listLabel, over && { opacity: over.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }) }]} numberOfLines={1} allowFontScaling={false}>{label}</Animated.Text>
+        <Text style={styles.allLabel} numberOfLines={1} allowFontScaling={false}>{label}</Text>
       </Pressable>
-      <View style={styles.listLine} pointerEvents="none" />
+      <View style={styles.allLine} pointerEvents="none" />
     </View>
   );
 }
 
-export default function SchemeDock({ schemes, pos, over = null, index = 0, onSelect, onList, panHandlers, width, bottomInset = 0, listLabel = 'Schemes', listHint = 'All schemes' }) {
+export default function SchemeDock({ schemes, pos, index = 0, onSelect, onAll, panHandlers, width, bottomInset = 0, allLabel = 'All', allHint = 'All schemes' }) {
   const n = schemes.length;
   const rowW = n * PITCH;
-  const home = Boolean(onList) ? LIST_W : 0;
+  const home = Boolean(onAll) ? LIST_W : 0;
   const pillW = Math.min(width - DOCK_MARGIN * 2, rowW + PAD * 2 + home);
   const inner = pillW - PAD * 2 - home;
 
@@ -178,7 +174,7 @@ export default function SchemeDock({ schemes, pos, over = null, index = 0, onSel
     >
       <View style={[styles.pill, { width: pillW }]} dataSet={{ glass: 'true', noselect: 'true', touch: 'none' }} {...panHandlers}>
         <View style={styles.hairline} pointerEvents="none" />
-        {onList ? <ListCell onPress={onList} label={listLabel} hint={listHint} over={over} accent={accent} /> : null}
+        {onAll ? <AllCell onPress={onAll} label={allLabel} hint={allHint} /> : null}
         <Animated.View pointerEvents="none" style={[styles.ring, { borderColor: accent, transform: [{ translateX: ringX }] }]} />
         <Animated.View style={[styles.row, { width: rowW, transform: [{ translateX: rowX }] }]}>
           {schemes.map((sc, i) => (
@@ -233,14 +229,12 @@ const styles = StyleSheet.create({
   },
   label: { marginTop: 3, color: '#fff', fontFamily: F.medium, fontSize: 11, lineHeight: LABEL_H, letterSpacing: 0.1, maxWidth: PITCH - 4, textAlign: 'center' },
   groupLine: { position: 'absolute', left: 0, top: 14, width: 1, height: RING - 14, backgroundColor: 'rgba(255,255,255,0.16)' },
-  // The pinned list cell: a disc the size of a resting thumb, its label on the
-  // thumbs' own baseline, and a hairline between it and the schemes.
-  listCell: { position: 'absolute', left: PAD, top: ROW_TOP, width: LIST_W, zIndex: 2 },
-  listHit: { width: LIST_W, alignItems: 'center' },
-  // Not a circle: a rounded square, so it never reads as a thumb.
-  listSquare: { width: THUMB_MIN, height: THUMB_MIN, marginTop: (RING - THUMB_MIN) / 2, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  listFill: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 },
-  listLabel: { marginTop: 3 + (RING - THUMB_MIN) / 2, color: '#fff', opacity: 0.72, fontFamily: F.medium, fontSize: 11, lineHeight: LABEL_H, letterSpacing: 0.1, maxWidth: LIST_W - 4, textAlign: 'center' },
-  listLine: { position: 'absolute', right: -1, top: 14, width: 1, height: RING - 14, backgroundColor: 'rgba(255,255,255,0.16)' },
+  // The pinned All cell: a glass disc the size of a resting thumb, its label
+  // on the thumbs' own baseline, a hairline between it and the schemes.
+  allCell: { position: 'absolute', left: PAD, top: ROW_TOP, width: LIST_W, zIndex: 2 },
+  allHit: { width: LIST_W, alignItems: 'center' },
+  allDisc: { width: THUMB_MIN, height: THUMB_MIN, marginTop: (RING - THUMB_MIN) / 2, borderRadius: THUMB_MIN / 2, backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' },
+  allLabel: { marginTop: 3 + (RING - THUMB_MIN) / 2, color: '#fff', opacity: 0.72, fontFamily: F.medium, fontSize: 11, lineHeight: LABEL_H, letterSpacing: 0.1, maxWidth: LIST_W - 4, textAlign: 'center' },
+  allLine: { position: 'absolute', right: -1, top: 14, width: 1, height: RING - 14, backgroundColor: 'rgba(255,255,255,0.16)' },
   fade: { position: 'absolute', top: 0, bottom: 0, width: 26 },
 });

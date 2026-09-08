@@ -46,16 +46,15 @@ export function arcSheetRect(w, h, insets) {
   return { x: SHEET_MARGIN, y: top, w: w - SHEET_MARGIN * 2, h: h - top - (ZONE_H + insets.bottom), radius: SHEET_RADIUS };
 }
 
-export default function ArcScreen({ schemes, viewKey = 'typical', initialIndex = 0, pinned = null, demo = false, still = false, embedded = false, onBack, onIndexChange, onList }) {
+export default function ArcScreen({ schemes, viewKey = 'typical', initialIndex = 0, pinned = null, demo = false, still = false, embedded = false, onBack, onIndexChange, onAll, dismiss = null }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const n = schemes.length;
   const firstIndex = useRef(pinned != null ? Math.round(pinned) : initialIndex).current;
 
   const [size, setSize] = useState({ w: 0, h: 0 });
-  const listRef = useRef(null);
-  const pager = usePager({ count: n, initial: firstIndex, onPastStart: () => listRef.current && listRef.current() });
-  const { pos, over, index, goTo, pagePan, dockPan, setPageUnit, setDockUnit } = pager;
+  const pager = usePager({ count: n, initial: firstIndex });
+  const { pos, index, goTo, pagePan, dockPan, setPageUnit, setDockUnit } = pager;
   useEffect(() => setPageUnit(size.w), [size.w]);
   useEffect(() => setDockUnit(ARC_PITCH), []);
   useEffect(() => {
@@ -84,9 +83,8 @@ export default function ArcScreen({ schemes, viewKey = 'typical', initialIndex =
   const firstRunning = Math.max(0, schemes.findIndex((x) => x.group === 'running'));
   const t = T.en;
   const back = () => (onBack ? onBack(index) : backToEntry(router));
-  listRef.current = () => list();
-  // The list of scheme cards. Embedded, that is the move in reverse.
-  const list = () => (onList ? onList(index) : toList(router, 'a'));
+  // All: the list of scheme cards. Embedded, that is the move in reverse.
+  const all = () => (onAll ? onAll(index) : toList(router, 'a'));
 
   return (
     <Animated.View style={[styles.screen, { backgroundColor: ground }]} onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
@@ -117,6 +115,8 @@ export default function ArcScreen({ schemes, viewKey = 'typical', initialIndex =
                   bottomPad={24}
                   compact
                   edge
+                  dismiss={embedded && index === i ? dismiss : null}
+                  pageIndex={i}
                   onTitlePress={() => setDemoOpen((v) => !v)}
                   onSeeRunning={sc.group === 'completed' ? () => goTo(firstRunning) : null}
                 />
@@ -142,7 +142,7 @@ export default function ArcScreen({ schemes, viewKey = 'typical', initialIndex =
       </View>
 
       {n > 0 && size.w > 0 ? (
-        <ArcDock schemes={schemes} pos={pos} over={over} onSelect={goTo} onList={list} panHandlers={dockPan} width={size.w} bottomInset={insets.bottom} />
+        <ArcDock schemes={schemes} pos={pos} onSelect={goTo} onAll={all} panHandlers={dockPan} width={size.w} bottomInset={insets.bottom} />
       ) : null}
 
       <AllSchemesSheet open={SHOW_PICKER && listOpen} schemes={schemes} index={index} onSelect={goTo} onClose={() => setListOpen(false)} height={size.h} bottomInset={insets.bottom} />

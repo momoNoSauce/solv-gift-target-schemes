@@ -23,6 +23,13 @@ export const IconHome = ({ size = 24, color = C.white }) => (
   </Svg>
 );
 
+// The grid mark: four tiles, the mark a gallery uses for "all of them".
+export const IconGrid = ({ size = 22, color = C.white }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Path d="M5 3.5h5a1.5 1.5 0 0 1 1.5 1.5v5A1.5 1.5 0 0 1 10 11.5H5A1.5 1.5 0 0 1 3.5 10V5A1.5 1.5 0 0 1 5 3.5zm9 0h5A1.5 1.5 0 0 1 20.5 5v5a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 12.5 10V5A1.5 1.5 0 0 1 14 3.5zm-9 9h5a1.5 1.5 0 0 1 1.5 1.5v5A1.5 1.5 0 0 1 10 20.5H5A1.5 1.5 0 0 1 3.5 19v-5A1.5 1.5 0 0 1 5 12.5zm9 0h5a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5h-5a1.5 1.5 0 0 1-1.5-1.5v-5a1.5 1.5 0 0 1 1.5-1.5z" fill={color} />
+  </Svg>
+);
+
 // The list mark, as the schemes picker drew it: three lines, the last shorter.
 export const IconList = ({ size = 22, color = C.white, strokeWidth = 2 }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24">

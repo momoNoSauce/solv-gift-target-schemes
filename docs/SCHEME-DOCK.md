@@ -352,28 +352,35 @@ Tab counts. Each tab carries the number of schemes in its group, in a hug-width 
 (min width 18 px, 5 px of side padding, so one and two digits both sit centred) at 22 %
 white, riding the label and dimming with it.
 
-The list control in the bottom bar. The leftmost control always goes back to the list of
-scheme cards. It is not a thumb, and it must not read or behave as one: a thumb changes
-the scheme within the page (the ring glides), the list control leaves the page (the move
-runs in reverse into the card). Three things say so:
+Leaving the detail. Two ways, one model: the page was pulled out of a card, so it is pushed
+back into it.
 
-- Shape. In the dock it is a rounded square, pinned at the pill's left edge outside the
-  scrolling row (the row's clamp and centring measure the width that is left), behind a
-  hairline, never ringed, with the list mark and the word "Schemes". In the arc it is a
-  labelled pill at the zone's bottom-left, below the lowest point the arc's left tail
-  reaches (the tail's visible edge stops at 867 px on a 915 px screen, the pill starts at
-  875, and a bottom inset widens the gap). Not a house: this is the target schemes' own
-  list, and the app's Home tab sits in the navigation below.
-- Gesture. The list is the strip's left end, so pulling the first scheme past the start and
-  letting go reaches it (`usePager` `onPastStart`, threshold 0.15 into the 35 % rubber band,
-  a finger travel of about 0.43 page; a shorter pull snaps back). The control lights up in
-  the theme's accent and lifts as the pull deepens (`over`, 0..1), so the release point is
-  visible before it is reached.
-- The ring stays on the schemes: past either end it holds the end thumb rather than sliding
-  into the list cell.
+- The drag. A downward drag that begins on the stage while the page is scrolled to the top
+  is the dismiss: it cannot be a scroll, there is nothing above to scroll to. The layer
+  follows the finger (over 360 px of pull it goes from 1 to 0.4, shrinking and sinking
+  toward the card without landing), and the release decides: past 0.72, or with a downward
+  flick, it lands in the card; otherwise it springs back up. Interruptible either way. This
+  is the move the card taught on arrival, run in reverse by hand, the pattern of Photos,
+  Stories and the App Store's Today cards ([Apple's PhotoTransitioning
+  sample](https://developer.apple.com/library/archive/samplecode/PhotoTransitioning/Introduction/Intro.html)).
+  Upward drags scroll; horizontal ones page. The list runs the close in three steps so a
+  finger can drive it (`prepareClose`, then `progress` from the finger, then `finishClose` or
+  `cancelClose`); the tap runs prepare then finish.
+- All. The leftmost circle of the bottom bar is always "All", the way back to the list of
+  cards, the way the Finder is the first icon in the Dock and "Your story" the first circle
+  in the tray. It is of the thumbs' family (a circle, the resting size, a label on the same
+  baseline) so the bar reads as one row, and it is told apart by what a thumb never has: a
+  grid glyph instead of art, glass instead of a photo, a hairline after it in the dock, and
+  no ring, ever. In the arc it sits on the curve where the curve meets the left margin, and
+  the arc's left tail ends at it: thumbs left of the apex fade out by 1.4 pages, before their
+  disc could reach it, while the right tail keeps its long fade, where more schemes come
+  from. The arc reads left to right, All then the schemes.
 
-Embedded in the list, both the tap and the pull run the move in reverse, exactly as the
-back arrow does; on the standalone routes they replace the route with the list.
+Rejected on the way, 4 Sep 2026: a house icon (this is the schemes' list, not the app's
+home, and the Home tab is in the navigation below); a rounded square or a labelled pill in
+the bar (a foreign shape among the thumbs, and a pill floating in the arc's corner read as
+a thumb fallen off the arc); a pull of the strip past the first scheme with an accent flood
+(hidden, and jarring).
 
 The detail sees one group. A card opened from RUNNING pages through the running schemes;
 one opened from COMPLETED pages through the completed ones. The list passes the filtered

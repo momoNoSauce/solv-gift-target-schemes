@@ -200,8 +200,14 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
     spring(1, () => setPhase('open'));
   };
 
-  const closeDetail = async (atIndex) => {
-    if (phase !== 'open' && phase !== 'opening') return;
+  // The close, in three steps, so a finger can drive it as well as a tap.
+  // prepareClose brings the card into view and mounts the layer at 1 (the
+  // detail still showing through it); finishClose springs it down into the
+  // card; cancelClose springs it back up. The tap runs prepare then finish. The
+  // drag runs prepare, then sets progress from the finger, then finish or
+  // cancel on release. Interruptible either way: a new touch stops the spring.
+  const prepareClose = async (atIndex) => {
+    if (phase !== 'open' && phase !== 'opening') return false;
     const i = atIndex ?? current.current;
     current.current = i;
     // The card's tab, then the card into view, then its rectangle.
@@ -224,10 +230,44 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
     const from = await measureCard(i);
     setOpen((o) => ({ index: i, from: from || o.from, to: target() }));
     setPhase('closing');
+    return true;
+  };
+  const finishClose = () => {
     spring(0, () => {
       setPhase('list');
       setOpen(null);
     });
+  };
+  const cancelClose = () => spring(1, () => setPhase('open'));
+
+  const closeDetail = async (atIndex) => {
+    if (await prepareClose(atIndex)) finishClose();
+  };
+
+  // The drag: the page is pushed back into its card by the finger. Over
+  // DISMISS_TRAVEL px of pull the layer goes from 1 to 0.4 (it shrinks and
+  // sinks but does not land; the release decides). Past the point of no return
+  // (0.72), or with a downward flick, it lands; otherwise it springs back.
+  const DISMISS_TRAVEL = 360;
+  const dragging = useRef(false);
+  const dismiss = {
+    begin: async (i) => {
+      if (dragging.current) return;
+      dragging.current = await prepareClose(i);
+    },
+    move: (dy) => {
+      if (!dragging.current) return;
+      const t = Math.min(1, Math.max(0, dy / DISMISS_TRAVEL));
+      progress.setValue(1 - t * 0.6);
+    },
+    end: (dy, vy) => {
+      if (!dragging.current) return;
+      dragging.current = false;
+      const t = Math.min(1, Math.max(0, dy / DISMISS_TRAVEL));
+      const p = 1 - t * 0.6;
+      if (p < 0.72 || vy > 0.9) finishClose();
+      else cancelClose();
+    },
   };
 
   useEffect(() => {
@@ -347,7 +387,7 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
       {/* The detail, mounted under the layer from the first frame of the move. */}
       {open ? (
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: detailFade }]} pointerEvents={phase === 'open' ? 'auto' : 'none'}>
-          <Detail schemes={detailSchemes} viewKey={viewKey} initialIndex={detailIndex} still embedded onBack={(i) => closeDetail(toListIndex(i))} onList={(i) => closeDetail(toListIndex(i))} onIndexChange={(i) => (current.current = toListIndex(i))} />
+          <Detail schemes={detailSchemes} viewKey={viewKey} initialIndex={detailIndex} still embedded onBack={(i) => closeDetail(toListIndex(i))} onAll={(i) => closeDetail(toListIndex(i))} dismiss={{ begin: (i) => dismiss.begin(toListIndex(i)), move: dismiss.move, end: dismiss.end }} onIndexChange={(i) => (current.current = toListIndex(i))} />
         </Animated.View>
       ) : null}
 

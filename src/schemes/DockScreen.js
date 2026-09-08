@@ -22,7 +22,7 @@ import { backToEntry, toList } from './nav';
 // per the review of 4 Sep 2026. The swipe and the dock still move between schemes.
 const SHOW_PICKER = false;
 
-export default function DockScreen({ schemes, viewKey = 'typical', initialIndex = 0, pinned = null, demo = false, still = false, embedded = false, onBack, onIndexChange, onList }) {
+export default function DockScreen({ schemes, viewKey = 'typical', initialIndex = 0, pinned = null, demo = false, still = false, embedded = false, onBack, onIndexChange, onAll, dismiss = null }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const n = schemes.length;
@@ -30,9 +30,8 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
 
   const [pageW, setPageW] = useState(0);
   const [screenH, setScreenH] = useState(0);
-  const listRef = useRef(null);
-  const pager = usePager({ count: n, initial: firstIndex, onPastStart: () => listRef.current && listRef.current() });
-  const { pos, over, index, goTo, pagePan, dockPan, setPageUnit, setDockUnit } = pager;
+  const pager = usePager({ count: n, initial: firstIndex });
+  const { pos, index, goTo, pagePan, dockPan, setPageUnit, setDockUnit } = pager;
   useEffect(() => setPageUnit(pageW), [pageW]);
   useEffect(() => setDockUnit(PITCH), []);
   useEffect(() => {
@@ -62,9 +61,8 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
   const firstRunning = Math.max(0, schemes.findIndex((x) => x.group === 'running'));
   const t = T.en;
   const back = () => (onBack ? onBack(index) : backToEntry(router));
-  listRef.current = () => list();
-  // The list of scheme cards. Embedded, that is the move in reverse.
-  const list = () => (onList ? onList(index) : toList(router, 'b'));
+  // All: the list of scheme cards. Embedded, that is the move in reverse.
+  const all = () => (onAll ? onAll(index) : toList(router, 'b'));
 
   return (
     <Animated.View style={[styles.screen, { backgroundColor: backdrop }]} onLayout={(e) => { setPageW(e.nativeEvent.layout.width); setScreenH(e.nativeEvent.layout.height); }}>
@@ -93,6 +91,8 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
                   still={still && i === firstIndex}
                   offset={offsets[i]}
                   bottomPad={bottomPad}
+                  dismiss={embedded && index === i ? dismiss : null}
+                  pageIndex={i}
                   onTitlePress={() => setDemoOpen((v) => !v)}
                   onSeeRunning={sc.group === 'completed' ? () => goTo(firstRunning) : null}
                 />
@@ -122,7 +122,7 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
       </SafeAreaView>
 
       {n > 0 && pageW > 0 ? (
-        <SchemeDock schemes={schemes} pos={pos} over={over} index={index} onSelect={goTo} onList={list} panHandlers={dockPan} width={pageW} bottomInset={insets.bottom} />
+        <SchemeDock schemes={schemes} pos={pos} index={index} onSelect={goTo} onAll={all} panHandlers={dockPan} width={pageW} bottomInset={insets.bottom} />
       ) : null}
 
       <AllSchemesSheet open={SHOW_PICKER && listOpen} schemes={schemes} index={index} onSelect={goTo} onClose={() => setListOpen(false)} height={screenH} bottomInset={insets.bottom} />

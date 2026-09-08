@@ -15,7 +15,7 @@
 //   - While the pager moves, the pedestal lags the page by 36px per page of
 //     travel (parallax).
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Image, Pressable, ScrollView, StyleSheet, Animated, Easing, Platform } from 'react-native';
+import { View, Text, Image, Pressable, ScrollView, StyleSheet, Animated, Easing, Platform, PanResponder } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { F } from '../theme';
@@ -37,7 +37,7 @@ function stepsFor(state) {
   return ['done', 'done', 'done', 'done'];
 }
 
-export default function SchemePage({ scheme, active, near = true, first, still = false, bodyAnim = null, cardAnim = null, offset, bottomPad, onTitlePress, onSeeRunning, lang = 'en', compact = false, edge = false }) {
+export default function SchemePage({ scheme, active, near = true, first, still = false, bodyAnim = null, cardAnim = null, offset, bottomPad, onTitlePress, onSeeRunning, lang = 'en', compact = false, edge = false, dismiss = null, pageIndex = 0 }) {
   const t = T[lang] || T.en;
   const d = deriveStage(scheme, t);
   const { th, st, s, missed, withDelivery, showBar, multiGift, running, festive } = d;
@@ -51,6 +51,28 @@ export default function SchemePage({ scheme, active, near = true, first, still =
   const [scrollMax, setScrollMax] = useState(0);
   const sizes = useRef({ content: 0, view: 0 });
   const onSizes = () => setScrollMax(Math.max(0, sizes.current.content - sizes.current.view));
+  const scrollTop = useRef(0);
+  // Push the page back into its card. A downward drag that begins on the stage
+  // while the page is scrolled to the top is not a scroll (there is nothing
+  // above to scroll to), so it is the dismiss: the layer follows the finger,
+  // the release lands it or springs it back. Upward drags scroll as always;
+  // horizontal ones stay with the pager. This is the move the card taught on
+  // arrival, run in reverse by hand, the way a photo is pushed back into its
+  // grid in Photos or a story is pulled down to close.
+  const dismissRef = useRef(dismiss);
+  dismissRef.current = dismiss;
+  const dismissPan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponderCapture: (_, g) => Boolean(dismissRef.current) && scrollTop.current <= 0 && g.dy > 8 && g.dy > Math.abs(g.dx) * 1.4,
+      onMoveShouldSetPanResponder: (_, g) => Boolean(dismissRef.current) && scrollTop.current <= 0 && g.dy > 8 && g.dy > Math.abs(g.dx) * 1.4,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: () => dismissRef.current && dismissRef.current.begin(pageIndex),
+      onPanResponderMove: (_, g) => dismissRef.current && dismissRef.current.move(g.dy),
+      onPanResponderRelease: (_, g) => dismissRef.current && dismissRef.current.end(g.dy, g.vy),
+      onPanResponderTerminate: (_, g) => dismissRef.current && dismissRef.current.end(g.dy, 0),
+    })
+  ).current;
   const edgeOpacity = scrollMax > 8
     ? scrollY.interpolate({ inputRange: [Math.max(0, scrollMax - 48), scrollMax], outputRange: [1, 0], extrapolate: 'clamp' })
     : 0;
@@ -136,7 +158,7 @@ export default function SchemePage({ scheme, active, near = true, first, still =
         contentContainerStyle={[{ paddingBottom: missed ? 0 : bottomPad }, missed && { flexGrow: 1 }]}
         showsVerticalScrollIndicator={Platform.OS !== 'web'}
         scrollEventThrottle={16}
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false, listener: (e) => { scrollTop.current = e.nativeEvent.contentOffset.y; } })}
         onContentSizeChange={(_, h) => {
           sizes.current.content = h;
           onSizes();
@@ -146,7 +168,9 @@ export default function SchemePage({ scheme, active, near = true, first, still =
           onSizes();
         }}
       >
-        <Stage scheme={scheme} compact={compact} anim={{ labelA, tileA, nameA, barA, amountA, ctaA }} lag={lag} near={near} onTitlePress={onTitlePress} onSeeRunning={onSeeRunning} lang={lang} fill={missed} cardAnim={cardAnim} />
+        <View {...(dismiss ? dismissPan.panHandlers : {})} dataSet={dismiss ? { touch: 'pan-y' } : undefined}>
+          <Stage scheme={scheme} compact={compact} anim={{ labelA, tileA, nameA, barA, amountA, ctaA }} lag={lag} near={near} onTitlePress={onTitlePress} onSeeRunning={onSeeRunning} lang={lang} fill={missed} cardAnim={cardAnim} />
+        </View>
 
         <Animated.View style={bodyStyle}>
         {/* ——— Delivery, for the ended-with-win states ——— */}
