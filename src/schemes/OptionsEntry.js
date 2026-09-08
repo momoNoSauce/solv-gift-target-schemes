@@ -15,9 +15,8 @@ const INK = '#0B0A14';
 // detail screens directly. The default opens the scheme list.
 const DETAIL = process.env.EXPO_PUBLIC_ENTRY === 'detail';
 const OPTIONS = [
-  { key: 'A', name: 'Arc', href: DETAIL ? '/schemes/arc' : '/schemes/list?opt=a' },
-  { key: 'B', name: 'Dock', href: DETAIL ? '/schemes' : '/schemes/list?opt=b' },
-  { key: 'C', name: 'Dock, Jumbotail', href: DETAIL ? '/schemes' : '/schemes/list?opt=b&brand=jt' },
+  { key: 'A', name: 'Solv', href: DETAIL ? '/schemes' : '/schemes/list' },
+  { key: 'B', name: 'Jumbotail', href: DETAIL ? '/schemes' : '/schemes/list?brand=jt' },
 ];
 
 function Row({ option, anim, onPress }) {

@@ -1,8 +1,14 @@
-// Option B, the detail: full-screen pages and the glass dock. A component, not
-// a route, so the list can grow a card into it in place. The route
-// (app/schemes/index.js) wraps it.
+// The detail: full-screen pages, one per scheme of the group the card came
+// from, paged by a horizontal swipe. The dock and the arc are gone (4 Sep 2026):
+// the list of cards is the place to choose a scheme, and the detail keeps only
+// the lateral swipe, told by two quiet things. Page dots ride the bottom of the
+// screen, the focused one stretched to a bar, in the theme's accent. And the
+// first time a detail opens in a session, the page peeks: it slides 14 px
+// toward the next page and springs back, the way a carousel shows there is
+// more to the side. A component, not a route, so the list can grow a card into
+// it in place; the route (app/schemes/index.js) wraps it.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Animated, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Animated, Platform, Easing } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -13,16 +19,57 @@ import { themeOf } from '../gifts/themes';
 import { VIEWS } from './registry';
 import { usePager } from './usePager';
 import SchemePage from './SchemePage';
-import SchemeDock, { DOCK_H, DOCK_MARGIN, PITCH } from './SchemeDock';
 import AllSchemesSheet from './AllSchemesSheet';
 import { T } from './copy';
-import { backToEntry, toList } from './nav';
+import { backToEntry } from './nav';
+import { SETTLED } from './motion';
+
+// Web styles RN-web does not compile, picked up by data attributes. Native
+// ignores them. (These lived in the dock before it went.)
+if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getElementById('dock-glass')) {
+  const st = document.createElement('style');
+  st.id = 'dock-glass';
+  st.textContent =
+    '[data-glass]{backdrop-filter:blur(22px) saturate(1.35);-webkit-backdrop-filter:blur(22px) saturate(1.35);}' +
+    '[data-noselect]{user-select:none;-webkit-user-select:none;}' +
+    '[data-noselect] img{-webkit-user-drag:none;pointer-events:none;}' +
+    // Who owns a touch: the page strip keeps vertical scroll for the browser and
+    // hands horizontal to the pager.
+    '[data-touch="pan-y"]{touch-action:pan-y;overscroll-behavior:contain;}[data-touch="none"]{touch-action:none;}';
+  document.head.appendChild(st);
+}
+
+// The peek plays once per session.
+let peeked = false;
+
+function PageDots({ count, pos, accent, bottomInset }) {
+  if (count < 2) return null;
+  return (
+    <View pointerEvents="none" style={[styles.dots, { bottom: bottomInset + 14 }]}>
+      <View style={styles.dotsPill} dataSet={{ glass: 'true' }}>
+        {Array.from({ length: count }, (_, i) => (
+          <Animated.View
+            key={i}
+            style={[
+              styles.dot,
+              {
+                backgroundColor: accent,
+                width: pos.interpolate({ inputRange: [i - 1, i, i + 1], outputRange: [6, 18, 6], extrapolate: 'clamp' }),
+                opacity: pos.interpolate({ inputRange: [i - 1, i, i + 1], outputRange: [0.35, 1, 0.35], extrapolate: 'clamp' }),
+              },
+            ]}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
 
 // The scheme picker (the "N schemes" button and its sheet) is hidden for now,
 // per the review of 4 Sep 2026. The swipe and the dock still move between schemes.
 const SHOW_PICKER = false;
 
-export default function DockScreen({ schemes, viewKey = 'typical', initialIndex = 0, pinned = null, demo = false, still = false, embedded = false, onBack, onIndexChange, onAll, dismiss = null, arrival = null }) {
+export default function DockScreen({ schemes, viewKey = 'typical', initialIndex = 0, pinned = null, demo = false, still = false, embedded = false, onBack, onIndexChange, dismiss = null, arrival = null }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const n = schemes.length;
@@ -31,15 +78,26 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
   const [pageW, setPageW] = useState(0);
   const [screenH, setScreenH] = useState(0);
   const pager = usePager({ count: n, initial: firstIndex });
-  const { pos, index, goTo, pagePan, dockPan, setPageUnit, setDockUnit } = pager;
-  // Embedded in the list, the chrome arrives on the move's own clock: the bar
-  // rises from below the screen over the last 45 % and the back chip fades in
-  // over the last 25 %, after the page has settled under them. Standalone, both
-  // are simply there.
+  const { pos, index, goTo, pagePan, setPageUnit } = pager;
+  // The peek: once per session, after the card has finished becoming the page.
+  const peek = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (SETTLED || peeked || n < 2 || firstIndex >= n - 1) return;
+    peeked = true;
+    const t = setTimeout(() => {
+      Animated.sequence([
+        Animated.timing(peek, { toValue: -14, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+        Animated.spring(peek, { toValue: 0, stiffness: 220, damping: 22, mass: 1, useNativeDriver: false }),
+      ]).start();
+    }, embedded ? 900 : 500);
+    return () => clearTimeout(t);
+  }, []);
+  // Embedded in the list, the chrome arrives on the move's own clock: the back
+  // chip and the page dots fade in over the last stretch, after the page has
+  // settled under them. Standalone, both are simply there.
   const chromeIn = arrival ? { opacity: arrival.interpolate({ inputRange: [0.75, 1], outputRange: [0, 1], extrapolate: 'clamp' }) } : null;
-  const barIn = arrival ? { transform: [{ translateY: arrival.interpolate({ inputRange: [0.55, 1], outputRange: [140, 0], extrapolate: 'clamp' }) }] } : null;
+  const barIn = arrival ? { opacity: arrival.interpolate({ inputRange: [0.8, 1], outputRange: [0, 1], extrapolate: 'clamp' }) } : null;
   useEffect(() => setPageUnit(pageW), [pageW]);
-  useEffect(() => setDockUnit(PITCH), []);
   useEffect(() => {
     if (pinned != null) pager._setPos(pinned);
   }, [pinned]);
@@ -63,12 +121,12 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
     ? pos.interpolate({ inputRange: schemes.map((_, i) => i), outputRange: grounds, extrapolate: 'clamp' })
     : grounds[0] || '#0847A6';
 
-  const bottomPad = DOCK_H + DOCK_MARGIN * 2 + insets.bottom + 8;
+  const bottomPad = insets.bottom + 44;
+  const accents = schemes.map((x) => themeOf(x.theme).stage.accent);
+  const dotAccent = n > 1 ? pos.interpolate({ inputRange: schemes.map((_, i) => i), outputRange: accents, extrapolate: 'clamp' }) : accents[0] || '#fff';
   const firstRunning = Math.max(0, schemes.findIndex((x) => x.group === 'running'));
   const t = T.en;
   const back = () => (onBack ? onBack(index) : backToEntry(router));
-  // All: the list of scheme cards. Embedded, that is the move in reverse.
-  const all = () => (onAll ? onAll(index) : toList(router, 'b'));
 
   return (
     <Animated.View style={[styles.screen, { backgroundColor: backdrop }]} onLayout={(e) => { setPageW(e.nativeEvent.layout.width); setScreenH(e.nativeEvent.layout.height); }}>
@@ -84,7 +142,7 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
         <Animated.View
           {...pagePan}
           dataSet={{ noselect: 'true', touch: 'pan-y' }}
-          style={[styles.strip, { width: pageW * n, transform: [{ translateX: Animated.multiply(pos, -pageW) }] }]}
+          style={[styles.strip, { width: pageW * n, transform: [{ translateX: Animated.add(Animated.multiply(pos, -pageW), peek) }] }]}
         >
           {schemes.map((sc, i) => (
             <View key={sc.id} style={{ width: pageW, height: '100%' }}>
@@ -127,16 +185,16 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
         </Animated.View>
       </SafeAreaView>
 
-      {n > 0 && pageW > 0 ? (
-        <Animated.View style={[StyleSheet.absoluteFill, barIn]} pointerEvents="box-none">
-        <SchemeDock schemes={schemes} pos={pos} index={index} onSelect={goTo} onAll={all} panHandlers={dockPan} width={pageW} bottomInset={insets.bottom} />
+      {n > 1 ? (
+        <Animated.View style={[StyleSheet.absoluteFill, barIn]} pointerEvents="none">
+          <PageDots count={n} pos={pos} accent={dotAccent} bottomInset={insets.bottom} />
         </Animated.View>
       ) : null}
 
       <AllSchemesSheet open={SHOW_PICKER && listOpen} schemes={schemes} index={index} onSelect={goTo} onClose={() => setListOpen(false)} height={screenH} bottomInset={insets.bottom} />
 
       {demoOpen && !embedded ? (
-        <View style={[styles.demo, { bottom: DOCK_H + DOCK_MARGIN * 2 + insets.bottom }]}>
+        <View style={[styles.demo, { bottom: insets.bottom + 48 }]}>
           <View style={styles.demoRow}>
             <Text style={styles.demoLabel} allowFontScaling={false}>View as:</Text>
             {Object.entries(VIEWS).map(([key, v]) => (
@@ -146,9 +204,6 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
             ))}
           </View>
           <View style={styles.demoRow}>
-            <Pressable onPress={() => router.replace(`/schemes/arc?view=${viewKey}`)} hitSlop={6}>
-              <Text style={styles.demoLink} allowFontScaling={false}>Option A: arc</Text>
-            </Pressable>
             <Pressable onPress={() => router.push('/solv-schemes')} hitSlop={6}>
               <Text style={styles.demoLink} allowFontScaling={false}>Old list page</Text>
             </Pressable>
@@ -164,6 +219,9 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
 
 const styles = StyleSheet.create({
   screen: { flex: 1, overflow: 'hidden' },
+  dots: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+  dotsPill: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 18, paddingHorizontal: 7, borderRadius: 9, backgroundColor: 'rgba(16,13,30,0.32)' },
+  dot: { height: 6, borderRadius: 3 },
   strip: { position: 'absolute', left: 0, top: 0, bottom: 0, flexDirection: 'row' },
   topBar: { position: 'absolute', left: 0, right: 0, top: 0 },
   chromeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 16 },

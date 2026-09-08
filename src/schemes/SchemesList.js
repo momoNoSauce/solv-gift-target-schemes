@@ -39,7 +39,6 @@ import { schemesFor } from './registry';
 import { usePager } from './usePager';
 import Stage, { N } from './Stage';
 import SchemePage from './SchemePage';
-import ArcScreen, { arcSheetRect } from './ArcScreen';
 import DockScreen from './DockScreen';
 import SolvBottomNav, { NAV_H } from './SolvBottomNav';
 import { T } from './copy';
@@ -150,11 +149,11 @@ const CHROME = {
   jt: { bar: C.brandGreen, indicator: C.targetSchemeNative, ground: '#EEEEEE', navAccent: C.targetSchemeNative, accentBg: '#E8F4E8' },
 };
 
-export default function SchemesList({ opt = 'a', viewKey = 'typical', brand = 'solv' }) {
+export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
   const chrome = CHROME[brand] || CHROME.solv;
   const insets = useSafeAreaInsets();
   const schemes = useMemo(() => schemesFor(viewKey), [viewKey]);
-  const compact = opt === 'a';
+  const compact = false;   // one detail now, full screen; the arc's sheet is gone
   const t = T.en;
 
   const rootRef = useRef(null);
@@ -183,7 +182,7 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical', brand = 's
   const current = useRef(0);                        // the scheme on screen in the detail
   const anim = useRef(null);
 
-  const target = () => (compact ? arcSheetRect(size.w, size.h, insets) : { x: 0, y: 0, w: size.w, h: size.h, radius: 0 });
+  const target = () => ({ x: 0, y: 0, w: size.w, h: size.h, radius: 0 });
 
   const measureCard = (i) =>
     new Promise((resolve) => {
@@ -370,7 +369,7 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical', brand = 's
   // In drag mode the layer stays fully opaque and the detail fully hidden.
   const layerFade = Animated.add(layerFadeTap, Animated.multiply(dragMode, Animated.subtract(1, layerFadeTap)));
   const detailShow = Animated.multiply(detailFade, Animated.subtract(1, dragMode));
-  const Detail = compact ? ArcScreen : DockScreen;
+  const Detail = DockScreen;
 
   const w = size.w;
   const half = w / 2;
@@ -450,7 +449,7 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical', brand = 's
       {/* The detail, mounted under the layer from the first frame of the move. */}
       {open ? (
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: detailShow }]} pointerEvents={phase === 'open' ? 'auto' : 'none'}>
-          <Detail schemes={detailSchemes} viewKey={viewKey} initialIndex={detailIndex} still embedded arrival={progress} onBack={(i) => closeDetail(toListIndex(i))} onAll={(i) => closeDetail(toListIndex(i))} dismiss={{ begin: (i) => dismiss.begin(toListIndex(i)), move: dismiss.move, end: dismiss.end }} onIndexChange={(i) => (current.current = toListIndex(i))} />
+          <Detail schemes={detailSchemes} viewKey={viewKey} initialIndex={detailIndex} still embedded arrival={progress} onBack={(i) => closeDetail(toListIndex(i))} dismiss={{ begin: (i) => dismiss.begin(toListIndex(i)), move: dismiss.move, end: dismiss.end }} onIndexChange={(i) => (current.current = toListIndex(i))} />
         </Animated.View>
       ) : null}
 

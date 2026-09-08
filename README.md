@@ -189,7 +189,7 @@ deviations found and fixed, and the ones that remain.
 | `/` | drawer rows (My Targets, My Rewards, Jumbocash, SuperClub) plus links to the surfaces that live inside other screens |
 | `/targets` | My Targets, Running and Completed tabs |
 | `/scheme/[id]` | Scheme details |
-| `/schemes/list?opt=a\|b` | The scheme list, as the Solv bottom-nav tab that replaces All Brands: blue toolbar, RUNNING and COMPLETED tabs, no back. Big cards (the detail's own stage) grow into the detail the App Store way. `opt=a` opens the arc detail, `opt=b` the dock detail. |
+| `/schemes/list` | The scheme list, as the Solv bottom-nav tab that replaces All Brands: blue toolbar, RUNNING and COMPLETED tabs with counts, no back. Big cards (the detail's own stage) grow into the detail the App Store way; a finger drag on the detail pushes it back. `?brand=jt` for the Jumbotail flavour's chrome. |
 | `/options` | The founder-review entry: Option A (arc) and Option B (dock). The deployed build (`EXPO_PUBLIC_LANDING=options`) lands here at `/`. Live: https://solvts.vercel.app |
 
 Screens: `python3 scripts/capture-list.py <base-url> <out-dir>` shoots every list and
