@@ -41,32 +41,32 @@ const FLAG = 'M6.39,2.1C7.3922,1.9937 8.4048,2.0477 9.39,2.26C11.59,2.64 14.39,3
 const POLE = 'M4.16,18.73L4.16,1.91C4.16,1.6271 4.273,1.356 4.474,1.1569C4.675,0.9578 4.9471,0.8473 5.23,0.85C5.5119,0.8473 5.7831,0.9581 5.9825,1.1575C6.1819,1.3569 6.2927,1.6281 6.29,1.91L6.29,18.73';
 const BASE = 'M17.825,19.565L17.825,19.565A1,1 0,0 1,16.825 20.565L1.825,20.565A1,1 0,0 1,0.825 19.565L0.825,19.565A1,1 0,0 1,1.825 18.565L16.825,18.565A1,1 0,0 1,17.825 19.565z';
 
-function HomeIcon({ selected }) {
+function HomeIcon({ selected, accent = SOLV.blue }) {
   return (
     <Svg width={24} height={24} viewBox="0 0 24 24">
       {selected
-        ? <Path d={HOME_PATH} fill={SOLV.blue} fillRule="evenodd" />
+        ? <Path d={HOME_PATH} fill={accent} fillRule="evenodd" />
         : <Path d={HOME_PATH} fill="none" stroke={C.almostBlack} strokeWidth={1.6} strokeLinejoin="round" />}
     </Svg>
   );
 }
 
-function ExploreIcon({ selected }) {
+function ExploreIcon({ selected, accent = SOLV.blue }) {
   const paths = selected ? EXPLORE_FILL : EXPLORE_LINE;
   return (
     <Svg width={24} height={24} viewBox="0 0 24 24">
-      {paths.map((d, i) => <Path key={i} d={d} fill={selected ? SOLV.blue : C.almostBlack} />)}
+      {paths.map((d, i) => <Path key={i} d={d} fill={selected ? accent : C.almostBlack} />)}
     </Svg>
   );
 }
 
-function TargetIcon({ selected }) {
-  const ink = selected ? SOLV.blue : C.almostBlack;
+function TargetIcon({ selected, accent = SOLV.blue }) {
+  const ink = selected ? accent : C.almostBlack;
   return (
     <Svg width={24} height={24} viewBox="-2.5 -1 24 24">
-      <Path d={FLAG} fill={selected ? SOLV.blue : 'none'} stroke={ink} strokeWidth={selected ? 1.2 : 1.1} strokeLinejoin="round" />
-      <Path d={POLE} fill={selected ? SOLV.blue : 'none'} stroke={ink} strokeWidth={1.1} />
-      <Path d={BASE} fill={selected ? SOLV.blue : 'none'} stroke={ink} strokeWidth={1.1} />
+      <Path d={FLAG} fill={selected ? accent : 'none'} stroke={ink} strokeWidth={selected ? 1.2 : 1.1} strokeLinejoin="round" />
+      <Path d={POLE} fill={selected ? accent : 'none'} stroke={ink} strokeWidth={1.1} />
+      <Path d={BASE} fill={selected ? accent : 'none'} stroke={ink} strokeWidth={1.1} />
     </Svg>
   );
 }
@@ -77,7 +77,7 @@ export const TABS = [
   { key: 'schemes', label: 'Target Schemes', Icon: TargetIcon },
 ];
 
-export default function SolvBottomNav({ selected = 'schemes', bottomInset = 0, onSelect }) {
+export default function SolvBottomNav({ selected = 'schemes', bottomInset = 0, onSelect, accent = SOLV.blue }) {
   return (
     <View style={[styles.bar, { height: NAV_H + bottomInset, paddingBottom: bottomInset }]} accessibilityRole="tablist">
       {TABS.map(({ key, label, Icon }) => {
@@ -92,10 +92,10 @@ export default function SolvBottomNav({ selected = 'schemes', bottomInset = 0, o
             android_ripple={{ color: 'rgba(0,0,0,0.06)' }}
           >
             <View style={styles.icon}>
-              <Icon selected={on} />
+              <Icon selected={on} accent={accent} />
             </View>
             <Text style={[styles.label, on && styles.labelOn]} numberOfLines={1} allowFontScaling={false}>{label}</Text>
-            {on ? <View style={styles.indicator} /> : null}
+            {on ? <View style={[styles.indicator, { backgroundColor: accent }]} /> : null}
           </Pressable>
         );
       })}

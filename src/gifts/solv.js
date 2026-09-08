@@ -20,7 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { JUMBOCASH_TAG_ICON } from '../jumbocash/tagIcon';
 import { F } from '../theme';
-import { IconRunningMan, IconTargetFlag } from '../icons';
+import { IconRunningMan, IconTargetFlag, IconJumboCash } from '../icons';
 import GiftGlyph from './icons';
 import { STATE } from './state';
 import { themeOf } from './themes';
@@ -65,16 +65,30 @@ const MEDAL = 36;
 // (src/jumbocash/tagIcon.js, from ic_jumbocash_white_bg.xml) with the amount
 // beside it. `gift.cash` carries the amount label. There is no Solv voucher:
 // a scheme that does not pay a product pays JumboCash.
-export function CashThumb({ size = 40 }) {
-  // Only the note: the amount belongs to the reward's name ("₹2,000
-  // JumboCash"), and printing it here too would say it twice in one tile.
-  const w = size;
+export function CashThumb({ amount, size = 40 }) {
+  // Small (a list row, a dock thumb): the banknote alone. Large (the stage's
+  // tile): the app's own JumboCash note with its coin, the amount under it in
+  // the cash green, and the word CASHBACK, so the most common reward reads as
+  // richly as a product photo would.
+  if (size < 90) {
+    return (
+      <Svg width={size} height={size * 12 / 20} viewBox={JUMBOCASH_TAG_ICON.viewBox}>
+        <Path d={JUMBOCASH_TAG_ICON.paths[0]} fill={JC_GREEN} />
+        <Path d={JUMBOCASH_TAG_ICON.paths[1]} fill={JC_GREEN_LIGHT} />
+        <Path d={JUMBOCASH_TAG_ICON.paths[2]} fill={JC_GREEN} />
+      </Svg>
+    );
+  }
   return (
-    <Svg width={w} height={w * 12 / 20} viewBox={JUMBOCASH_TAG_ICON.viewBox}>
-      <Path d={JUMBOCASH_TAG_ICON.paths[0]} fill={JC_GREEN} />
-      <Path d={JUMBOCASH_TAG_ICON.paths[1]} fill={JC_GREEN_LIGHT} />
-      <Path d={JUMBOCASH_TAG_ICON.paths[2]} fill={JC_GREEN} />
-    </Svg>
+    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+      <IconJumboCash width={size * 0.78} />
+      <Text style={[{ marginTop: size * 0.04, color: JC_GREEN, fontFamily: F.bold, fontSize: size * 0.22, lineHeight: size * 0.27, letterSpacing: -0.3 }, TABULAR]} allowFontScaling={false}>
+        {amount}
+      </Text>
+      <Text style={{ marginTop: size * 0.01, color: JC_GREEN, opacity: 0.8, fontFamily: F.bold, fontSize: size * 0.085, lineHeight: size * 0.11, letterSpacing: 1.6 }} allowFontScaling={false}>
+        CASHBACK
+      </Text>
+    </View>
   );
 }
 
@@ -108,7 +122,7 @@ export function VoucherThumb({ amount, size = 40 }) {
 // glyph only as a last-resort fallback for a gift with no verified photo yet.
 export function GiftThumb({ gift, size = 40, accent = SOLV.blue }) {
   if (!gift) return null;
-  if (gift.cash) return <CashThumb size={size} />;
+  if (gift.cash) return <CashThumb amount={gift.cash} size={size} />;
   if (gift.voucher && size < 30) {
     // Below 30px the amount cannot be read; a ₹ disc says "money" at a glance.
     return (

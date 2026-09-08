@@ -42,8 +42,12 @@ const TIER_WATCH = [{ at: 60000, name: 'Fire-Boltt Brillia Smart Watch', shortNa
 const TIER_KETTLE = [{ at: 40000, name: 'Pigeon Amaze Plus Electric Kettle', shortName: 'Kettle', icon: 'kettle', image: IMG.kettle }];
 const TIER_MIXER = [{ at: 50000, name: 'NutriPro Juicer Mixer Grinder', shortName: 'Mixer', icon: 'mixer', image: IMG.mixer }];
 const TIER_MICROWAVE = [{ at: 120000, name: 'Godrej 20 L Solo Microwave Oven', shortName: 'Microwave', icon: 'microwave', image: IMG.microwave }];
-const TIER_JC2000 = [{ at: 80000, name: '₹2,000 JumboCash', shortName: '₹2,000 JumboCash', icon: 'jumbocash', cash: '₹2,000' }];
-const TIER_JC1000 = [{ at: 30000, name: '₹1,000 JumboCash', shortName: '₹1,000 JumboCash', icon: 'jumbocash', cash: '₹1,000' }];
+const cashTier = (at, amount) => ({ at, name: `${amount} cashback`, shortName: `${amount} cashback`, icon: 'jumbocash', cash: amount });
+const TIER_JC2000 = [cashTier(80000, '₹2,000')];
+// The common shape: cashback at several targets, the amount rising with the buying.
+const TIERS_CASH_LADDER = [cashTier(30000, '₹500'), cashTier(80000, '₹2,000'), cashTier(150000, '₹5,000')];
+const TIERS_GOLD = [{ ...TIER_KETTLE[0] }, { ...TIER_MICROWAVE[0] }];
+const TIER_JC1000 = [cashTier(30000, '₹1,000')];
 
 const D = (m, d, y = 2026) => Date.UTC(y, m - 1, d);
 const DAY = 24 * 60 * 60 * 1000;
@@ -55,11 +59,13 @@ export const ddMMM = (ms) => {
 const ddMMMyyyy = (ms) => `${ddMMM(ms)} ${new Date(ms).getUTCFullYear()}`;
 
 // Eligible products per scheme, the shape the app's createTable() flattens.
+const GOLD_LOGO = require('../../assets/remote/gold_logo.png');
 const RULES_CAMPAIGN = { included: ['Footwear', 'Home Furnishing', 'Small Appliances', 'Toys'], excluded: ['Grocery', 'Mobile Phones'] };
 const RULES_BATA = { included: ['Bata Comfit', 'Power', 'Hush Puppies'], excluded: ['Bata school shoes'] };
 const RULES_PRESTIGE = { included: ['Prestige pressure cookers', 'Prestige cookware', 'Prestige mixer grinders'], excluded: ['Prestige gas stoves'] };
 const RULES_HAVELLS = { included: ['Havells fans', 'Havells water heaters', 'Havells irons and kettles'], excluded: ['Havells wires and cables'] };
 const RULES_BOMBAY = { included: ['Bed sheets', 'Towels', 'Comforters and blankets'], excluded: [] };
+const RULES_GOLD = { included: ['Every Gold-exclusive listing', 'Gold member prices'], excluded: ['Grocery staples'] };
 const RULES_FUNSKOOL = { included: ['Funskool board games', 'Play-Doh', 'Giggles'], excluded: [] };
 
 // A stable mock Amazon order number per scheme id.
@@ -125,7 +131,7 @@ const bata = (now, currentValue, { start = D(9, 20), end = D(10, 28) } = {}) =>
   scheme({ id: 'bata', title: 'Bata Scheme', dockName: 'Bata', art: { logo: BRAND.bata }, tiers: TIER_WATCH, currentValue, startTime: start, endTime: end, now, rules: RULES_BATA });
 
 const prestige = (now, currentValue, { end = D(11, 9) } = {}) =>
-  scheme({ id: 'prestige', title: 'Prestige Scheme', dockName: 'Prestige', art: { logo: BRAND.prestige }, tiers: TIER_JC2000, currentValue, startTime: D(10, 1), endTime: end, now, rules: RULES_PRESTIGE });
+  scheme({ id: 'prestige', title: 'Prestige Scheme', dockName: 'Prestige', art: { logo: BRAND.prestige }, tiers: TIERS_CASH_LADDER, currentValue, startTime: D(10, 1), endTime: end, now, rules: RULES_PRESTIGE });
 
 const bombay = (now, currentValue) =>
   scheme({ id: 'bombaydyeing', title: 'Bombay Dyeing Scheme', dockName: 'B. Dyeing', art: { logo: BRAND.bombaydyeing, wide: true }, tiers: TIER_MIXER, currentValue, startTime: D(10, 5), endTime: D(11, 5), now, rules: RULES_BOMBAY });
@@ -142,10 +148,14 @@ const havells = (now) =>
 const holi = (now) =>
   scheme({ id: 'holi', title: 'Holi Scheme', dockName: 'Holi', theme: 'holi', tiers: LIFESTYLE.tiers, currentValue: 5.6 * L, startTime: D(3, 1), endTime: D(3, 20), now, fulfilment: { orderedAt: D(3, 24), deliveredAt: D(4, 2) }, fmt: lakh, rules: RULES_CAMPAIGN });
 
+// Gold: the membership's own scheme, in the membership's branding (theme gold).
+const gold = (now, currentValue) =>
+  scheme({ id: 'gold', title: 'Gold Exclusive Scheme', dockName: 'Gold', theme: 'gold', art: { logo: GOLD_LOGO, wide: true }, tiers: TIERS_GOLD, currentValue, startTime: D(10, 1), endTime: D(11, 30), now, rules: RULES_GOLD });
+
 export const VIEWS = {
   typical: {
     label: 'Typical',
-    running: [diwali(D(10, 19), 6.4 * L), bata(D(10, 19), 31200), prestige(D(10, 19), 16000)],
+    running: [diwali(D(10, 19), 6.4 * L), prestige(D(10, 19), 46000), gold(D(10, 19), 58000), bata(D(10, 19), 31200)],
     completed: [onam(D(10, 19), { orderedAt: D(9, 16), deliveredAt: D(9, 24) }), havells(D(10, 19)), holi(D(10, 19))],
   },
   start: {
@@ -160,7 +170,7 @@ export const VIEWS = {
   },
   many: {
     label: 'Many',
-    running: [diwali(D(10, 19), 6.4 * L), bata(D(10, 19), 31200), prestige(D(10, 19), 16000), bombay(D(10, 19), 12500), funskool(D(10, 19), 4000)],
+    running: [diwali(D(10, 19), 6.4 * L), prestige(D(10, 19), 46000), gold(D(10, 19), 58000), bata(D(10, 19), 31200), bombay(D(10, 19), 12500), funskool(D(10, 19), 4000)],
     completed: [onam(D(10, 19), { orderedAt: D(9, 16), deliveredAt: D(9, 24) }), havells(D(10, 19)), holi(D(10, 19))],
   },
   empty: { label: 'Empty', running: [], completed: [] },

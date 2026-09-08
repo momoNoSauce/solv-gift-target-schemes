@@ -20,6 +20,7 @@ import LottieView from 'lottie-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { F } from '../theme';
 import GiftGlyph from '../gifts/icons';
+import { GiftThumb } from '../gifts/solv';
 import StageScene from '../gifts/Scene';
 import { STATE } from '../gifts/state';
 import { RIMG } from '../rewards/assets';
@@ -259,7 +260,9 @@ export default function SchemePage({ scheme, active, near = true, first, still =
                   >
                     <Text style={[styles.rowAt, TABULAR, (isNext || isTopOpen) && { color: st.accentDeep }]} allowFontScaling={false}>{slab(tier.at)}</Text>
                     <View style={styles.rowThumb}>
-                      {tier.image ? (
+                      {tier.cash ? (
+                        <GiftThumb gift={tier} size={30} />
+                      ) : tier.image ? (
                         <Image source={tier.image} style={{ width: 34, height: 34 }} resizeMode="contain" />
                       ) : (
                         <GiftGlyph kind={tier.icon} size={24} color={N.sub} strokeWidth={1.6} />
@@ -275,7 +278,7 @@ export default function SchemePage({ scheme, active, near = true, first, still =
                     ) : isTopOpen ? (
                       <View style={styles.topLabelRow}>
                         {festive ? <GiftGlyph kind="sparkle" size={12} color={st.accentDeep} /> : null}
-                        <Text style={[styles.nextText, { color: st.accentDeep }]} allowFontScaling={false}>{t.topGift}</Text>
+                        <Text style={[styles.nextText, { color: st.accentDeep }]} allowFontScaling={false}>{tier.cash ? t.topCash : t.topGift}</Text>
                       </View>
                     ) : null}
                   </View>
@@ -366,7 +369,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', minHeight: 62, paddingVertical: 8, gap: 12 },
   rowDivider: { borderTopWidth: 1, borderTopColor: '#F2F3F5' },
   rowWon: { backgroundColor: '#F3FAF5', marginHorizontal: -14, paddingHorizontal: 14 },
-  rowAt: { width: 54, fontFamily: F.bold, fontSize: 15, lineHeight: 19, color: N.ink },
+  // Hugs the slab ("₹5L", "₹1,20,000"), never wraps it; 54 keeps short slabs aligned.
+  rowAt: { minWidth: 54, flexShrink: 0, fontFamily: F.bold, fontSize: 15, lineHeight: 19, color: N.ink },
   rowThumb: { width: 44, height: 44, borderRadius: 10, backgroundColor: N.paper, borderWidth: 1, borderColor: PHOTO_EDGE, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   rowName: { flex: 1, fontFamily: F.regular, fontSize: 13, lineHeight: 17, color: N.ink },
   wonChip: { height: 22, borderRadius: 11, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },

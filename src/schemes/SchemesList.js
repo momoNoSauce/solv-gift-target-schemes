@@ -34,7 +34,7 @@ import { SOLV, usePressScale } from '../gifts/solv';
 
 // The card form of every stage in the list (see Stage's cardAnim).
 const ZERO = new Animated.Value(0);
-import { F } from '../theme';
+import { C, F } from '../theme';
 import { schemesFor } from './registry';
 import { usePager } from './usePager';
 import Stage, { N } from './Stage';
@@ -58,9 +58,15 @@ if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getEle
   document.head.appendChild(st);
 }
 
-const CARD_RADIUS = 22;   // = ART_RADIUS + FRAME, so the corners are concentric
-const ART_RADIUS = 12;
-const FRAME = 10;         // the white frame around the art
+// The card's anatomy is the App Store Today card's: the art runs to the card's
+// own edges and top corners, and a white footer strip sits under it. The white
+// frame around the art (4 Sep 2026) is gone at the founder's ask: it made the
+// card a card, but it also made it a framed picture, smaller and cooler than
+// the scheme deserves. The footer strip, the shadow and the corner radius do
+// the card's work now.
+const CARD_RADIUS = 22;
+const ART_RADIUS = CARD_RADIUS;
+const FRAME = 0;
 const CARD_MARGIN = 16;
 const GAP = 14;
 const TOOLBAR_H = 48;
@@ -90,23 +96,23 @@ function footerDate(scheme, t) {
 // photo, the hero tile; a row of 22 px discs was a second, weaker one, showing
 // the same product again on a single-gift scheme, and the subtitle already
 // counts the gifts in words. The full list with photos lives in the detail.
-export function CardFooter({ scheme, t, style }) {
+export function CardFooter({ scheme, t, style, accent = SOLV.blue, accentBg = SOLV.blueBg }) {
   return (
     <View style={[styles.footer, style]} pointerEvents="none">
       <Text style={styles.footerLine} numberOfLines={1} allowFontScaling={false}>
         {footerDate(scheme, t)[0]}
         {footerDate(scheme, t)[1] ? <Text style={styles.footerDays} allowFontScaling={false}>{footerDate(scheme, t)[1]}</Text> : null}
       </Text>
-      <View style={styles.chev}>
+      <View style={[styles.chev, { backgroundColor: accentBg }]}>
         <Svg width={18} height={18} viewBox="0 0 24 24">
-          <Path d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.42 1.41l4.59-4.59a1 1 0 0 0 0-1.41L10.71 6.7a1 1 0 0 0-1.42.01z" fill={SOLV.blue} />
+          <Path d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.42 1.41l4.59-4.59a1 1 0 0 0 0-1.41L10.71 6.7a1 1 0 0 0-1.42.01z" fill={accent} />
         </Svg>
       </View>
     </View>
   );
 }
 
-function Card({ scheme, compact, onPress, onLayout, cardRef, dim, t }) {
+function Card({ scheme, compact, onPress, onLayout, cardRef, dim, t, chrome }) {
   const press = usePressScale(0.96);
   return (
     <Animated.View ref={cardRef} onLayout={onLayout} dataSet={{ card: 'scheme' }} style={[styles.card, { transform: [{ scale: press.scale }] }, dim && { opacity: 0 }]}>
@@ -116,7 +122,7 @@ function Card({ scheme, compact, onPress, onLayout, cardRef, dim, t }) {
         <View style={styles.art}>
           <Stage scheme={scheme} compact={compact} card cardAnim={ZERO} />
         </View>
-        <CardFooter scheme={scheme} t={t} />
+        <CardFooter scheme={scheme} t={t} accent={chrome.navAccent} accentBg={chrome.accentBg} />
       </Pressable>
       <View pointerEvents="none" style={styles.cardEdge} />
     </Animated.View>
@@ -135,7 +141,17 @@ function Empty({ title, line, bottom }) {
   );
 }
 
-export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
+// The chrome, per app flavour. Solv is the default (src/gifts/solv.js). The
+// Jumbotail flavour takes the tokens of mainandroidapp's jumbotail values:
+// brand_green toolbar and tabs, target_scheme_native for the tab indicator and
+// the active nav item, default_bg_color for the ground.
+const CHROME = {
+  solv: { bar: SOLV.blue, indicator: SOLV.orange, ground: SOLV.listBg, navAccent: SOLV.blue, accentBg: SOLV.blueBg },
+  jt: { bar: C.brandGreen, indicator: C.targetSchemeNative, ground: '#EEEEEE', navAccent: C.targetSchemeNative, accentBg: '#E8F4E8' },
+};
+
+export default function SchemesList({ opt = 'a', viewKey = 'typical', brand = 'solv' }) {
+  const chrome = CHROME[brand] || CHROME.solv;
   const insets = useSafeAreaInsets();
   const schemes = useMemo(() => schemesFor(viewKey), [viewKey]);
   const compact = opt === 'a';
@@ -361,10 +377,10 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
   const emptyCopy = [[t.emptyTitle, t.emptyLine], [t.emptyDoneTitle, t.emptyDoneLine]];
 
   return (
-    <View ref={rootRef} style={styles.root} onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+    <View ref={rootRef} style={[styles.root, { backgroundColor: chrome.ground }]} onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
       <Animated.View style={[styles.listWrap, listDim]}>
         {/* The app bar: toolbar and tabs, on the app's blue. */}
-        <View style={[styles.appBar, { paddingTop: insets.top }]}>
+        <View style={[styles.appBar, { paddingTop: insets.top, backgroundColor: chrome.bar }]}>
           <View style={styles.toolbar}>
             <Text style={styles.toolbarTitle} allowFontScaling={false}>Target schemes</Text>
           </View>
@@ -381,7 +397,7 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
                 </Animated.View>
               </Pressable>
             ))}
-            {w > 0 ? <Animated.View style={[styles.indicator, { width: half, transform: [{ translateX: Animated.multiply(tabPos, half) }] }]} /> : null}
+            {w > 0 ? <Animated.View style={[styles.indicator, { width: half, backgroundColor: chrome.indicator, transform: [{ translateX: Animated.multiply(tabPos, half) }] }]} /> : null}
           </View>
         </View>
 
@@ -416,6 +432,7 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
                         onPress={() => openCard(i)}
                         dim={open && open.index === i && phase !== 'list'}
                         t={t}
+                        chrome={chrome}
                       />
                     ))}
                   </ScrollView>
@@ -426,7 +443,7 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
         ) : null}
 
         <Animated.View style={navOut}>
-          <SolvBottomNav selected="schemes" bottomInset={insets.bottom} />
+          <SolvBottomNav selected="schemes" bottomInset={insets.bottom} accent={chrome.navAccent} />
         </Animated.View>
       </Animated.View>
 
@@ -464,7 +481,7 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
               to a fixed offset from the top instead let the growing stage pass
               under it, and its half-faded white cut a grey strip across the art. */}
           <Animated.View style={[styles.layerFooter, { left: frameInset, right: frameInset, opacity: progress.interpolate({ inputRange: [0, 0.3], outputRange: [1, 0], extrapolate: 'clamp' }) }]} pointerEvents="none">
-            <CardFooter scheme={schemes[open.index]} t={t} />
+            <CardFooter scheme={schemes[open.index]} t={t} accent={chrome.navAccent} accentBg={chrome.accentBg} />
           </Animated.View>
         </Animated.View>
       ) : null}
@@ -507,7 +524,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 4,
   },
-  art: { borderRadius: ART_RADIUS, overflow: 'hidden' },
+  art: { overflow: 'hidden' },
   // The card's hairline, as an overlay: a border on the box would inset the
   // content by 1 px and break the seam with the page it becomes.
   cardEdge: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, borderRadius: CARD_RADIUS, borderWidth: 1, borderColor: 'rgba(16,24,40,0.06)' },

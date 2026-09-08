@@ -17,6 +17,7 @@ const DETAIL = process.env.EXPO_PUBLIC_ENTRY === 'detail';
 const OPTIONS = [
   { key: 'A', name: 'Arc', href: DETAIL ? '/schemes/arc' : '/schemes/list?opt=a' },
   { key: 'B', name: 'Dock', href: DETAIL ? '/schemes' : '/schemes/list?opt=b' },
+  { key: 'C', name: 'Dock, Jumbotail', href: DETAIL ? '/schemes' : '/schemes/list?opt=b&brand=jt' },
 ];
 
 function Row({ option, anim, onPress }) {
@@ -36,7 +37,7 @@ function Row({ option, anim, onPress }) {
 
 export default function OptionsEntry() {
   const router = useRouter();
-  const a = useRef([0, 1, 2].map(() => new Animated.Value(SETTLED ? 1 : 0))).current;
+  const a = useRef([0, 1, 2, 3].map(() => new Animated.Value(SETTLED ? 1 : 0))).current;
   useEffect(() => {
     if (SETTLED) return;
     const out = (v) => Animated.timing(v, { toValue: 1, duration: 240, easing: Easing.out(Easing.cubic), useNativeDriver: false });

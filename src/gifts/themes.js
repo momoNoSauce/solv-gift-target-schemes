@@ -53,6 +53,43 @@ export const THEMES = {
     },
   },
 
+  // Gold: the membership's own branding, the app's gold pill (ic_gold_exclusive:
+  // a lilac field, a violet crown, a flame) turned into a night: deep violet
+  // ground, the crown's colour in the glow, the flame's gold for the accent.
+  gold: {
+    key: 'gold',
+    label: 'Gold',
+    motif: null,
+    stage: {
+      grad: ['#3B0F6E', '#1E0740'],
+      ground: '#3B0F6E',
+      ground2: '#1E0740',
+      glowKey: '#F1C7FF',
+      glowAmbient: '#A922A3',
+      speck: '#FFE08A',
+      ink: '#FFFFFF',
+      sub: '#E4CFF7',
+      accent: '#FFC94A',
+      accentInk: '#2A0B4A',
+      accentDeep: '#E3A62B',
+      good: '#8CE0A9',
+      urgent: '#FFC7A6',
+      track: 'rgba(255,255,255,0.22)',
+    },
+    card: {
+      dark: true,
+      tint: '#F4E8FF',
+      ink: '#FFFFFF',
+      sub: '#E4CFF7',
+      accent: '#FFC94A',
+      accentInk: '#2A0B4A',
+      accentDeep: '#6909B8',
+      good: '#8CE0A9',
+      urgent: '#FFC7A6',
+      track: 'rgba(255,255,255,0.22)',
+    },
+  },
+
   diwali: {
     key: 'diwali',
     label: 'Diwali',
