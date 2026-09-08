@@ -13,6 +13,14 @@
 // from `pos`, sampled every quarter page so the piecewise-linear Animated
 // interpolation follows the circle to within half a pixel.
 //
+// Home. The leftmost circle is always Home. It cannot ride the arc: the arc's
+// own nodes sweep the whole curve as the pager turns, so a node pinned on the
+// curve would be run over at the last page. It sits in the zone's bottom-left
+// corner instead, below the lowest point the arc's left tail reaches (measured:
+// the tail's visible edge stops at 867 px on a 915 px screen, the chip starts at
+// 873, and a bottom inset widens the gap), so the two never tangle. The house mark carries it: the corner has no
+// room for a label under the disc, and the dock version's label does that work.
+//
 // Recognition: the thumb is the SCHEME'S OWN ART (festival illustration or
 // brand mark), never a gift photo. The focused scheme's full name and its
 // status line sit under the apex and cross-fade as the arc turns.
@@ -24,8 +32,12 @@ import { themeOf } from '../gifts/themes';
 import SchemeArt from './SchemeArt';
 import { usePressScale } from '../gifts/solv';
 import { statusLine } from './registry';
+import { IconHome } from '../icons';
 
 export const ARC_PITCH = 86;          // apex spacing, px per page
+const HOME_D = 40;                    // the pinned home disc
+const HOME_X = 16;                    // its left margin
+const HOME_BOTTOM = 2;                // clear of the arc's lowest left node
 const R = 520;                        // arc radius
 const THETA = ARC_PITCH / R;          // rad per page
 const APEX = 76;                      // focused thumb
@@ -95,11 +107,30 @@ function Thumb({ scheme, i, pos, cx, onPress }) {
   );
 }
 
-export default function ArcDock({ schemes, pos, onSelect, panHandlers, width, bottomInset = 0 }) {
+function HomeDisc({ onPress, label, bottomInset }) {
+  const press = usePressScale(0.94);
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={press.pressIn}
+      onPressOut={press.pressOut}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={[styles.homeHit, { bottom: bottomInset + HOME_BOTTOM }]}
+    >
+      <Animated.View style={[styles.homeDisc, { transform: [{ scale: press.scale }] }]}>
+        <IconHome size={20} color="#fff" />
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+export default function ArcDock({ schemes, pos, onSelect, onHome, panHandlers, width, bottomInset = 0, homeLabel = 'Home' }) {
   const cx = width / 2;
   const n = schemes.length;
   return (
     <View style={[styles.zone, { height: ZONE_H + bottomInset }]} dataSet={{ touch: 'none' }} {...panHandlers}>
+      {onHome ? <HomeDisc onPress={onHome} label={homeLabel} bottomInset={bottomInset} /> : null}
       {schemes.map((sc, i) => (
         <Thumb key={sc.id} scheme={sc} i={i} pos={pos} cx={cx} onPress={() => onSelect(i)} />
       ))}
@@ -134,8 +165,10 @@ const styles = StyleSheet.create({
   // The disc's edge: pure black at low alpha, so a white brand disc still has a rim on the dark ground.
   edge: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, borderRadius: APEX / 2, borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)' },
   badge: { position: 'absolute', right: 2, top: 2, width: 22, height: 22, borderRadius: 11, backgroundColor: '#177E36', borderWidth: 2, borderColor: '#1A1730', alignItems: 'center', justifyContent: 'center' },
+  homeHit: { position: 'absolute', left: HOME_X, width: HOME_D, alignItems: 'center', zIndex: 3 },
+  homeDisc: { width: HOME_D, height: HOME_D, borderRadius: HOME_D / 2, backgroundColor: '#17162B', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' },
   labels: { position: 'absolute', left: 0, right: 0, top: NAME_TOP, alignItems: 'center' },
-  label: { position: 'absolute', left: 24, right: 24, top: 0, alignItems: 'center' },
+  label: { position: 'absolute', left: HOME_X + HOME_D + 8, right: HOME_X + HOME_D + 8, top: 0, alignItems: 'center' },
   name: { color: '#FFFFFF', fontFamily: F.medium, fontSize: 15, lineHeight: 19, letterSpacing: 0.1 },
   status: { marginTop: 2, color: 'rgba(255,255,255,0.72)', fontFamily: F.regular, fontSize: 12, lineHeight: 16, fontVariant: ['tabular-nums'] },
 });

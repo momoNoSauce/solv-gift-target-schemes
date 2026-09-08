@@ -14,6 +14,15 @@ export const IconBack = ({ size = 24, color = C.white }) => (
 );
 
 // ic_baseline_arrow_forward_ios_24.xml — 24x24
+// ic_home_selected.xml: the app's own home mark, filled.
+export const HOME_PATH = 'M11.9323,4.0908C11.7847,3.9697 11.5722,3.9697 11.4247,4.0908L2.147,11.7063C1.8567,11.9446 2.0252,12.4155 2.4008,12.4155L4.6762,12.4155V19.6004C4.6762,19.8213 4.8552,20.0004 5.0762,20.0004H18.2804C18.5013,20.0004 18.6804,19.8213 18.6804,19.6004V12.4155L20.9561,12.4155C21.3317,12.4155 21.5002,11.9446 21.2099,11.7063L11.9323,4.0908ZM9.6776,15.3598C9.6776,15.3046 9.7224,15.2598 9.7776,15.2598H13.5788C13.6341,15.2598 13.6788,15.3046 13.6788,15.3598V20.0004H9.6776V15.3598Z';
+
+export const IconHome = ({ size = 24, color = C.white }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Path d={HOME_PATH} fill={color} fillRule="evenodd" />
+  </Svg>
+);
+
 export const IconChevronRight = ({ size = 24, color = C.white }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24">
     <Path fill={color} d="M6.23,20.23l1.77,1.77l10,-10l-10,-10l-1.77,1.77l8.23,8.23z" />

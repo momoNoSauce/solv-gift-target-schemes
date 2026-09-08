@@ -13,11 +13,11 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { C, F } from '../theme';
+import { HOME_PATH } from '../icons';
 import { SOLV } from '../gifts/solv';
 
 export const NAV_H = 52;
 
-const HOME = 'M11.9323,4.0908C11.7847,3.9697 11.5722,3.9697 11.4247,4.0908L2.147,11.7063C1.8567,11.9446 2.0252,12.4155 2.4008,12.4155L4.6762,12.4155V19.6004C4.6762,19.8213 4.8552,20.0004 5.0762,20.0004H18.2804C18.5013,20.0004 18.6804,19.8213 18.6804,19.6004V12.4155L20.9561,12.4155C21.3317,12.4155 21.5002,11.9446 21.2099,11.7063L11.9323,4.0908ZM9.6776,15.3598C9.6776,15.3046 9.7224,15.2598 9.7776,15.2598H13.5788C13.6341,15.2598 13.6788,15.3046 13.6788,15.3598V20.0004H9.6776V15.3598Z';
 
 const EXPLORE_FILL = [
   'M3.46,16.48L2.62,14.2c-0.26,-0.7 0.06,-1.58 0.69,-1.96l0.94,-0.57l2.1,5.68l-1.08,0.18C4.53,17.66 3.72,17.18 3.46,16.48z',
@@ -45,8 +45,8 @@ function HomeIcon({ selected }) {
   return (
     <Svg width={24} height={24} viewBox="0 0 24 24">
       {selected
-        ? <Path d={HOME} fill={SOLV.blue} fillRule="evenodd" />
-        : <Path d={HOME} fill="none" stroke={C.almostBlack} strokeWidth={1.6} strokeLinejoin="round" />}
+        ? <Path d={HOME_PATH} fill={SOLV.blue} fillRule="evenodd" />
+        : <Path d={HOME_PATH} fill="none" stroke={C.almostBlack} strokeWidth={1.6} strokeLinejoin="round" />}
     </Svg>
   );
 }

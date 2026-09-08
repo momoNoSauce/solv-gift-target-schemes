@@ -347,7 +347,7 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
       {/* The detail, mounted under the layer from the first frame of the move. */}
       {open ? (
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: detailFade }]} pointerEvents={phase === 'open' ? 'auto' : 'none'}>
-          <Detail schemes={detailSchemes} viewKey={viewKey} initialIndex={detailIndex} still embedded onBack={(i) => closeDetail(toListIndex(i))} onIndexChange={(i) => (current.current = toListIndex(i))} />
+          <Detail schemes={detailSchemes} viewKey={viewKey} initialIndex={detailIndex} still embedded onBack={(i) => closeDetail(toListIndex(i))} onHome={(i) => closeDetail(toListIndex(i))} onIndexChange={(i) => (current.current = toListIndex(i))} />
         </Animated.View>
       ) : null}
 

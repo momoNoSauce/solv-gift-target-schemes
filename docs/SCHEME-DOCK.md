@@ -352,6 +352,18 @@ Tab counts. Each tab carries the number of schemes in its group, in a hug-width 
 (min width 18 px, 5 px of side padding, so one and two digits both sit centred) at 22 %
 white, riding the label and dimming with it.
 
+Home in the bottom bar. The leftmost circle is always Home, and it returns to the list of
+cards. In the dock version it is a pinned cell at the pill's left edge, outside the
+scrolling row (the row's clamp and centring measure the width that is left), with a
+hairline between it and the schemes and its label at 72 % so the focused scheme stays the
+brightest thing. In the arc version it cannot ride the curve, because the arc's own nodes
+sweep the whole curve as the pager turns and a pinned node would be run over on the last
+page; it sits in the zone's bottom-left corner instead, below the lowest point the left
+tail reaches (the tail's visible edge stops at 867 px on a 915 px screen, the chip starts
+at 873, and a bottom inset widens the gap). Embedded in the list, Home runs the move in
+reverse, exactly as the back arrow does; on the standalone routes it replaces the route
+with the list.
+
 The detail sees one group. A card opened from RUNNING pages through the running schemes;
 one opened from COMPLETED pages through the completed ones. The list passes the filtered
 array and maps the detail's indexes back to its own, for the arrival and for the way back.

@@ -18,7 +18,7 @@ import SchemePage from './SchemePage';
 import ArcDock, { ARC_PITCH, ZONE_H } from './ArcDock';
 import AllSchemesSheet from './AllSchemesSheet';
 import { T } from './copy';
-import { backToEntry } from './nav';
+import { backToEntry, toList } from './nav';
 
 // The scheme picker (the "N schemes" button and its sheet) is hidden for now,
 // per the review of 4 Sep 2026. The swipe and the dock still move between schemes.
@@ -46,7 +46,7 @@ export function arcSheetRect(w, h, insets) {
   return { x: SHEET_MARGIN, y: top, w: w - SHEET_MARGIN * 2, h: h - top - (ZONE_H + insets.bottom), radius: SHEET_RADIUS };
 }
 
-export default function ArcScreen({ schemes, viewKey = 'typical', initialIndex = 0, pinned = null, demo = false, still = false, embedded = false, onBack, onIndexChange }) {
+export default function ArcScreen({ schemes, viewKey = 'typical', initialIndex = 0, pinned = null, demo = false, still = false, embedded = false, onBack, onIndexChange, onHome }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const n = schemes.length;
@@ -83,6 +83,8 @@ export default function ArcScreen({ schemes, viewKey = 'typical', initialIndex =
   const firstRunning = Math.max(0, schemes.findIndex((x) => x.group === 'running'));
   const t = T.en;
   const back = () => (onBack ? onBack(index) : backToEntry(router));
+  // Home: back to the list of cards. Embedded, that is the move in reverse.
+  const home = () => (onHome ? onHome(index) : toList(router, 'a'));
 
   return (
     <Animated.View style={[styles.screen, { backgroundColor: ground }]} onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
@@ -138,7 +140,7 @@ export default function ArcScreen({ schemes, viewKey = 'typical', initialIndex =
       </View>
 
       {n > 0 && size.w > 0 ? (
-        <ArcDock schemes={schemes} pos={pos} onSelect={goTo} panHandlers={dockPan} width={size.w} bottomInset={insets.bottom} />
+        <ArcDock schemes={schemes} pos={pos} onSelect={goTo} onHome={home} panHandlers={dockPan} width={size.w} bottomInset={insets.bottom} />
       ) : null}
 
       <AllSchemesSheet open={SHOW_PICKER && listOpen} schemes={schemes} index={index} onSelect={goTo} onClose={() => setListOpen(false)} height={size.h} bottomInset={insets.bottom} />

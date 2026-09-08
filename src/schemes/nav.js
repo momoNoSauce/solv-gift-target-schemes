@@ -1,6 +1,11 @@
 // The back arrow on the list returns to the Option A / Option B entry.
 // In the deployed review build the entry is `/`; locally it is `/options`. A
 // deep link has no history, so the arrow never relies on router.back() alone.
+// Home from a detail: the main list of cards, in the option the detail belongs to.
+export function toList(router, opt) {
+  router.replace(`/schemes/list?opt=${opt}`);
+}
+
 export function backToEntry(router) {
   if (process.env.EXPO_PUBLIC_LANDING === 'options') {
     router.replace('/');

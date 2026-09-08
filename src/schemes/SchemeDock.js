@@ -17,22 +17,29 @@
 //     fades from 55% to 100% white.
 //   - The ring's colour is the ACTIVE THEME'S ACCENT, blending across pages.
 //
+// Home. The leftmost circle is always Home: it is pinned to the pill's left
+// edge, outside the scrolling row, so it stays put however far the schemes
+// scroll. It is the thumb-reachable way back to the list of cards, which the
+// back arrow at the top also does.
+//
 // Groups: running schemes first, then completed ones behind a hairline. A
 // completed thumb dims its art to 70% and carries the green check when a gift
 // was won (the medallion system's one badge). The thumb is the SCHEME'S OWN
 // ART (a festival illustration, a brand mark), never a gift photo, so "Diwali"
 // is recognisable before the label is read.
 import React, { useEffect, useMemo, useRef } from 'react';
-import { View, Pressable, StyleSheet, Animated, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Animated, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { F } from '../theme';
 import GiftGlyph from '../gifts/icons';
 import { themeOf } from '../gifts/themes';
 import SchemeArt from './SchemeArt';
 import { usePressScale } from '../gifts/solv';
+import { IconHome } from '../icons';
 import { SETTLED } from './motion';
 
 export const PITCH = 64;
+const HOME_W = 58;         // the pinned home cell, left of the scheme row
 const PAD = 10;            // glass around the row, left and right
 const THUMB = 52;          // focused photo circle
 const THUMB_MIN = 42;      // resting photo circle
@@ -93,21 +100,38 @@ function Thumb({ scheme, i, pos, onPress, first, selected }) {
   );
 }
 
-export default function SchemeDock({ schemes, pos, index = 0, onSelect, panHandlers, width, bottomInset = 0 }) {
+function HomeCell({ onPress, label }) {
+  const press = usePressScale(0.96);
+  return (
+    <View style={styles.homeCell}>
+      <Pressable onPress={onPress} onPressIn={press.pressIn} onPressOut={press.pressOut} accessibilityRole="button" accessibilityLabel={label} style={styles.homeHit}>
+        <Animated.View style={[styles.homeDisc, { transform: [{ scale: press.scale }] }]}>
+          <IconHome size={22} color="#fff" />
+        </Animated.View>
+        <Text style={styles.homeLabel} numberOfLines={1} allowFontScaling={false}>{label}</Text>
+      </Pressable>
+      <View style={styles.homeLine} pointerEvents="none" />
+    </View>
+  );
+}
+
+export default function SchemeDock({ schemes, pos, index = 0, onSelect, onHome, panHandlers, width, bottomInset = 0, homeLabel = 'Home' }) {
   const n = schemes.length;
   const rowW = n * PITCH;
-  const pillW = Math.min(width - DOCK_MARGIN * 2, rowW + PAD * 2);
-  const inner = pillW - PAD * 2;
+  const home = Boolean(onHome) ? HOME_W : 0;
+  const pillW = Math.min(width - DOCK_MARGIN * 2, rowW + PAD * 2 + home);
+  const inner = pillW - PAD * 2 - home;
 
   // rowX(pos) = clamp(centre - pos * PITCH, lo, hi), a piecewise-linear map.
   // When the row fits, lo >= hi and the row stands still, centred.
   const { rowX, ringX } = useMemo(() => {
     let rx;
+    const left = PAD + home;
     if (rowW <= inner) {
-      rx = new Animated.Value(PAD + (inner - rowW) / 2);
+      rx = new Animated.Value(left + (inner - rowW) / 2);
     } else {
-      const centre = pillW / 2 - PITCH / 2;
-      const hi = PAD;
+      const centre = left + inner / 2 - PITCH / 2;
+      const hi = left;
       const lo = pillW - PAD - rowW;
       const p1 = (centre - hi) / PITCH;
       const p2 = (centre - lo) / PITCH;
@@ -116,7 +140,7 @@ export default function SchemeDock({ schemes, pos, index = 0, onSelect, panHandl
     // The ring sits over thumb `pos`: it glides when the row is still, and
     // holds the centre while the row scrolls under it.
     return { rowX: rx, ringX: Animated.add(Animated.add(rx, Animated.multiply(pos, PITCH)), (PITCH - RING) / 2) };
-  }, [pos, rowW, inner, pillW]);
+  }, [pos, rowW, inner, pillW, home]);
 
   const accents = schemes.map((x) => themeOf(x.theme).stage.accent);
   const accent = n > 1
@@ -142,6 +166,7 @@ export default function SchemeDock({ schemes, pos, index = 0, onSelect, panHandl
     >
       <View style={[styles.pill, { width: pillW }]} dataSet={{ glass: 'true', noselect: 'true', touch: 'none' }} {...panHandlers}>
         <View style={styles.hairline} pointerEvents="none" />
+        {onHome ? <HomeCell onPress={onHome} label={homeLabel} /> : null}
         <Animated.View pointerEvents="none" style={[styles.ring, { borderColor: accent, transform: [{ translateX: ringX }] }]} />
         <Animated.View style={[styles.row, { width: rowW, transform: [{ translateX: rowX }] }]}>
           {schemes.map((sc, i) => (
@@ -150,7 +175,7 @@ export default function SchemeDock({ schemes, pos, index = 0, onSelect, panHandl
         </Animated.View>
         {rowW > inner ? (
           <>
-            <LinearGradient colors={[GLASS, GLASS_EDGE]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={[styles.fade, { left: 0 }]} pointerEvents="none" />
+            <LinearGradient colors={[GLASS, GLASS_EDGE]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={[styles.fade, { left: home }]} pointerEvents="none" />
             <LinearGradient colors={[GLASS_EDGE, GLASS]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={[styles.fade, { right: 0 }]} pointerEvents="none" />
           </>
         ) : null}
@@ -196,5 +221,12 @@ const styles = StyleSheet.create({
   },
   label: { marginTop: 3, color: '#fff', fontFamily: F.medium, fontSize: 11, lineHeight: LABEL_H, letterSpacing: 0.1, maxWidth: PITCH - 4, textAlign: 'center' },
   groupLine: { position: 'absolute', left: 0, top: 14, width: 1, height: RING - 14, backgroundColor: 'rgba(255,255,255,0.16)' },
+  // The pinned home cell: a disc the size of a resting thumb, its label on the
+  // thumbs' own baseline, and a hairline between it and the schemes.
+  homeCell: { position: 'absolute', left: PAD, top: ROW_TOP, width: HOME_W, zIndex: 2 },
+  homeHit: { width: HOME_W, alignItems: 'center' },
+  homeDisc: { width: THUMB_MIN, height: THUMB_MIN, marginTop: (RING - THUMB_MIN) / 2, borderRadius: THUMB_MIN / 2, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)', alignItems: 'center', justifyContent: 'center' },
+  homeLabel: { marginTop: 3 + (RING - THUMB_MIN) / 2, color: 'rgba(255,255,255,0.72)', fontFamily: F.medium, fontSize: 11, lineHeight: LABEL_H, letterSpacing: 0.1, maxWidth: HOME_W - 4, textAlign: 'center' },
+  homeLine: { position: 'absolute', right: -1, top: 14, width: 1, height: RING - 14, backgroundColor: 'rgba(255,255,255,0.16)' },
   fade: { position: 'absolute', top: 0, bottom: 0, width: 26 },
 });
