@@ -356,7 +356,7 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
   // The list recedes as soon as the card lifts: most of the dim and the scale
   // happen in the first half, so nothing behind competes with the growing page.
   const listDim = {
-    opacity: progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 0.55, 0.45], extrapolate: 'clamp' }),
+    opacity: progress.interpolate({ inputRange: [0, 0.3, 1], outputRange: [1, 0.55, 0.45], extrapolate: 'clamp' }),
     transform: [{ scale: progress.interpolate({ inputRange: [0, 0.6, 1], outputRange: [1, 0.955, 0.94], extrapolate: 'clamp' }) }],
   };
   // The list's own bottom bar leaves on its own track, down and out, in the first
@@ -414,7 +414,7 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
                 ) : (
                   <ScrollView
                     ref={(r) => (scrollRefs.current[g] = r)}
-                    contentContainerStyle={{ paddingTop: GAP, paddingBottom: 24 }}
+                    contentContainerStyle={{ paddingTop: 16, paddingBottom: 24 }}
                     scrollEventThrottle={16}
                     onScroll={(e) => {
                       scrollY.current[g] = e.nativeEvent.contentOffset.y;
@@ -528,9 +528,11 @@ const styles = StyleSheet.create({
   // content by 1 px and break the seam with the page it becomes.
   cardEdge: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, borderRadius: CARD_RADIUS, borderWidth: 1, borderColor: 'rgba(16,24,40,0.06)' },
   // The footer's own edges line up with the art above it, not with the card.
-  footer: { height: FOOTER_H, flexDirection: 'row', alignItems: 'center', backgroundColor: SOLV.paper },
-  // 56 - 18 px of text = 19 px above and below it; the chevron gets 13 px.
-  // The footer's box starts where the art ends; its own top padding is the gap.
+  // The art is full-bleed (FRAME = 0), so the footer sets its own inset: 18 px
+  // before the text, 13 px after the chevron (the same 13 px it has above and
+  // below, so the disc sits in an even corner). 56 - 18 px of text = 19 px
+  // above and below the line.
+  footer: { height: FOOTER_H, flexDirection: 'row', alignItems: 'center', backgroundColor: SOLV.paper, paddingLeft: 18, paddingRight: 13 },
   footerLine: { flex: 1, color: SOLV.sub, fontFamily: F.regular, fontSize: 14, lineHeight: 18, marginRight: 12, fontVariant: ['tabular-nums'] },
   footerDays: { color: SOLV.ink, fontFamily: F.medium },
   chev: { width: 30, height: 30, borderRadius: 15, backgroundColor: SOLV.blueBg, alignItems: 'center', justifyContent: 'center' },

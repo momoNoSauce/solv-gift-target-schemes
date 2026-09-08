@@ -244,8 +244,10 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
   // What the scheme is for, on the card only: the included categories or
   // brands, so a card says at a glance what buying counts. The detail has its
   // own eligible-products section, so the line folds away as the card opens.
-  const scope = scheme.rules && scheme.rules.included && scheme.rules.included.length
-    ? t.scopeLine(scheme.rules.included.slice(0, 3).join(', ') + (scheme.rules.included.length > 3 ? ` +${scheme.rules.included.length - 3}` : ''))
+  // Two names and a count: three read as a list, and a brand's own products
+  // repeat the brand. Only while the scheme runs; an ended card has said its piece.
+  const scope = !s.ended && scheme.rules && scheme.rules.included && scheme.rules.included.length
+    ? t.scopeLine(scheme.rules.included.slice(0, 2).join(', ') + (scheme.rules.included.length > 2 ? ` +${scheme.rules.included.length - 2}` : ''))
     : null;
   const h2 = cardAnim ? (
     <View style={styles.h2Stack}>
@@ -368,7 +370,8 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                   <Text style={[styles.wonStatus, { color: wonStatus.color }]} allowFontScaling={false}>{wonStatus.text}</Text>
                 </View>
               </Animated.View>
-            ) : (
+            ) : hero.gift.cash ? null : (
+              // A cashback tile already says the amount and the word; no name line.
               <Animated.Text style={[styles.giftName, { color: st.ink }, rise(nameA, 8), lag]} allowFontScaling={false}>
                 {hero.gift.name}
               </Animated.Text>

@@ -1,8 +1,9 @@
 // The detail: full-screen pages, one per scheme of the group the card came
 // from, paged by a horizontal swipe. The dock and the arc are gone (4 Sep 2026):
 // the list of cards is the place to choose a scheme, and the detail keeps only
-// the lateral swipe, told by two quiet things. Page dots ride the bottom of the
-// screen, the focused one stretched to a bar, in the theme's accent. And the
+// the lateral swipe, told by two quiet things. Page dots sit at the foot of the
+// stage (SchemePage draws them, so they scroll with the page they describe and
+// never cover the list below), the focused one stretched to a bar. And the
 // first time a detail opens in a session, the page peeks: it slides 14 px
 // toward the next page and springs back, the way a carousel shows there is
 // more to the side. A component, not a route, so the list can grow a card into
@@ -24,6 +25,9 @@ import { T } from './copy';
 import { backToEntry } from './nav';
 import { SETTLED } from './motion';
 
+// The scheme picker (the "N schemes" button and its sheet) stays hidden.
+const SHOW_PICKER = false;
+
 // Web styles RN-web does not compile, picked up by data attributes. Native
 // ignores them. (These lived in the dock before it went.)
 if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getElementById('dock-glass')) {
@@ -41,33 +45,6 @@ if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getEle
 
 // The peek plays once per session.
 let peeked = false;
-
-function PageDots({ count, pos, accent, bottomInset }) {
-  if (count < 2) return null;
-  return (
-    <View pointerEvents="none" style={[styles.dots, { bottom: bottomInset + 14 }]}>
-      <View style={styles.dotsPill} dataSet={{ glass: 'true' }}>
-        {Array.from({ length: count }, (_, i) => (
-          <Animated.View
-            key={i}
-            style={[
-              styles.dot,
-              {
-                backgroundColor: accent,
-                width: pos.interpolate({ inputRange: [i - 1, i, i + 1], outputRange: [6, 18, 6], extrapolate: 'clamp' }),
-                opacity: pos.interpolate({ inputRange: [i - 1, i, i + 1], outputRange: [0.35, 1, 0.35], extrapolate: 'clamp' }),
-              },
-            ]}
-          />
-        ))}
-      </View>
-    </View>
-  );
-}
-
-// The scheme picker (the "N schemes" button and its sheet) is hidden for now,
-// per the review of 4 Sep 2026. The swipe and the dock still move between schemes.
-const SHOW_PICKER = false;
 
 export default function DockScreen({ schemes, viewKey = 'typical', initialIndex = 0, pinned = null, demo = false, still = false, embedded = false, onBack, onIndexChange, dismiss = null, arrival = null }) {
   const router = useRouter();
@@ -122,8 +99,6 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
     : grounds[0] || '#0847A6';
 
   const bottomPad = insets.bottom + 44;
-  const accents = schemes.map((x) => themeOf(x.theme).stage.accent);
-  const dotAccent = n > 1 ? pos.interpolate({ inputRange: schemes.map((_, i) => i), outputRange: accents, extrapolate: 'clamp' }) : accents[0] || '#fff';
   const firstRunning = Math.max(0, schemes.findIndex((x) => x.group === 'running'));
   const t = T.en;
   const back = () => (onBack ? onBack(index) : backToEntry(router));
@@ -157,6 +132,8 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
                   bottomPad={bottomPad}
                   dismiss={embedded && index === i ? dismiss : null}
                   pageIndex={i}
+                  pageCount={n}
+                  pagePos={pos}
                   onTitlePress={() => setDemoOpen((v) => !v)}
                   onSeeRunning={sc.group === 'completed' ? () => goTo(firstRunning) : null}
                 />
@@ -184,12 +161,6 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
           ) : null}
         </Animated.View>
       </SafeAreaView>
-
-      {n > 1 ? (
-        <Animated.View style={[StyleSheet.absoluteFill, barIn]} pointerEvents="none">
-          <PageDots count={n} pos={pos} accent={dotAccent} bottomInset={insets.bottom} />
-        </Animated.View>
-      ) : null}
 
       <AllSchemesSheet open={SHOW_PICKER && listOpen} schemes={schemes} index={index} onSelect={goTo} onClose={() => setListOpen(false)} height={screenH} bottomInset={insets.bottom} />
 
@@ -219,9 +190,6 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
 
 const styles = StyleSheet.create({
   screen: { flex: 1, overflow: 'hidden' },
-  dots: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
-  dotsPill: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 18, paddingHorizontal: 7, borderRadius: 9, backgroundColor: 'rgba(16,13,30,0.32)' },
-  dot: { height: 6, borderRadius: 3 },
   strip: { position: 'absolute', left: 0, top: 0, bottom: 0, flexDirection: 'row' },
   topBar: { position: 'absolute', left: 0, right: 0, top: 0 },
   chromeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 16 },

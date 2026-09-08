@@ -38,7 +38,7 @@ function stepsFor(state) {
   return ['done', 'done', 'done', 'done'];
 }
 
-export default function SchemePage({ scheme, active, near = true, first, still = false, bodyAnim = null, cardAnim = null, offset, bottomPad, onTitlePress, onSeeRunning, lang = 'en', compact = false, edge = false, dismiss = null, pageIndex = 0 }) {
+export default function SchemePage({ scheme, active, near = true, first, still = false, bodyAnim = null, cardAnim = null, offset, bottomPad, onTitlePress, onSeeRunning, lang = 'en', compact = false, edge = false, dismiss = null, pageIndex = 0, pageCount = 1, pagePos = null }) {
   const t = T[lang] || T.en;
   const d = deriveStage(scheme, t);
   const { th, st, s, missed, withDelivery, showBar, multiGift, running, festive } = d;
@@ -171,6 +171,21 @@ export default function SchemePage({ scheme, active, near = true, first, still =
       >
         <View {...(dismiss ? dismissPan.panHandlers : {})} dataSet={dismiss ? { touch: 'pan-y' } : undefined}>
           <Stage scheme={scheme} compact={compact} anim={{ labelA, tileA, nameA, barA, amountA, ctaA }} lag={lag} near={near} onTitlePress={onTitlePress} onSeeRunning={onSeeRunning} lang={lang} fill={missed} cardAnim={cardAnim} />
+          {/* The page dots, at the foot of the stage: one per scheme of the
+              group, the focused one a bar in the stage's accent. On a card they
+              are folded away (the card is not paged); they rise with the move. */}
+          {pageCount > 1 && pagePos ? (
+            <Animated.View pointerEvents="none" style={[styles.dots, cardAnim && { opacity: cardAnim.interpolate({ inputRange: [0.7, 1], outputRange: [0, 1], extrapolate: 'clamp' }) }]}>
+              <View style={styles.dotsRow}>
+                {Array.from({ length: pageCount }, (_, i) => (
+                  <Animated.View
+                    key={i}
+                    style={[styles.dot, { backgroundColor: st.accent, width: pagePos.interpolate({ inputRange: [i - 1, i, i + 1], outputRange: [6, 18, 6], extrapolate: 'clamp' }), opacity: pagePos.interpolate({ inputRange: [i - 1, i, i + 1], outputRange: [0.3, 1, 0.3], extrapolate: 'clamp' }) }]}
+                  />
+                ))}
+              </View>
+            </Animated.View>
+          ) : null}
         </View>
 
         <Animated.View style={bodyStyle}>
@@ -370,7 +385,7 @@ const styles = StyleSheet.create({
   rowDivider: { borderTopWidth: 1, borderTopColor: '#F2F3F5' },
   rowWon: { backgroundColor: '#F3FAF5', marginHorizontal: -14, paddingHorizontal: 14 },
   // Hugs the slab ("₹5L", "₹1,20,000"), never wraps it; 54 keeps short slabs aligned.
-  rowAt: { minWidth: 54, flexShrink: 0, fontFamily: F.bold, fontSize: 15, lineHeight: 19, color: N.ink },
+  rowAt: { width: 78, flexShrink: 0, fontFamily: F.bold, fontSize: 15, lineHeight: 19, color: N.ink },
   rowThumb: { width: 44, height: 44, borderRadius: 10, backgroundColor: N.paper, borderWidth: 1, borderColor: PHOTO_EDGE, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   rowName: { flex: 1, fontFamily: F.regular, fontSize: 13, lineHeight: 17, color: N.ink },
   wonChip: { height: 22, borderRadius: 11, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
@@ -414,6 +429,10 @@ const styles = StyleSheet.create({
   confirmedText: { fontFamily: F.medium, fontSize: 13, lineHeight: 16, color: N.green },
 
   confetti: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
+  // The dots sit in the stage's own bottom padding, over the art, 10 px up.
+  dots: { position: 'absolute', left: 0, right: 0, bottom: 10, alignItems: 'center' },
+  dotsRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  dot: { height: 6, borderRadius: 3 },
   // The fold as a material: content fades into the card over 88 px.
   edge: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 88 },
 });

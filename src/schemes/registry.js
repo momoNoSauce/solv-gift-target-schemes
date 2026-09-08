@@ -65,7 +65,7 @@ const RULES_BATA = { included: ['Bata Comfit', 'Power', 'Hush Puppies'], exclude
 const RULES_PRESTIGE = { included: ['Prestige pressure cookers', 'Prestige cookware', 'Prestige mixer grinders'], excluded: ['Prestige gas stoves'] };
 const RULES_HAVELLS = { included: ['Havells fans', 'Havells water heaters', 'Havells irons and kettles'], excluded: ['Havells wires and cables'] };
 const RULES_BOMBAY = { included: ['Bed sheets', 'Towels', 'Comforters and blankets'], excluded: [] };
-const RULES_GOLD = { included: ['Every Gold-exclusive listing', 'Gold member prices'], excluded: ['Grocery staples'] };
+const RULES_GOLD = { included: ['Gold-exclusive listings', 'Gold member prices'], excluded: ['Grocery staples'] };
 const RULES_FUNSKOOL = { included: ['Funskool board games', 'Play-Doh', 'Giggles'], excluded: [] };
 
 // A stable mock Amazon order number per scheme id.
