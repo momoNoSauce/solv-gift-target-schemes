@@ -19,6 +19,11 @@ def move(index, at):
     return f'(async () => {{ await window.__list.open({index}); window.__list.freeze({at}); }})()'
 
 
+# Open a card and let the move settle, so the shot is the detail itself.
+def move_open(index):
+    return f'window.__list.open({index})'
+
+
 # name, path, steps. A step is a JS expression run in the page.
 SHOTS = [
     ('01-entry', '/', []),
@@ -46,6 +51,8 @@ SHOTS = [
     ('22a-list-b-jumbocash-card', '/schemes/list?opt=b', ['__scroll(1010)']),
     ('22b-detail-jumbocash', '/schemes/list?opt=b', ['window.__list.open(2)']),
     ('22c-list-a-completed-detail', '/schemes/list?opt=a', ['window.__list.tab(1)', 'window.__list.open(3)']),
+    ('22d-detail-home-dock', '/schemes/list?opt=b', ['window.__list.open(0)']),
+    ('22e-detail-home-arc-last', '/schemes/list?opt=a', [move_open(2)]),
     ('23-list-b-over-completed', '/schemes/list?opt=b&view=over', ['window.__list.tab(1)']),
     ('24-detail-dock-missed', '/schemes?view=over&i=2', []),
     ('25-list-b-empty', '/schemes/list?opt=b&view=empty', []),
