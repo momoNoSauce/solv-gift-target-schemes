@@ -20,13 +20,19 @@ import { REDUCED_MOTION } from './motion';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const RUBBER = 0.35;
+// Pulling the first page past the start, this far into the rubber band (a
+// finger travel of about 0.43 page), and letting go reaches what lies before
+// the first scheme: the list of cards. A boundary move, unlike a page change.
+const PAST_START = 0.15;
 const PROJECT_MS = 160;
 const SPRING = REDUCED_MOTION
   // Reduced motion: the same landing in about a third of the time, no carry-in.
   ? { stiffness: 900, damping: 60, mass: 1, restDisplacementThreshold: 0.0005, restSpeedThreshold: 0.0005, useNativeDriver: false }
   : { stiffness: 320, damping: 34, mass: 1, restDisplacementThreshold: 0.0005, restSpeedThreshold: 0.0005, useNativeDriver: false };
 
-export function usePager({ count, initial = 0, keys = true }) {
+export function usePager({ count, initial = 0, keys = true, onPastStart = null }) {
+  const pastStartRef = useRef(onPastStart);
+  pastStartRef.current = onPastStart;
   const pos = useRef(new Animated.Value(initial)).current;
   const posNow = useRef(initial);
   const startPos = useRef(initial);
@@ -135,6 +141,12 @@ export function usePager({ count, initial = 0, keys = true }) {
         let target = Math.round(raw + v * PROJECT_MS);
         // A flick from rest moves at most `flickLimit` pages; real travel crosses more.
         if (Math.abs(raw - startPos.current) < 1) target = clamp(target, from - flickLimit, from + flickLimit);
+        // Released past the start: the strip springs home and the page leaves.
+        if (raw < -PAST_START && from === 0 && pastStartRef.current) {
+          settle(0, 0);
+          pastStartRef.current();
+          return;
+        }
         settle(target, v * 1000);
       },
       onPanResponderTerminate: () => settle(posNow.current, 0),
@@ -146,8 +158,13 @@ export function usePager({ count, initial = 0, keys = true }) {
   const pagePan = useMemo(() => makePan(pageUnit, { threshold: 8, ratio: 1.2, flickLimit: 1 }), [last]);
   const dockPan = useMemo(() => makePan(dockUnit, { threshold: 4, ratio: 0, flickLimit: 3 }), [last]);
 
+  // How far the first page is pulled past the start, 0..1 of the way to the
+  // release point: the list control lights up with it.
+  const over = useMemo(() => pos.interpolate({ inputRange: [-PAST_START, 0], outputRange: [1, 0], extrapolate: 'clamp' }), [pos]);
+
   return {
     pos,
+    over,
     index,
     goTo,
     pagePan: pagePan.panHandlers,

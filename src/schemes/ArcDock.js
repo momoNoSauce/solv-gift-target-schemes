@@ -13,12 +13,17 @@
 // from `pos`, sampled every quarter page so the piecewise-linear Animated
 // interpolation follows the circle to within half a pixel.
 //
-// Home. The leftmost circle is always Home. It cannot ride the arc: the arc's
+// The list pill. The leftmost control always goes back to the list of scheme
+// cards. It is a labelled pill, not a disc: leaving the page is a different
+// move from changing the scheme, and a disc in the corner read as one more
+// thumb that had fallen off the arc. It lights up in the theme's accent as the
+// arc is pulled past the first scheme, the gesture that also reaches it. It
+// cannot ride the arc: the arc's
 // own nodes sweep the whole curve as the pager turns, so a node pinned on the
 // curve would be run over at the last page. It sits in the zone's bottom-left
 // corner instead, below the lowest point the arc's left tail reaches (measured:
-// the tail's visible edge stops at 867 px on a 915 px screen, the chip starts at
-// 873, and a bottom inset widens the gap), so the two never tangle. The house mark carries it: the corner has no
+// the tail's visible edge stops at 867 px on a 915 px screen, the pill starts at
+// 875, and a bottom inset widens the gap), so the two never tangle. The house mark carries it: the corner has no
 // room for a label under the disc, and the dock version's label does that work.
 //
 // Recognition: the thumb is the SCHEME'S OWN ART (festival illustration or
@@ -32,12 +37,12 @@ import { themeOf } from '../gifts/themes';
 import SchemeArt from './SchemeArt';
 import { usePressScale } from '../gifts/solv';
 import { statusLine } from './registry';
-import { IconHome } from '../icons';
+import { IconList } from '../icons';
 
 export const ARC_PITCH = 86;          // apex spacing, px per page
-const HOME_D = 40;                    // the pinned home disc
-const HOME_X = 16;                    // its left margin
-const HOME_BOTTOM = 2;                // clear of the arc's lowest left node
+const LIST_H = 32;                    // the list pill
+const LIST_X = 16;                    // its left margin
+const LIST_BOTTOM = 8;                // clear of the arc's lowest left node
 const R = 520;                        // arc radius
 const THETA = ARC_PITCH / R;          // rad per page
 const APEX = 76;                      // focused thumb
@@ -107,30 +112,35 @@ function Thumb({ scheme, i, pos, cx, onPress }) {
   );
 }
 
-function HomeDisc({ onPress, label, bottomInset }) {
+function ListPill({ onPress, label, hint, bottomInset, over, accent }) {
   const press = usePressScale(0.94);
+  const lift = over ? over.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] }) : 1;
   return (
     <Pressable
       onPress={onPress}
       onPressIn={press.pressIn}
       onPressOut={press.pressOut}
       accessibilityRole="button"
-      accessibilityLabel={label}
-      style={[styles.homeHit, { bottom: bottomInset + HOME_BOTTOM }]}
+      accessibilityLabel={hint}
+      style={[styles.listHit, { bottom: bottomInset + LIST_BOTTOM }]}
     >
-      <Animated.View style={[styles.homeDisc, { transform: [{ scale: press.scale }] }]}>
-        <IconHome size={20} color="#fff" />
+      <Animated.View style={[styles.listPill, { transform: [{ scale: Animated.multiply(press.scale, lift) }] }]}>
+        <Animated.View pointerEvents="none" style={[styles.listFill, { backgroundColor: accent, opacity: over || 0 }]} />
+        <IconList size={18} color="#fff" strokeWidth={2} />
+        <Text style={styles.listText} numberOfLines={1} allowFontScaling={false}>{label}</Text>
       </Animated.View>
     </Pressable>
   );
 }
 
-export default function ArcDock({ schemes, pos, onSelect, onHome, panHandlers, width, bottomInset = 0, homeLabel = 'Home' }) {
+export default function ArcDock({ schemes, pos, over = null, onSelect, onList, panHandlers, width, bottomInset = 0, listLabel = 'Schemes', listHint = 'All schemes' }) {
   const cx = width / 2;
   const n = schemes.length;
+  const accents = schemes.map((x) => themeOf(x.theme).stage.accent);
+  const accent = n > 1 ? pos.interpolate({ inputRange: schemes.map((_, i) => i), outputRange: accents, extrapolate: 'clamp' }) : accents[0] || '#fff';
   return (
     <View style={[styles.zone, { height: ZONE_H + bottomInset }]} dataSet={{ touch: 'none' }} {...panHandlers}>
-      {onHome ? <HomeDisc onPress={onHome} label={homeLabel} bottomInset={bottomInset} /> : null}
+      {onList ? <ListPill onPress={onList} label={listLabel} hint={listHint} bottomInset={bottomInset} over={over} accent={accent} /> : null}
       {schemes.map((sc, i) => (
         <Thumb key={sc.id} scheme={sc} i={i} pos={pos} cx={cx} onPress={() => onSelect(i)} />
       ))}
@@ -165,10 +175,12 @@ const styles = StyleSheet.create({
   // The disc's edge: pure black at low alpha, so a white brand disc still has a rim on the dark ground.
   edge: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, borderRadius: APEX / 2, borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)' },
   badge: { position: 'absolute', right: 2, top: 2, width: 22, height: 22, borderRadius: 11, backgroundColor: '#177E36', borderWidth: 2, borderColor: '#1A1730', alignItems: 'center', justifyContent: 'center' },
-  homeHit: { position: 'absolute', left: HOME_X, width: HOME_D, alignItems: 'center', zIndex: 3 },
-  homeDisc: { width: HOME_D, height: HOME_D, borderRadius: HOME_D / 2, backgroundColor: '#17162B', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' },
+  listHit: { position: 'absolute', left: LIST_X, zIndex: 3 },
+  listPill: { height: LIST_H, borderRadius: LIST_H / 2, paddingLeft: 10, paddingRight: 13, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', overflow: 'hidden' },
+  listFill: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 },
+  listText: { color: '#fff', fontFamily: F.medium, fontSize: 12, lineHeight: 15, letterSpacing: 0.1 },
   labels: { position: 'absolute', left: 0, right: 0, top: NAME_TOP, alignItems: 'center' },
-  label: { position: 'absolute', left: HOME_X + HOME_D + 8, right: HOME_X + HOME_D + 8, top: 0, alignItems: 'center' },
+  label: { position: 'absolute', left: 120, right: 120, top: 0, alignItems: 'center' },
   name: { color: '#FFFFFF', fontFamily: F.medium, fontSize: 15, lineHeight: 19, letterSpacing: 0.1 },
   status: { marginTop: 2, color: 'rgba(255,255,255,0.72)', fontFamily: F.regular, fontSize: 12, lineHeight: 16, fontVariant: ['tabular-nums'] },
 });

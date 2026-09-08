@@ -17,10 +17,14 @@
 //     fades from 55% to 100% white.
 //   - The ring's colour is the ACTIVE THEME'S ACCENT, blending across pages.
 //
-// Home. The leftmost circle is always Home: it is pinned to the pill's left
-// edge, outside the scrolling row, so it stays put however far the schemes
-// scroll. It is the thumb-reachable way back to the list of cards, which the
-// back arrow at the top also does.
+// The list cell. The leftmost control always goes back to the list of scheme
+// cards. It is pinned to the pill's left edge, outside the scrolling row, so it
+// stays put however far the schemes scroll, and it is not a thumb: a rounded
+// square, never ringed, carrying the list mark and the word "Schemes" (this is
+// the target schemes' own list, not the app's home). Leaving the page is a
+// different move from changing the scheme, and the cell says so twice: by its
+// shape, and by lighting up in the theme's accent as the strip is pulled past
+// the first scheme, the gesture that also reaches it.
 //
 // Groups: running schemes first, then completed ones behind a hairline. A
 // completed thumb dims its art to 70% and carries the green check when a gift
@@ -35,11 +39,11 @@ import GiftGlyph from '../gifts/icons';
 import { themeOf } from '../gifts/themes';
 import SchemeArt from './SchemeArt';
 import { usePressScale } from '../gifts/solv';
-import { IconHome } from '../icons';
+import { IconList } from '../icons';
 import { SETTLED } from './motion';
 
 export const PITCH = 64;
-const HOME_W = 58;         // the pinned home cell, left of the scheme row
+const LIST_W = 58;         // the pinned list cell, left of the scheme row
 const PAD = 10;            // glass around the row, left and right
 const THUMB = 52;          // focused photo circle
 const THUMB_MIN = 42;      // resting photo circle
@@ -100,25 +104,28 @@ function Thumb({ scheme, i, pos, onPress, first, selected }) {
   );
 }
 
-function HomeCell({ onPress, label }) {
-  const press = usePressScale(0.96);
+function ListCell({ onPress, label, hint, over, accent }) {
+  const press = usePressScale(0.94);
+  const lift = over ? over.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }) : 1;
   return (
-    <View style={styles.homeCell}>
-      <Pressable onPress={onPress} onPressIn={press.pressIn} onPressOut={press.pressOut} accessibilityRole="button" accessibilityLabel={label} style={styles.homeHit}>
-        <Animated.View style={[styles.homeDisc, { transform: [{ scale: press.scale }] }]}>
-          <IconHome size={22} color="#fff" />
+    <View style={styles.listCell}>
+      <Pressable onPress={onPress} onPressIn={press.pressIn} onPressOut={press.pressOut} accessibilityRole="button" accessibilityLabel={hint} style={styles.listHit}>
+        <Animated.View style={[styles.listSquare, { transform: [{ scale: Animated.multiply(press.scale, lift) }] }]}>
+          {/* the accent fill rises with the pull */}
+          <Animated.View pointerEvents="none" style={[styles.listFill, { backgroundColor: accent, opacity: over || 0 }]} />
+          <IconList size={22} color="#fff" strokeWidth={2} />
         </Animated.View>
-        <Text style={styles.homeLabel} numberOfLines={1} allowFontScaling={false}>{label}</Text>
+        <Animated.Text style={[styles.listLabel, over && { opacity: over.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }) }]} numberOfLines={1} allowFontScaling={false}>{label}</Animated.Text>
       </Pressable>
-      <View style={styles.homeLine} pointerEvents="none" />
+      <View style={styles.listLine} pointerEvents="none" />
     </View>
   );
 }
 
-export default function SchemeDock({ schemes, pos, index = 0, onSelect, onHome, panHandlers, width, bottomInset = 0, homeLabel = 'Home' }) {
+export default function SchemeDock({ schemes, pos, over = null, index = 0, onSelect, onList, panHandlers, width, bottomInset = 0, listLabel = 'Schemes', listHint = 'All schemes' }) {
   const n = schemes.length;
   const rowW = n * PITCH;
-  const home = Boolean(onHome) ? HOME_W : 0;
+  const home = Boolean(onList) ? LIST_W : 0;
   const pillW = Math.min(width - DOCK_MARGIN * 2, rowW + PAD * 2 + home);
   const inner = pillW - PAD * 2 - home;
 
@@ -138,9 +145,14 @@ export default function SchemeDock({ schemes, pos, index = 0, onSelect, onHome, 
       rx = pos.interpolate({ inputRange: [p1, p2], outputRange: [hi, lo], extrapolate: 'clamp' });
     }
     // The ring sits over thumb `pos`: it glides when the row is still, and
-    // holds the centre while the row scrolls under it.
-    return { rowX: rx, ringX: Animated.add(Animated.add(rx, Animated.multiply(pos, PITCH)), (PITCH - RING) / 2) };
-  }, [pos, rowW, inner, pillW, home]);
+    // holds the centre while the row scrolls under it. It belongs to the
+    // schemes alone: past either end (the rubber band, the pull to the list) it
+    // stays on the end thumb rather than sliding into the list cell.
+    const ringPos = n > 1
+      ? pos.interpolate({ inputRange: [0, n - 1], outputRange: [0, (n - 1) * PITCH], extrapolate: 'clamp' })
+      : new Animated.Value(0);
+    return { rowX: rx, ringX: Animated.add(Animated.add(rx, ringPos), (PITCH - RING) / 2) };
+  }, [pos, rowW, inner, pillW, home, n]);
 
   const accents = schemes.map((x) => themeOf(x.theme).stage.accent);
   const accent = n > 1
@@ -166,7 +178,7 @@ export default function SchemeDock({ schemes, pos, index = 0, onSelect, onHome, 
     >
       <View style={[styles.pill, { width: pillW }]} dataSet={{ glass: 'true', noselect: 'true', touch: 'none' }} {...panHandlers}>
         <View style={styles.hairline} pointerEvents="none" />
-        {onHome ? <HomeCell onPress={onHome} label={homeLabel} /> : null}
+        {onList ? <ListCell onPress={onList} label={listLabel} hint={listHint} over={over} accent={accent} /> : null}
         <Animated.View pointerEvents="none" style={[styles.ring, { borderColor: accent, transform: [{ translateX: ringX }] }]} />
         <Animated.View style={[styles.row, { width: rowW, transform: [{ translateX: rowX }] }]}>
           {schemes.map((sc, i) => (
@@ -221,12 +233,14 @@ const styles = StyleSheet.create({
   },
   label: { marginTop: 3, color: '#fff', fontFamily: F.medium, fontSize: 11, lineHeight: LABEL_H, letterSpacing: 0.1, maxWidth: PITCH - 4, textAlign: 'center' },
   groupLine: { position: 'absolute', left: 0, top: 14, width: 1, height: RING - 14, backgroundColor: 'rgba(255,255,255,0.16)' },
-  // The pinned home cell: a disc the size of a resting thumb, its label on the
+  // The pinned list cell: a disc the size of a resting thumb, its label on the
   // thumbs' own baseline, and a hairline between it and the schemes.
-  homeCell: { position: 'absolute', left: PAD, top: ROW_TOP, width: HOME_W, zIndex: 2 },
-  homeHit: { width: HOME_W, alignItems: 'center' },
-  homeDisc: { width: THUMB_MIN, height: THUMB_MIN, marginTop: (RING - THUMB_MIN) / 2, borderRadius: THUMB_MIN / 2, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)', alignItems: 'center', justifyContent: 'center' },
-  homeLabel: { marginTop: 3 + (RING - THUMB_MIN) / 2, color: 'rgba(255,255,255,0.72)', fontFamily: F.medium, fontSize: 11, lineHeight: LABEL_H, letterSpacing: 0.1, maxWidth: HOME_W - 4, textAlign: 'center' },
-  homeLine: { position: 'absolute', right: -1, top: 14, width: 1, height: RING - 14, backgroundColor: 'rgba(255,255,255,0.16)' },
+  listCell: { position: 'absolute', left: PAD, top: ROW_TOP, width: LIST_W, zIndex: 2 },
+  listHit: { width: LIST_W, alignItems: 'center' },
+  // Not a circle: a rounded square, so it never reads as a thumb.
+  listSquare: { width: THUMB_MIN, height: THUMB_MIN, marginTop: (RING - THUMB_MIN) / 2, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  listFill: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 },
+  listLabel: { marginTop: 3 + (RING - THUMB_MIN) / 2, color: '#fff', opacity: 0.72, fontFamily: F.medium, fontSize: 11, lineHeight: LABEL_H, letterSpacing: 0.1, maxWidth: LIST_W - 4, textAlign: 'center' },
+  listLine: { position: 'absolute', right: -1, top: 14, width: 1, height: RING - 14, backgroundColor: 'rgba(255,255,255,0.16)' },
   fade: { position: 'absolute', top: 0, bottom: 0, width: 26 },
 });

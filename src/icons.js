@@ -23,6 +23,13 @@ export const IconHome = ({ size = 24, color = C.white }) => (
   </Svg>
 );
 
+// The list mark, as the schemes picker drew it: three lines, the last shorter.
+export const IconList = ({ size = 22, color = C.white, strokeWidth = 2 }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Path d="M4 7h16M4 12h16M4 17h10" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+  </Svg>
+);
+
 export const IconChevronRight = ({ size = 24, color = C.white }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24">
     <Path fill={color} d="M6.23,20.23l1.77,1.77l10,-10l-10,-10l-1.77,1.77l8.23,8.23z" />
