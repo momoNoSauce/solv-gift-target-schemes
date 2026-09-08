@@ -316,7 +316,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                 </>
               ) : null}
               {hero.tone === 'won' ? null : (
-                <Animated.Text style={[styles.heroLabel, { color: st.accent, opacity: showBar ? Animated.multiply(labelA, k) : labelA }]} allowFontScaling={false}>
+                <Animated.Text style={[styles.heroLabel, { color: st.accent, opacity: showBar ? Animated.multiply(labelA, k.interpolate({ inputRange: [0.45, 0.9], outputRange: [0, 1], extrapolate: 'clamp' })) : labelA }]} allowFontScaling={false}>
                   {hero.label}
                 </Animated.Text>
               )}
@@ -411,7 +411,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                   </Text>
                 </View>
 
-                <Animated.View style={[rise(amountA, 10), { opacity: Animated.multiply(amountA, k), height: dial(0, 65), overflow: 'hidden' }]}>
+                <Animated.View style={[rise(amountA, 10), { opacity: Animated.multiply(amountA, k.interpolate({ inputRange: [0.5, 0.9], outputRange: [0, 1], extrapolate: 'clamp' })), height: dial(0, 65), overflow: 'hidden' }]}>
                   <Text style={[styles.bigMore, TABULAR, { color: amountParts.color }]} allowFontScaling={false}>
                     {amountParts.pre ? <Text style={styles.bigMoreWord}>{amountParts.pre}</Text> : null}
                     {amountParts.amt}

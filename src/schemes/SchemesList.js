@@ -118,6 +118,7 @@ function Card({ scheme, compact, onPress, onLayout, cardRef, dim, t }) {
         </View>
         <CardFooter scheme={scheme} t={t} />
       </Pressable>
+      <View pointerEvents="none" style={styles.cardEdge} />
     </Animated.View>
   );
 }
@@ -244,29 +245,61 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
     if (await prepareClose(atIndex)) finishClose();
   };
 
-  // The drag: the page is pushed back into its card by the finger. Over
-  // DISMISS_TRAVEL px of pull the layer goes from 1 to 0.4 (it shrinks and
-  // sinks but does not land; the release decides). Past the point of no return
-  // (0.72), or with a downward flick, it lands; otherwise it springs back.
-  const DISMISS_TRAVEL = 360;
+  // The drag: the page is pushed back into its card by the finger, the way an
+  // App Store card is. While the finger is down the page FOLLOWS it (dragY, at
+  // 0.6 of the finger's travel, the resistance of a thing with mass) and
+  // shrinks a little (progress 1 -> 0.7 over DISMISS_TRAVEL px) with its corners
+  // rounding, but it does not fly to its slot: that is the release's decision.
+  // Past the point of no return (a third of the travel) or with a downward flick it lands, on
+  // one spring that carries the finger's velocity; otherwise it springs back.
+  const DISMISS_TRAVEL = 420;
+  const dragY = useRef(new Animated.Value(0)).current;
   const dragging = useRef(false);
+  // While a finger holds the page there is ONE page on screen: the layer. The
+  // detail under it hides the instant the drag takes over (the two are pixel-
+  // identical at that moment, the seam audit holds them to 0) and comes back
+  // only when the layer is identical again, at the end of a cancelled drag.
+  // Without this the static detail shows through beside the moving layer and
+  // every element doubles.
+  const dragMode = useRef(new Animated.Value(0)).current;
+  const dragged = useRef(0);       // the finger's travel, as the moves reported it
+  const dragAnim = useRef(null);
+  const settleDrag = (toY, velocity) => {
+    dragAnim.current?.stop();
+    dragAnim.current = Animated.spring(dragY, { toValue: toY, stiffness: 190, damping: 26, mass: 1, velocity, restDisplacementThreshold: 0.2, restSpeedThreshold: 0.2, useNativeDriver: false });
+    dragAnim.current.start();
+  };
   const dismiss = {
     begin: async (i) => {
       if (dragging.current) return;
+      dragAnim.current?.stop();
       dragging.current = await prepareClose(i);
+      if (dragging.current) dragMode.setValue(1);
     },
     move: (dy) => {
       if (!dragging.current) return;
-      const t = Math.min(1, Math.max(0, dy / DISMISS_TRAVEL));
-      progress.setValue(1 - t * 0.6);
+      const d = Math.max(0, dy);
+      dragged.current = d;
+      dragY.setValue(d * 0.6);
+      progress.setValue(1 - Math.min(1, d / DISMISS_TRAVEL) * 0.3);
     },
     end: (dy, vy) => {
       if (!dragging.current) return;
       dragging.current = false;
-      const t = Math.min(1, Math.max(0, dy / DISMISS_TRAVEL));
-      const p = 1 - t * 0.6;
-      if (p < 0.72 || vy > 0.9) finishClose();
-      else cancelClose();
+      const d = Math.max(0, dy, dragged.current);
+      dragged.current = 0;
+      // The point of no return: a third of the travel, or a downward flick.
+      settleDrag(0, vy * 1000 * 0.6);
+      if (d > DISMISS_TRAVEL * 0.32 || vy > 0.9) {
+        finishClose();
+      } else {
+        // Back to the page: the layer springs to 1 and, once identical to the
+        // detail under it, hands over in a single frame.
+        spring(1, () => {
+          dragMode.setValue(0);
+          setPhase('open');
+        });
+      }
     },
   };
 
@@ -305,11 +338,22 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
   const detailIndex = Math.max(0, rows.findIndex(([, i]) => i === open?.index));
   const toListIndex = (i) => (rows[i] ? rows[i][1] : current.current);
 
-  const listDim = { opacity: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0.5] }), transform: [{ scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0.96] }) }] };
+  // The list recedes as soon as the card lifts: most of the dim and the scale
+  // happen in the first half, so nothing behind competes with the growing page.
+  const listDim = {
+    opacity: progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 0.55, 0.45], extrapolate: 'clamp' }),
+    transform: [{ scale: progress.interpolate({ inputRange: [0, 0.6, 1], outputRange: [1, 0.955, 0.94], extrapolate: 'clamp' }) }],
+  };
+  // The list's own bottom bar leaves on its own track, down and out, in the first
+  // 40 % of the move, so it never shares its 52 px with the detail's dock.
+  const navOut = { transform: [{ translateY: progress.interpolate({ inputRange: [0, 0.4], outputRange: [0, NAV_H + insets.bottom + 8], extrapolate: 'clamp' }) }] };
   const detailFade = progress.interpolate({ inputRange: [0.55, 1], outputRange: [0, 1], extrapolate: 'clamp' });
   // The white frame's inset, shared by the art panel and the footer over it.
   const frameInset = progress.interpolate({ inputRange: [0, 0.34], outputRange: [FRAME, 0], extrapolate: 'clamp' });
-  const layerFade = progress.interpolate({ inputRange: [0.92, 1], outputRange: [1, 0], extrapolate: 'clamp' });
+  const layerFadeTap = progress.interpolate({ inputRange: [0.92, 1], outputRange: [1, 0], extrapolate: 'clamp' });
+  // In drag mode the layer stays fully opaque and the detail fully hidden.
+  const layerFade = Animated.add(layerFadeTap, Animated.multiply(dragMode, Animated.subtract(1, layerFadeTap)));
+  const detailShow = Animated.multiply(detailFade, Animated.subtract(1, dragMode));
   const Detail = compact ? ArcScreen : DockScreen;
 
   const w = size.w;
@@ -381,19 +425,21 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
           </Animated.View>
         ) : null}
 
-        <SolvBottomNav selected="schemes" bottomInset={insets.bottom} />
+        <Animated.View style={navOut}>
+          <SolvBottomNav selected="schemes" bottomInset={insets.bottom} />
+        </Animated.View>
       </Animated.View>
 
       {/* The detail, mounted under the layer from the first frame of the move. */}
       {open ? (
-        <Animated.View style={[StyleSheet.absoluteFill, { opacity: detailFade }]} pointerEvents={phase === 'open' ? 'auto' : 'none'}>
-          <Detail schemes={detailSchemes} viewKey={viewKey} initialIndex={detailIndex} still embedded onBack={(i) => closeDetail(toListIndex(i))} onAll={(i) => closeDetail(toListIndex(i))} dismiss={{ begin: (i) => dismiss.begin(toListIndex(i)), move: dismiss.move, end: dismiss.end }} onIndexChange={(i) => (current.current = toListIndex(i))} />
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: detailShow }]} pointerEvents={phase === 'open' ? 'auto' : 'none'}>
+          <Detail schemes={detailSchemes} viewKey={viewKey} initialIndex={detailIndex} still embedded arrival={progress} onBack={(i) => closeDetail(toListIndex(i))} onAll={(i) => closeDetail(toListIndex(i))} dismiss={{ begin: (i) => dismiss.begin(toListIndex(i)), move: dismiss.move, end: dismiss.end }} onIndexChange={(i) => (current.current = toListIndex(i))} />
         </Animated.View>
       ) : null}
 
       {/* The layer: the card, growing into the detail's frame. */}
       {open && phase !== 'open' ? (
-        <Animated.View pointerEvents="none" style={[styles.layer, compact && styles.layerSheet, layer, { opacity: layerFade }]}>
+        <Animated.View pointerEvents="none" style={[styles.layer, compact && styles.layerSheet, layer, { opacity: layerFade, transform: [{ translateY: dragY }] }]}>
           {/* The page lays out at the layer's live width, so its centred stage
               stays centred while the frame grows. */}
           {/* The frame opens as the card grows: the inset goes to 0 and the
@@ -412,6 +458,7 @@ export default function SchemesList({ opt = 'a', viewKey = 'typical' }) {
           >
             <SchemePage scheme={schemes[open.index]} active still compact={compact} edge={compact} bottomPad={24} bodyAnim={progress} cardAnim={progress} />
           </Animated.View>
+          <Animated.View pointerEvents="none" style={[styles.layerEdge, { borderRadius: layer.borderRadius, opacity: progress.interpolate({ inputRange: [0, 0.34], outputRange: [1, 0], extrapolate: 'clamp' }) }]} />
           {/* The card's footer, on the layer's bottom edge, which is where the
               card's own footer sits; it fades as the body arrives. Anchoring it
               to a fixed offset from the top instead let the growing stage pass
@@ -454,8 +501,6 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     overflow: 'hidden',
     backgroundColor: SOLV.paper,
-    borderWidth: 1,
-    borderColor: 'rgba(16,24,40,0.06)',
     shadowColor: '#101828',
     shadowOpacity: 0.12,
     shadowRadius: 16,
@@ -463,6 +508,9 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   art: { borderRadius: ART_RADIUS, overflow: 'hidden' },
+  // The card's hairline, as an overlay: a border on the box would inset the
+  // content by 1 px and break the seam with the page it becomes.
+  cardEdge: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, borderRadius: CARD_RADIUS, borderWidth: 1, borderColor: 'rgba(16,24,40,0.06)' },
   // The footer's own edges line up with the art above it, not with the card.
   footer: { height: FOOTER_H, flexDirection: 'row', alignItems: 'center', backgroundColor: SOLV.paper },
   // 56 - 18 px of text = 19 px above and below it; the chevron gets 13 px.
@@ -475,6 +523,10 @@ const styles = StyleSheet.create({
   emptyBadge: { width: 64, height: 64, borderRadius: 32, backgroundColor: SOLV.blueBg, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { marginTop: 14, fontFamily: F.bold, fontSize: 15, lineHeight: 19, color: SOLV.ink },
   emptyLine: { marginTop: 4, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 18, color: SOLV.sub },
-  layer: { position: 'absolute', overflow: 'hidden', backgroundColor: SOLV.paper, zIndex: 20, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)' },
+  layer: { position: 'absolute', overflow: 'hidden', backgroundColor: SOLV.paper, zIndex: 20, shadowColor: '#101828', shadowOpacity: 0.28, shadowRadius: 28, shadowOffset: { width: 0, height: 14 } },
+  // The card's hairline, drawn over the layer so it never moves the content: a
+  // border on the layer itself put every element 1 px down and right of the
+  // page it becomes, and the title doubled at the end of the move.
+  layerEdge: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)' },
   layerSheet: { shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 24, shadowOffset: { width: 0, height: 10 } },
 });

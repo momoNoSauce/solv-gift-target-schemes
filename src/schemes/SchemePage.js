@@ -141,7 +141,7 @@ export default function SchemePage({ scheme, active, near = true, first, still =
     : null;
 
   const bodyStyle = bodyAnim
-    ? { opacity: bodyAnim.interpolate({ inputRange: [0.35, 1], outputRange: [0, 1], extrapolate: 'clamp' }), transform: [{ translateY: bodyAnim.interpolate({ inputRange: [0, 1], outputRange: [24, 0], extrapolate: 'clamp' }) }] }
+    ? { opacity: bodyAnim.interpolate({ inputRange: [0.18, 0.62], outputRange: [0, 1], extrapolate: 'clamp' }), transform: [{ translateY: bodyAnim.interpolate({ inputRange: [0.18, 0.85], outputRange: [28, 0], extrapolate: 'clamp' }) }] }
     : null;
 
   // The page's ground is the paper from the first frame of the move. An earlier

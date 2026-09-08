@@ -22,7 +22,7 @@ import { backToEntry, toList } from './nav';
 // per the review of 4 Sep 2026. The swipe and the dock still move between schemes.
 const SHOW_PICKER = false;
 
-export default function DockScreen({ schemes, viewKey = 'typical', initialIndex = 0, pinned = null, demo = false, still = false, embedded = false, onBack, onIndexChange, onAll, dismiss = null }) {
+export default function DockScreen({ schemes, viewKey = 'typical', initialIndex = 0, pinned = null, demo = false, still = false, embedded = false, onBack, onIndexChange, onAll, dismiss = null, arrival = null }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const n = schemes.length;
@@ -32,6 +32,12 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
   const [screenH, setScreenH] = useState(0);
   const pager = usePager({ count: n, initial: firstIndex });
   const { pos, index, goTo, pagePan, dockPan, setPageUnit, setDockUnit } = pager;
+  // Embedded in the list, the chrome arrives on the move's own clock: the bar
+  // rises from below the screen over the last 45 % and the back chip fades in
+  // over the last 25 %, after the page has settled under them. Standalone, both
+  // are simply there.
+  const chromeIn = arrival ? { opacity: arrival.interpolate({ inputRange: [0.75, 1], outputRange: [0, 1], extrapolate: 'clamp' }) } : null;
+  const barIn = arrival ? { transform: [{ translateY: arrival.interpolate({ inputRange: [0.55, 1], outputRange: [140, 0], extrapolate: 'clamp' }) }] } : null;
   useEffect(() => setPageUnit(pageW), [pageW]);
   useEffect(() => setDockUnit(PITCH), []);
   useEffect(() => {
@@ -104,7 +110,7 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
 
       {/* The fixed chrome: one back button, and the list of every scheme. */}
       <SafeAreaView style={styles.topBar} edges={['top']} pointerEvents="box-none">
-        <View style={styles.chromeRow} pointerEvents="box-none">
+        <Animated.View style={[styles.chromeRow, chromeIn]} pointerEvents="box-none">
           <Pressable onPress={back} style={styles.backHit} android_ripple={{ color: '#ffffff33', borderless: true }} accessibilityLabel="Back">
             <View style={styles.backChip}>
               <IconBack size={22} color="#fff" />
@@ -118,11 +124,13 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
               <Text style={styles.listCount} numberOfLines={1} allowFontScaling={false}>{n} schemes</Text>
             </Pressable>
           ) : null}
-        </View>
+        </Animated.View>
       </SafeAreaView>
 
       {n > 0 && pageW > 0 ? (
+        <Animated.View style={[StyleSheet.absoluteFill, barIn]} pointerEvents="box-none">
         <SchemeDock schemes={schemes} pos={pos} index={index} onSelect={goTo} onAll={all} panHandlers={dockPan} width={pageW} bottomInset={insets.bottom} />
+        </Animated.View>
       ) : null}
 
       <AllSchemesSheet open={SHOW_PICKER && listOpen} schemes={schemes} index={index} onSelect={goTo} onClose={() => setListOpen(false)} height={screenH} bottomInset={insets.bottom} />

@@ -46,7 +46,7 @@ export function arcSheetRect(w, h, insets) {
   return { x: SHEET_MARGIN, y: top, w: w - SHEET_MARGIN * 2, h: h - top - (ZONE_H + insets.bottom), radius: SHEET_RADIUS };
 }
 
-export default function ArcScreen({ schemes, viewKey = 'typical', initialIndex = 0, pinned = null, demo = false, still = false, embedded = false, onBack, onIndexChange, onAll, dismiss = null }) {
+export default function ArcScreen({ schemes, viewKey = 'typical', initialIndex = 0, pinned = null, demo = false, still = false, embedded = false, onBack, onIndexChange, onAll, dismiss = null, arrival = null }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const n = schemes.length;
@@ -55,6 +55,12 @@ export default function ArcScreen({ schemes, viewKey = 'typical', initialIndex =
   const [size, setSize] = useState({ w: 0, h: 0 });
   const pager = usePager({ count: n, initial: firstIndex });
   const { pos, index, goTo, pagePan, dockPan, setPageUnit, setDockUnit } = pager;
+  // Embedded in the list, the chrome arrives on the move's own clock: the bar
+  // rises from below the screen over the last 45 % and the back chip fades in
+  // over the last 25 %, after the page has settled under them. Standalone, both
+  // are simply there.
+  const chromeIn = arrival ? { opacity: arrival.interpolate({ inputRange: [0.75, 1], outputRange: [0, 1], extrapolate: 'clamp' }) } : null;
+  const barIn = arrival ? { transform: [{ translateY: arrival.interpolate({ inputRange: [0.55, 1], outputRange: [140, 0], extrapolate: 'clamp' }) }] } : null;
   useEffect(() => setPageUnit(size.w), [size.w]);
   useEffect(() => setDockUnit(ARC_PITCH), []);
   useEffect(() => {
@@ -127,7 +133,7 @@ export default function ArcScreen({ schemes, viewKey = 'typical', initialIndex =
       ) : null}
 
       {/* Fixed chrome over the card: back, and the list of every scheme. */}
-      <View style={[styles.chrome, { top: sheetTop + 4, left: SHEET_MARGIN + 6, right: SHEET_MARGIN + 6 }]} pointerEvents="box-none">
+      <Animated.View style={[styles.chrome, chromeIn, { top: sheetTop + 4, left: SHEET_MARGIN + 6, right: SHEET_MARGIN + 6 }]} pointerEvents="box-none">
         <Pressable onPress={back} style={styles.backBtn} android_ripple={{ color: '#ffffff33', borderless: true }} accessibilityLabel="Back">
           <IconBack size={22} color="#fff" />
         </Pressable>
@@ -139,10 +145,12 @@ export default function ArcScreen({ schemes, viewKey = 'typical', initialIndex =
             <Text style={styles.listCount} numberOfLines={1} allowFontScaling={false}>{n} schemes</Text>
           </Pressable>
         ) : null}
-      </View>
+      </Animated.View>
 
       {n > 0 && size.w > 0 ? (
-        <ArcDock schemes={schemes} pos={pos} onSelect={goTo} onAll={all} panHandlers={dockPan} width={size.w} bottomInset={insets.bottom} />
+        <Animated.View style={[StyleSheet.absoluteFill, barIn]} pointerEvents="box-none">
+          <ArcDock schemes={schemes} pos={pos} onSelect={goTo} onAll={all} panHandlers={dockPan} width={size.w} bottomInset={insets.bottom} />
+        </Animated.View>
       ) : null}
 
       <AllSchemesSheet open={SHOW_PICKER && listOpen} schemes={schemes} index={index} onSelect={goTo} onClose={() => setListOpen(false)} height={size.h} bottomInset={insets.bottom} />
