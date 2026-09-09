@@ -302,15 +302,21 @@ worse on the phone. This is the version that shipped.
 
 ## The list, and the move into the detail (4 Sep 2026)
 
-`/schemes/list` (`?brand=jt` for the Jumbotail chrome) is the scheme list. It is a
-screen the Solv app pushes from Home, so it wears the app's chrome: the blue toolbar with a
-back arrow (a 40 dp hit, the arrow's edge at 16, the title at 72, the Material app bar) and
-the title, the RUNNING and COMPLETED tabs with counts and the sliding orange indicator
-(both labels at a fixed 14 sp; the shared TabLabel's fit measurement shrank the shorter
-word), and the app's ground. The bottom navigation and the tab-of-the-nav framing were
-removed on 9 Sep 2026 (`src/schemes/SolvBottomNav.js` stays in the tree, unused). The
-details' scheme picker (the "N schemes" button and its sheet) is hidden for now
-(`SHOW_PICKER` in DockScreen); the swipe still moves between schemes.
+`/schemes/list` (`?brand=jt` for the Jumbotail chrome) is the scheme list. In the Solv
+flavour it is the Targets tab of the app's bottom navigation, so it wears the app's chrome
+and has no back arrow: the blue toolbar with the title, the RUNNING and COMPLETED tabs with
+counts and the sliding orange indicator (both labels at a fixed 14 sp; the shared TabLabel's
+fit measurement shrank the shorter word), the app's ground, and the bottom navigation
+(`src/schemes/SolvBottomNav.js`): Home, Rewards, Targets, Credit, All Brands, drawn from the
+app's own vectors (`ic_home_*`, `ic_trophy_*`, `ic_target_scheme_navigation`,
+`ic_jumbopaylater_*`, `ic_brands_*` in `HomePagePresenter.java`'s TabModels), a 52 dp white
+bar with an 8 dp elevation, a 24 dp icon over a 12 sp Roboto Medium label, the selected label
+`grey_text_dark` and bold with the icon in its filled form and a 2 dp indicator in the accent.
+The Jumbotail flavour pushes the list from Home instead: a back arrow in the toolbar (a 40 dp
+hit, the arrow's edge at 16, the title at 72, the Material app bar) and no bottom navigation.
+`CHROME.nav` in SchemesList picks the framing per brand (9 Sep 2026). The details' scheme
+picker (the "N schemes" button and its sheet) is hidden for now (`SHOW_PICKER` in DockScreen);
+the swipe still moves between schemes.
 
 The colours are the Solv flavour's own, from `mainandroidapp/app/src/solv/res/values/colors.xml`
 (`src/gifts/solv.js`): toolbar and tabs `primary_color` #004FFA, ground `background_green`

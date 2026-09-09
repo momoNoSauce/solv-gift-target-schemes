@@ -1,10 +1,11 @@
 // The scheme list, and the move from a card to its detail.
 //
-// The list is a screen of the Solv app, pushed from Home, so it has the app's
-// chrome: the blue toolbar with a back arrow and the title, the RUNNING and
-// COMPLETED tabs with the orange indicator (the app's
-// indicator_background_color), and the app's ground. No bottom navigation
-// (removed 9 Sep 2026; the tab-of-the-nav framing went with it).
+// The list wears the app's chrome: the toolbar with the title, the RUNNING and
+// COMPLETED tabs with the indicator (Solv: indicator_background_color), and the
+// app's ground. Solv shows it as the Targets tab of the bottom navigation
+// (Home, Rewards, Targets, Credit, All Brands; src/schemes/SolvBottomNav.js),
+// so it has no back arrow. Jumbotail pushes it from Home: a back arrow in the
+// toolbar, no bottom navigation. CHROME.nav picks the framing per brand.
 //
 // The two tabs are pages of one pager (src/schemes/usePager.js), so a
 // swipe moves them and the indicator together. Each page lists big cards, one
@@ -43,6 +44,7 @@ import DockScreen from './DockScreen';
 import { useRouter } from 'expo-router';
 import { IconBack } from '../icons';
 import { backToEntry } from './nav';
+import SolvBottomNav, { NAV_H } from './SolvBottomNav';
 import { T } from './copy';
 import { SETTLED } from './motion';
 
@@ -148,8 +150,8 @@ function Empty({ title, line, bottom }) {
 // brand_green toolbar and tabs, target_scheme_native for the tab indicator and
 // the active nav item, default_bg_color for the ground.
 const CHROME = {
-  solv: { bar: SOLV.blue, indicator: SOLV.orange, ground: SOLV.listBg, navAccent: SOLV.blue, accentBg: SOLV.blueBg },
-  jt: { bar: C.brandGreen, indicator: C.targetSchemeNative, ground: '#EEEEEE', navAccent: C.targetSchemeNative, accentBg: '#E8F4E8' },
+  solv: { bar: SOLV.blue, indicator: SOLV.orange, ground: SOLV.listBg, navAccent: SOLV.blue, accentBg: SOLV.blueBg, nav: true },
+  jt: { bar: C.brandGreen, indicator: C.targetSchemeNative, ground: '#EEEEEE', navAccent: C.targetSchemeNative, accentBg: '#E8F4E8', nav: false },
 };
 
 export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
@@ -239,7 +241,7 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
     const lay = cardLayouts.current[i];
     const sv = scrollRefs.current[g];
     if (lay && sv) {
-      const viewH = size.h - insets.top - TOOLBAR_H - TAB_H - insets.bottom;
+      const viewH = size.h - insets.top - TOOLBAR_H - TAB_H - (chrome.nav ? NAV_H : 0) - insets.bottom;
       const want = Math.max(0, lay.y - Math.max(GAP, (viewH - lay.h) / 2));
       if (Math.abs(want - scrollY.current[g]) > 2) {
         sv.scrollTo({ y: want, animated: false });
@@ -363,6 +365,9 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
     opacity: progress.interpolate({ inputRange: [0, 0.3, 1], outputRange: [1, 0.55, 0.45], extrapolate: 'clamp' }),
     transform: [{ scale: progress.interpolate({ inputRange: [0, 0.6, 1], outputRange: [1, 0.955, 0.94], extrapolate: 'clamp' }) }],
   };
+  // The bottom bar leaves on its own track, down and out, in the first 40 % of
+  // the move, so the detail never shares its 52 px.
+  const navOut = { transform: [{ translateY: progress.interpolate({ inputRange: [0, 0.4], outputRange: [0, NAV_H + insets.bottom + 8], extrapolate: 'clamp' }) }] };
   const detailFade = progress.interpolate({ inputRange: [0.55, 1], outputRange: [0, 1], extrapolate: 'clamp' });
   // The white frame's inset, shared by the art panel and the footer over it.
   const frameInset = progress.interpolate({ inputRange: [0, 0.34], outputRange: [FRAME, 0], extrapolate: 'clamp' });
@@ -382,10 +387,12 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
         {/* The app bar: toolbar and tabs, on the app's blue. */}
         <View style={[styles.appBar, { paddingTop: insets.top, backgroundColor: chrome.bar }]}>
           <View style={styles.toolbar}>
-            <Pressable onPress={() => backToEntry(router)} style={styles.backHit} android_ripple={{ color: '#ffffff33', borderless: true }} accessibilityRole="button" accessibilityLabel="Back" hitSlop={4}>
-              <IconBack size={24} color="#fff" />
-            </Pressable>
-            <Text style={styles.toolbarTitle} allowFontScaling={false}>Target schemes</Text>
+            {chrome.nav ? null : (
+              <Pressable onPress={() => backToEntry(router)} style={styles.backHit} android_ripple={{ color: '#ffffff33', borderless: true }} accessibilityRole="button" accessibilityLabel="Back" hitSlop={4}>
+                <IconBack size={24} color="#fff" />
+              </Pressable>
+            )}
+            <Text style={[styles.toolbarTitle, chrome.nav && styles.toolbarTitleRoot]} allowFontScaling={false}>Target schemes</Text>
           </View>
           <View style={styles.tabBar}>
             {[t.running, t.completed].map((label, i) => (
@@ -418,7 +425,7 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
                 ) : (
                   <ScrollView
                     ref={(r) => (scrollRefs.current[g] = r)}
-                    contentContainerStyle={{ paddingTop: 16, paddingBottom: 24 + insets.bottom }}
+                    contentContainerStyle={{ paddingTop: 16, paddingBottom: chrome.nav ? 24 : 24 + insets.bottom }}
                     scrollEventThrottle={16}
                     onScroll={(e) => {
                       scrollY.current[g] = e.nativeEvent.contentOffset.y;
@@ -445,6 +452,12 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
           </Animated.View>
         ) : null}
 
+
+        {chrome.nav ? (
+          <Animated.View style={navOut}>
+            <SolvBottomNav selected="schemes" bottomInset={insets.bottom} accent={chrome.navAccent} />
+          </Animated.View>
+        ) : null}
       </Animated.View>
 
       {/* The detail, mounted under the layer from the first frame of the move. */}
@@ -494,9 +507,11 @@ const styles = StyleSheet.create({
   listWrap: { flex: 1 },
   appBar: { backgroundColor: SOLV.blue },
   // Material app bar: the arrow's edge at 16, the title at 72 (8 + 40 + 24).
+  // A tab root (Solv) has no arrow; its title sits at 16.
   toolbar: { height: TOOLBAR_H, flexDirection: 'row', alignItems: 'center', paddingLeft: 8, paddingRight: 16 },
   backHit: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   toolbarTitle: { color: '#fff', fontFamily: F.medium, fontSize: 18, lineHeight: 22, marginLeft: 24 },
+  toolbarTitleRoot: { marginLeft: 8 },
   tabBar: { height: TAB_H, flexDirection: 'row' },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
   tabInner: { flexDirection: 'row', alignItems: 'center' },
