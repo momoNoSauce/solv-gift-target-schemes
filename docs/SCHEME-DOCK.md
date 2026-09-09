@@ -302,27 +302,20 @@ worse on the phone. This is the version that shipped.
 
 ## The list, and the move into the detail (4 Sep 2026)
 
-`/schemes/list?opt=a|b` is the scheme list. It is a tab of the Solv app's bottom
-navigation (it takes the place of All Brands), so it wears the app's chrome and has no
-back action: the blue toolbar with the title, the RUNNING and COMPLETED tabs with the
-sliding orange indicator (both labels at a fixed 14 sp; the shared TabLabel's fit
-measurement shrank the shorter word), the app's ground, and the bottom navigation itself.
-The details' scheme picker (the "N schemes" button and its sheet) is hidden for now
-(`SHOW_PICKER` in ArcScreen and DockScreen); the swipe and the dock still move between
-schemes.
+`/schemes/list` (`?brand=jt` for the Jumbotail chrome) is the scheme list. It is a
+screen the Solv app pushes from Home, so it wears the app's chrome: the blue toolbar with a
+back arrow (a 40 dp hit, the arrow's edge at 16, the title at 72, the Material app bar) and
+the title, the RUNNING and COMPLETED tabs with counts and the sliding orange indicator
+(both labels at a fixed 14 sp; the shared TabLabel's fit measurement shrank the shorter
+word), and the app's ground. The bottom navigation and the tab-of-the-nav framing were
+removed on 9 Sep 2026 (`src/schemes/SolvBottomNav.js` stays in the tree, unused). The
+details' scheme picker (the "N schemes" button and its sheet) is hidden for now
+(`SHOW_PICKER` in DockScreen); the swipe still moves between schemes.
 
 The colours are the Solv flavour's own, from `mainandroidapp/app/src/solv/res/values/colors.xml`
 (`src/gifts/solv.js`): toolbar and tabs `primary_color` #004FFA, ground `background_green`
 #F5F8FF, indicator `indicator_background_color` #ff7711 (3 dp, as
-`fragment_target_scheme_new.xml` sets it). The bottom navigation
-(`src/schemes/SolvBottomNav.js`) follows `fragment_home_page.xml` and `custom_tab_layout.xml`:
-a 52 dp white bar with an 8 dp elevation, tabs filling the width, a 24 dp icon over a 12 sp
-Roboto Medium label, the selected label in `grey_text_dark` and bold with the icon in its filled
-form, a 2 dp indicator in the brand colour. The icons are the app's vectors (`ic_home_*`,
-`ic_explore_*`, `ic_target_scheme_navigation`). Tab set: Home, Explore, Target Schemes, the
-JT order with Target Schemes in the All Brands slot; the Solv flavour drops Credit and
-Distributors. In the checkout of 2026-07-19, `HomePagePresenter.initTabs()` gives the Solv
-flavour only the Home tab, so the set here is an assumption to confirm with the app team. The two tabs are pages of one
+`fragment_target_scheme_new.xml` sets it). The two tabs are pages of one
 pager (`usePager`, `keys: false` so the detail's arrow keys stay its own): a swipe on
 the pages moves the tab and the indicator together; a tap on a tab springs there.
 Axis lock applies, so a vertical drag scrolls and never changes the tab.
