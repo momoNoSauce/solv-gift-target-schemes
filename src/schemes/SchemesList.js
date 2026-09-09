@@ -47,13 +47,14 @@ import { SETTLED } from './motion';
 // Depth, web only. A card on the app's near-white ground (#F5F8FF) cannot lean
 // on a flat 1px outline: one hairline reads as a drawn border, two layered
 // shadows read as a surface lifted off the ground. A tight ambient layer holds
-// the edge (where a soft shadow is weakest) and a wide key layer carries the
-// lift. Native keeps elevation, which Android draws itself.
+// the edge (where a soft shadow is weakest), a mid layer gives the card body,
+// and a wide key layer carries the lift. Deepened 9 Sep 2026 so the cards read
+// as clickable at a glance. Native keeps elevation, which Android draws itself.
 if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getElementById('scheme-card-depth')) {
   const st = document.createElement('style');
   st.id = 'scheme-card-depth';
   st.textContent =
-    '[data-card="scheme"]{box-shadow:0 1px 2px rgba(16,24,40,0.08),0 12px 28px -10px rgba(16,24,40,0.22)!important;}';
+    '[data-card="scheme"]{box-shadow:0 1px 2px rgba(16,24,40,0.10),0 6px 14px -4px rgba(16,24,40,0.16),0 22px 44px -12px rgba(16,24,40,0.32)!important;}';
   document.head.appendChild(st);
 }
 
@@ -518,10 +519,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: SOLV.paper,
     shadowColor: '#101828',
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
+    shadowOpacity: 0.2,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 8,
   },
   art: { overflow: 'hidden' },
   // The card's hairline, as an overlay: a border on the box would inset the
