@@ -257,14 +257,6 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
   // One line of subtitle, two readings of it. The card says what the scheme
   // pays; the page says when it ends. They cross over the first third of the
   // move, in place, so the line never jumps.
-  // What the scheme is for, on the card only: the included categories or
-  // brands, so a card says at a glance what buying counts. The detail has its
-  // own eligible-products section, so the line folds away as the card opens.
-  // Two names and a count: three read as a list, and a brand's own products
-  // repeat the brand. Only while the scheme runs; an ended card has said its piece.
-  const scope = !s.ended && scheme.rules && scheme.rules.included && scheme.rules.included.length
-    ? t.scopeLine(scheme.rules.included.slice(0, 2).join(', ') + (scheme.rules.included.length > 2 ? ` +${scheme.rules.included.length - 2}` : ''))
-    : null;
   const h2 = cardAnim ? (
     <View style={styles.h2Stack}>
       <Animated.View style={[styles.h2Layer, { opacity: k.interpolate({ inputRange: [0, 0.34], outputRange: [1, 0], extrapolate: 'clamp' }) }]}>
@@ -275,11 +267,6 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
       </Animated.View>
     </View>
   ) : dates;
-  const scopeRow = cardAnim && scope ? (
-    <Animated.View style={{ height: dial(20, 0), opacity: k.interpolate({ inputRange: [0, 0.3], outputRange: [1, 0], extrapolate: 'clamp' }), overflow: 'hidden', alignItems: 'center' }}>
-      <Text style={[styles.scope, { color: st.sub }]} numberOfLines={1} allowFontScaling={false}>{scope}</Text>
-    </Animated.View>
-  ) : null;
 
   const title = (
     <>
@@ -298,7 +285,6 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
         </View>
       </View>
       {h2}
-      {scopeRow}
     </>
   );
 
@@ -501,7 +487,6 @@ const styles = StyleSheet.create({
   h2: { marginTop: 4, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 17 },
   // The subtitle's own box, so the offer and the dates can cross in place.
   h2Stack: { height: 21, justifyContent: 'flex-end' },
-  scope: { marginTop: 3, textAlign: 'center', fontFamily: F.regular, fontSize: 12, lineHeight: 16, paddingHorizontal: 24, opacity: 0.85 },
   h2Layer: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end' },
 
   secured: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', borderRadius: 20, paddingLeft: 6, paddingRight: 12, height: 40 },
