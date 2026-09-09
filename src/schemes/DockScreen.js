@@ -132,8 +132,6 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
                   bottomPad={bottomPad}
                   dismiss={embedded && index === i ? dismiss : null}
                   pageIndex={i}
-                  pageCount={n}
-                  pagePos={pos}
                   onTitlePress={() => setDemoOpen((v) => !v)}
                   onSeeRunning={sc.group === 'completed' ? () => goTo(firstRunning) : null}
                 />

@@ -38,7 +38,7 @@ function stepsFor(state) {
   return ['done', 'done', 'done', 'done'];
 }
 
-export default function SchemePage({ scheme, active, near = true, first, still = false, bodyAnim = null, cardAnim = null, offset, bottomPad, onTitlePress, onSeeRunning, lang = 'en', compact = false, edge = false, dismiss = null, pageIndex = 0, pageCount = 1, pagePos = null }) {
+export default function SchemePage({ scheme, active, near = true, first, still = false, bodyAnim = null, cardAnim = null, offset, bottomPad, onTitlePress, onSeeRunning, lang = 'en', compact = false, edge = false, dismiss = null, pageIndex = 0 }) {
   const t = T[lang] || T.en;
   const d = deriveStage(scheme, t);
   const { th, st, s, missed, withDelivery, showBar, multiGift, running, festive } = d;
@@ -171,21 +171,6 @@ export default function SchemePage({ scheme, active, near = true, first, still =
       >
         <View {...(dismiss ? dismissPan.panHandlers : {})} dataSet={dismiss ? { touch: 'pan-y' } : undefined}>
           <Stage scheme={scheme} compact={compact} anim={{ labelA, tileA, nameA, barA, amountA, ctaA }} lag={lag} near={near} onTitlePress={onTitlePress} onSeeRunning={onSeeRunning} lang={lang} fill={missed} cardAnim={cardAnim} />
-          {/* The page dots, at the foot of the stage: one per scheme of the
-              group, the focused one a bar in the stage's accent. On a card they
-              are folded away (the card is not paged); they rise with the move. */}
-          {pageCount > 1 && pagePos ? (
-            <Animated.View pointerEvents="none" style={[styles.dots, cardAnim && { opacity: cardAnim.interpolate({ inputRange: [0.7, 1], outputRange: [0, 1], extrapolate: 'clamp' }) }]}>
-              <View style={styles.dotsRow}>
-                {Array.from({ length: pageCount }, (_, i) => (
-                  <Animated.View
-                    key={i}
-                    style={[styles.dot, { backgroundColor: st.accent, width: pagePos.interpolate({ inputRange: [i - 1, i, i + 1], outputRange: [6, 18, 6], extrapolate: 'clamp' }), opacity: pagePos.interpolate({ inputRange: [i - 1, i, i + 1], outputRange: [0.3, 1, 0.3], extrapolate: 'clamp' }) }]}
-                  />
-                ))}
-              </View>
-            </Animated.View>
-          ) : null}
         </View>
 
         <Animated.View style={bodyStyle}>
@@ -303,6 +288,14 @@ export default function SchemePage({ scheme, active, near = true, first, still =
           </>
         )}
 
+        {/* The CTA follows the gift list: the member has just seen what is on
+            offer and the next question is what to buy. The rules answer it. */}
+        {showBar ? (
+          <Animated.View style={rise(ctaA, 10)}>
+            <CtaButton label={t.cta()} bg={th.card.accent} fg={th.card.accentInk} glow containerStyle={styles.bottomCta} />
+          </Animated.View>
+        ) : null}
+
         {/* Eligible products: the app's target_scheme_rule table, restyled. */}
         {missed ? null : (
           <>
@@ -324,12 +317,6 @@ export default function SchemePage({ scheme, active, near = true, first, still =
             </View>
           </>
         )}
-
-        {showBar ? (
-          <Animated.View style={rise(ctaA, 10)}>
-            <CtaButton label={t.cta()} bg={th.card.accent} fg={th.card.accentInk} glow containerStyle={styles.bottomCta} />
-          </Animated.View>
-        ) : null}
 
         {missed ? null : (
           <View style={styles.facts}>
@@ -430,9 +417,6 @@ const styles = StyleSheet.create({
 
   confetti: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
   // The dots sit in the stage's own bottom padding, over the art, 10 px up.
-  dots: { position: 'absolute', left: 0, right: 0, bottom: 10, alignItems: 'center' },
-  dotsRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  dot: { height: 6, borderRadius: 3 },
   // The fold as a material: content fades into the card over 88 px.
   edge: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 88 },
 });

@@ -196,6 +196,22 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
   const [dTagW, setDTagW] = useState(84);
 
   const sparkleAnim = useRef(new Animated.Value(0.5)).current;
+  // The runner runs: a 520 ms stride, bob 2.5 px and a 5 deg rock, while the
+  // page is near. Still on a card (the list would run four loops) and when
+  // motion is settled.
+  const runA = useRef(new Animated.Value(0)).current;
+  const runnerOn = !SETTLED && !card && near && trackW > 0 && localPct > 0 && !s.ended;
+  useEffect(() => {
+    if (!runnerOn) return undefined;
+    const stride = (to) => Animated.timing(runA, { toValue: to, duration: 260, easing: Easing.inOut(Easing.sin), useNativeDriver: false });
+    const loop = Animated.loop(Animated.sequence([stride(1), stride(0)]));
+    loop.start();
+    return () => { loop.stop(); runA.setValue(0); };
+  }, [runnerOn]);
+  const runStyle = { transform: [
+    { translateY: runA.interpolate({ inputRange: [0, 1], outputRange: [0, -2.5] }) },
+    { rotate: runA.interpolate({ inputRange: [0, 1], outputRange: ['-2deg', '3deg'] }) },
+  ] };
   useEffect(() => {
     if (SETTLED || !festive) return;
     const loop = Animated.loop(
@@ -415,7 +431,9 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                   ) : null}
                   {trackW > 0 && localPct > 0 ? (
                     <Animated.View style={[styles.runnerD, { left: barA.interpolate({ inputRange: [0, 1], outputRange: [0, Math.min(Math.max(localPct * trackW - 11, 0), trackW - 26)] }) }]}>
-                      <IconRunningMan height={22} color="#fff" />
+                      <Animated.View style={runStyle}>
+                        <IconRunningMan height={22} color="#fff" />
+                      </Animated.View>
                     </Animated.View>
                   ) : null}
                 </View>
