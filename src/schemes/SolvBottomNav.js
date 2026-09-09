@@ -14,7 +14,7 @@
 // selected colour.
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Defs, ClipPath } from 'react-native-svg';
 import { C, F } from '../theme';
 import { HOME_PATH } from '../icons';
 import { SOLV } from '../gifts/solv';
@@ -44,12 +44,24 @@ const FLAG = 'M6.39,2.1C7.3922,1.9937 8.4048,2.0477 9.39,2.26C11.59,2.64 14.39,3
 const POLE = 'M4.16,18.73L4.16,1.91C4.16,1.6271 4.273,1.356 4.474,1.1569C4.675,0.9578 4.9471,0.8473 5.23,0.85C5.5119,0.8473 5.7831,0.9581 5.9825,1.1575C6.1819,1.3569 6.2927,1.6281 6.29,1.91L6.29,18.73';
 const BASE = 'M17.825,19.565L17.825,19.565A1,1 0,0 1,16.825 20.565L1.825,20.565A1,1 0,0 1,0.825 19.565L0.825,19.565A1,1 0,0 1,1.825 18.565L16.825,18.565A1,1 0,0 1,17.825 19.565z';
 
+// ic_home_unselected draws the outline as a 2 dp stroke of the silhouette,
+// clipped to the silhouette (clip-path, evenOdd), so a 1 dp line sits inside
+// the edge. The selected form fills the silhouette.
 function HomeIcon({ selected, accent = SOLV.blue }) {
   return (
     <Svg width={24} height={24} viewBox="0 0 24 24">
-      {selected
-        ? <Path d={HOME_PATH} fill={accent} fillRule="evenodd" />
-        : <Path d={HOME_PATH} fill="none" stroke={C.almostBlack} strokeWidth={1.6} strokeLinejoin="round" />}
+      {selected ? (
+        <Path d={HOME_PATH} fill={accent} fillRule="evenodd" />
+      ) : (
+        <>
+          <Defs>
+            <ClipPath id="solv-nav-home-clip">
+              <Path d={HOME_PATH} clipRule="evenodd" />
+            </ClipPath>
+          </Defs>
+          <Path d={HOME_PATH} fill="none" stroke="#111111" strokeWidth={2} clipPath="url(#solv-nav-home-clip)" />
+        </>
+      )}
     </Svg>
   );
 }
