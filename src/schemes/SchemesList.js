@@ -1,10 +1,10 @@
 // The scheme list, and the move from a card to its detail.
 //
-// The list is a tab of the Solv app's bottom navigation (it takes the place of
-// All Brands), so it has the app's chrome and no back action: the blue toolbar,
-// the RUNNING and COMPLETED tabs with the orange indicator (the app's
-// indicator_background_color), the app's ground, and the bottom navigation
-// itself (src/schemes/SolvBottomNav.js) with Target Schemes selected.
+// The list is a screen of the Solv app, pushed from Home, so it has the app's
+// chrome: the blue toolbar with a back arrow and the title, the RUNNING and
+// COMPLETED tabs with the orange indicator (the app's
+// indicator_background_color), and the app's ground. No bottom navigation
+// (removed 9 Sep 2026; the tab-of-the-nav framing went with it).
 //
 // The two tabs are pages of one pager (src/schemes/usePager.js), so a
 // swipe moves them and the indicator together. Each page lists big cards, one
@@ -40,7 +40,9 @@ import { usePager } from './usePager';
 import Stage, { N } from './Stage';
 import SchemePage from './SchemePage';
 import DockScreen from './DockScreen';
-import SolvBottomNav, { NAV_H } from './SolvBottomNav';
+import { useRouter } from 'expo-router';
+import { IconBack } from '../icons';
+import { backToEntry } from './nav';
 import { T } from './copy';
 import { SETTLED } from './motion';
 
@@ -153,6 +155,7 @@ const CHROME = {
 export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
   const chrome = CHROME[brand] || CHROME.solv;
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const schemes = useMemo(() => schemesFor(viewKey), [viewKey]);
   const compact = false;   // one detail now, full screen; the arc's sheet is gone
   const t = T.en;
@@ -236,7 +239,7 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
     const lay = cardLayouts.current[i];
     const sv = scrollRefs.current[g];
     if (lay && sv) {
-      const viewH = size.h - insets.top - TOOLBAR_H - TAB_H - NAV_H - insets.bottom;
+      const viewH = size.h - insets.top - TOOLBAR_H - TAB_H - insets.bottom;
       const want = Math.max(0, lay.y - Math.max(GAP, (viewH - lay.h) / 2));
       if (Math.abs(want - scrollY.current[g]) > 2) {
         sv.scrollTo({ y: want, animated: false });
@@ -360,9 +363,6 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
     opacity: progress.interpolate({ inputRange: [0, 0.3, 1], outputRange: [1, 0.55, 0.45], extrapolate: 'clamp' }),
     transform: [{ scale: progress.interpolate({ inputRange: [0, 0.6, 1], outputRange: [1, 0.955, 0.94], extrapolate: 'clamp' }) }],
   };
-  // The list's own bottom bar leaves on its own track, down and out, in the first
-  // 40 % of the move, so it never shares its 52 px with the detail's dock.
-  const navOut = { transform: [{ translateY: progress.interpolate({ inputRange: [0, 0.4], outputRange: [0, NAV_H + insets.bottom + 8], extrapolate: 'clamp' }) }] };
   const detailFade = progress.interpolate({ inputRange: [0.55, 1], outputRange: [0, 1], extrapolate: 'clamp' });
   // The white frame's inset, shared by the art panel and the footer over it.
   const frameInset = progress.interpolate({ inputRange: [0, 0.34], outputRange: [FRAME, 0], extrapolate: 'clamp' });
@@ -382,6 +382,9 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
         {/* The app bar: toolbar and tabs, on the app's blue. */}
         <View style={[styles.appBar, { paddingTop: insets.top, backgroundColor: chrome.bar }]}>
           <View style={styles.toolbar}>
+            <Pressable onPress={() => backToEntry(router)} style={styles.backHit} android_ripple={{ color: '#ffffff33', borderless: true }} accessibilityRole="button" accessibilityLabel="Back" hitSlop={4}>
+              <IconBack size={24} color="#fff" />
+            </Pressable>
             <Text style={styles.toolbarTitle} allowFontScaling={false}>Target schemes</Text>
           </View>
           <View style={styles.tabBar}>
@@ -415,7 +418,7 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
                 ) : (
                   <ScrollView
                     ref={(r) => (scrollRefs.current[g] = r)}
-                    contentContainerStyle={{ paddingTop: 16, paddingBottom: 24 }}
+                    contentContainerStyle={{ paddingTop: 16, paddingBottom: 24 + insets.bottom }}
                     scrollEventThrottle={16}
                     onScroll={(e) => {
                       scrollY.current[g] = e.nativeEvent.contentOffset.y;
@@ -442,9 +445,6 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
           </Animated.View>
         ) : null}
 
-        <Animated.View style={navOut}>
-          <SolvBottomNav selected="schemes" bottomInset={insets.bottom} accent={chrome.navAccent} />
-        </Animated.View>
       </Animated.View>
 
       {/* The detail, mounted under the layer from the first frame of the move. */}
@@ -493,8 +493,10 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: SOLV.listBg, overflow: 'hidden' },
   listWrap: { flex: 1 },
   appBar: { backgroundColor: SOLV.blue },
-  toolbar: { height: TOOLBAR_H, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
-  toolbarTitle: { color: '#fff', fontFamily: F.medium, fontSize: 18, lineHeight: 22 },
+  // Material app bar: the arrow's edge at 16, the title at 72 (8 + 40 + 24).
+  toolbar: { height: TOOLBAR_H, flexDirection: 'row', alignItems: 'center', paddingLeft: 8, paddingRight: 16 },
+  backHit: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  toolbarTitle: { color: '#fff', fontFamily: F.medium, fontSize: 18, lineHeight: 22, marginLeft: 24 },
   tabBar: { height: TAB_H, flexDirection: 'row' },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
   tabInner: { flexDirection: 'row', alignItems: 'center' },
