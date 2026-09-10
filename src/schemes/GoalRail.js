@@ -8,10 +8,10 @@
 //           86 px tall.
 //   ladder  the shelf with a track behind the tiles, filled in the accent up
 //           to the shop's buying, a dot at the point reached. 86 px tall.
-//   rewards a header ("Explore higher rewards", "Total purchase targets", a
-//           chevron), a row of white product cards (picture, name, slab) for
-//           the targets above the next one, and a full-width tinted button
-//           ("View all N reward levels"). From the 10 Sep 2026 mockup. 246 px.
+//   rewards a row of white product cards (picture, name, slab) for the
+//           targets above the next one, and a full-width tinted button ("View
+//           all N reward levels"). From the 10 Sep 2026 mockup, less its header
+//           row (the button says what the row is). 198 px.
 //
 // The rail opens scrolled so the next target is the first full item, with
 // 16 px of the one before it showing: the qualified targets are one swipe to
@@ -31,7 +31,7 @@ import { F } from '../theme';
 import { SOLV, GiftThumb } from '../gifts/solv';
 import { STATE } from '../gifts/state';
 
-export const RAIL_H = { shelf: 86, ladder: 86, rewards: 246 };
+export const RAIL_H = { shelf: 86, ladder: 86, rewards: 198 };
 
 const PAD = 14;                 // the rail's own inset
 const TILE = 44;                // shelf and ladder: the tile
@@ -100,21 +100,9 @@ export default function GoalRail({ scheme, variant = 'shelf', accent = SOLV.blue
     // a single target, an ended scheme), every target.
     const above = s.next && !s.ended ? tiers.filter((x) => x.tier.at > s.next.at) : [];
     const items = above.length ? above : tiers;
-    const heading = above.length ? 'Explore higher rewards' : 'Reward levels';
     const n = s.ladder.length;
     return (
       <View style={[styles.rail, styles.rewards, { height: RAIL_H.rewards }]}>
-        <View style={styles.rHead}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.rTitle} numberOfLines={1} allowFontScaling={false}>{heading}</Text>
-            <Text style={styles.rSub} numberOfLines={1} allowFontScaling={false}>Total purchase targets</Text>
-          </View>
-          <View style={[styles.rChev, { backgroundColor: accentBg }]}>
-            <Svg width={18} height={18} viewBox="0 0 24 24">
-              <Path d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.42 1.41l4.59-4.59a1 1 0 0 0 0-1.41L10.71 6.7a1 1 0 0 0-1.42.01z" fill={accent} />
-            </Svg>
-          </View>
-        </View>
         <View style={styles.rRow}>
           <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} dataSet={{ touch: 'pan-x' }} contentContainerStyle={styles.rContent}>
             {items.map(({ tier, status }) => (
@@ -197,13 +185,9 @@ const styles = StyleSheet.create({
   track: { position: 'absolute', top: 12 + TILE / 2 - 1, height: 2, borderRadius: 1, backgroundColor: '#E5E7EB' },
   reachDot: { position: 'absolute', top: 12 + TILE / 2 - 5, width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: SOLV.paper },
 
-  // rewards: 14 pad, 38 head, 10, 114 card, 12, 44 button, 14 pad = 246.
+  // rewards: 14 pad, 114 card, 12, 44 button, 14 pad = 198.
   rewards: { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 14, justifyContent: 'flex-start' },
-  rHead: { height: 38, flexDirection: 'row', alignItems: 'center' },
-  rTitle: { color: SOLV.ink, fontFamily: F.bold, fontSize: 16, lineHeight: 20 },
-  rSub: { color: SOLV.sub, fontFamily: F.regular, fontSize: 12, lineHeight: 16, marginTop: 1 },
-  rChev: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  rRow: { height: 114, marginTop: 10, marginHorizontal: -14 },
+  rRow: { height: 114, marginHorizontal: -14 },
   rContent: { paddingHorizontal: 14, flexDirection: 'row', gap: RCARD_GAP },
   rCard: { width: RCARD_W, height: 114, borderRadius: 10, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: SOLV.paper, alignItems: 'center', paddingTop: 8 },
   rPic: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center' },
