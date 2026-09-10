@@ -17,6 +17,7 @@ const DETAIL = process.env.EXPO_PUBLIC_ENTRY === 'detail';
 const OPTIONS = [
   { key: 'A', name: 'Solv', href: DETAIL ? '/schemes' : '/schemes/list' },
   { key: 'B', name: 'Jumbotail', href: DETAIL ? '/schemes' : '/schemes/list?brand=jt' },
+  { key: 'C', name: 'Footer variants', href: '/schemes/list?compare=1' },
 ];
 
 function Row({ option, anim, onPress }) {

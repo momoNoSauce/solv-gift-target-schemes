@@ -399,6 +399,17 @@ card and page alike, so nothing crosses over during the move.
 The gift images were dropped after the founder review of 4 Sep 2026 and asked back on 10
 Sep 2026, with the count label they had on 4 Sep at 17:43 (commit 8f77dc5).
 
+`?compare=1` lays the footer variants side by side for the 10 Sep 2026 review: every scheme
+once per variant, a tag over each card, the tab counts still per scheme. A is the footer
+above. B, C and D draw the targets as a swipable rail (`src/schemes/GoalRail.js`): B, pill
+chips with a 38 px disc, the slab in bold and a status word (Next, Qualified, Won, Missed);
+C, 44 px tiles with the slab as a caption, the next target's tile in the accent; D, the shelf
+with a track behind the tiles filled to the buying reached, a dot in the gap. The rail opens
+scrolled so the next target is the first full item with 16 px of the one before it under a
+left fade; a right fade says there is more; an all-cash ladder shows notes; an ended scheme
+shows won and missed targets. A card opens into the detail from any variant, and the detail
+pages over the schemes, not the variants; the move's footer copy takes the variant's height.
+
 The subtitle carries the offer, not the dates: "Targets ₹2L to ₹1.2Cr · 8 gifts", "Target
 ₹60,000 · 1 gift", "Won at the ₹5L target", "No target reached" (Stage's `offerLine`). A
 scheme pays one gift, the highest target crossed, so nothing counts gifts won. The detail

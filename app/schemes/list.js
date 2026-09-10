@@ -1,5 +1,5 @@
-// The scheme list: ?view= scenario,
-// ?brand=jt for the Jumbotail flavour's chrome (Solv is the default).
+// The scheme list: ?view= scenario, ?brand=jt for the Jumbotail flavour's
+// chrome (Solv is the default), ?compare=1 for the footer variants.
 import React from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -11,10 +11,11 @@ export default function ListRoute() {
   const params = useLocalSearchParams();
   const viewKey = VIEWS[params.view] ? params.view : 'typical';
   const brand = params.brand === 'jt' ? 'jt' : 'solv';
+  const compare = params.compare === '1';
   return (
     <View style={{ flex: 1 }}>
       <StatusBar style="light" />
-      <SchemesList viewKey={viewKey} brand={brand} />
+      <SchemesList viewKey={viewKey} brand={brand} compare={compare} />
     </View>
   );
 }

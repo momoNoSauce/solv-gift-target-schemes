@@ -53,6 +53,13 @@ SHOTS = [
     ('24-detail-missed', '/schemes?view=over&i=2', []),
     ('25-list-b-empty', '/schemes/list?view=empty', []),
     ('26-list-b-many', '/schemes/list?view=many', []),
+    ('30-compare-running', '/schemes/list?compare=1', []),
+    ('31-compare-running-chips', '/schemes/list?compare=1', ['__scroll(640)']),
+    ('32-compare-running-shelf', '/schemes/list?compare=1', ['__scroll(1290)']),
+    ('33-compare-running-ladder', '/schemes/list?compare=1', ['__scroll(1950)']),
+    ('34-compare-cash-ladder', '/schemes/list?compare=1', ['__scroll(4600)']),
+    ('35-compare-completed', '/schemes/list?compare=1', ['window.__list.tab(1)', '__scroll(640)']),
+    ('36-compare-start', '/schemes/list?compare=1&view=start', ['__scroll(640)']),
 ]
 
 SCROLL = """window.__scroll = (y) => { const sv=[...document.querySelectorAll('div')]

@@ -39,6 +39,7 @@ import { C, F } from '../theme';
 import { schemesFor } from './registry';
 import { usePager } from './usePager';
 import Stage, { N, offerLine } from './Stage';
+import GoalRail, { RAIL_H } from './GoalRail';
 import SchemePage from './SchemePage';
 import DockScreen from './DockScreen';
 import { useRouter } from 'expo-router';
@@ -85,6 +86,17 @@ const TAB_H = 44;
 // seam: the footer fades as the body arrives.
 export const FOOTER_H = 56;
 
+// The footer variants for the 10 Sep 2026 comparison (?compare=1 shows every
+// scheme once per variant, with a tag over each card). 'a' is the footer in
+// use; the others draw the targets as a swipable rail (src/schemes/GoalRail.js).
+const VARIANTS = {
+  a: { label: 'A · Gift images and count' },
+  b: { label: 'B · Goal chips', rail: 'chips' },
+  c: { label: 'C · Goal shelf', rail: 'shelf' },
+  d: { label: 'D · Goal ladder', rail: 'ladder' },
+};
+const footerH = (v) => (v === 'a' ? FOOTER_H : RAIL_H[VARIANTS[v].rail]);
+
 // The footer carries the window. The offer ("Targets ₹2L to ₹1.2Cr · 8 gifts")
 // sits under the title on the stage (see Stage's offerLine), where the eye lands
 // first; the dates belong with the small print.
@@ -114,7 +126,14 @@ function footerLabel(scheme, t) {
 // gift count (or the won target) beside them, the chevron on the right. This
 // footer was dropped after the founder review of 4 Sep 2026 and asked back on
 // 10 Sep 2026. The subtitle on the stage says when the scheme ends.
-export function CardFooter({ scheme, t, style, accent = SOLV.blue, accentBg = SOLV.blueBg }) {
+export function CardFooter({ scheme, t, style, accent = SOLV.blue, accentBg = SOLV.blueBg, variant = 'a' }) {
+  if (variant !== 'a') {
+    return (
+      <View style={style}>
+        <GoalRail scheme={scheme} variant={VARIANTS[variant].rail} accent={accent} accentBg={accentBg} />
+      </View>
+    );
+  }
   const gifts = footerGifts(scheme);
   const won = scheme.s.ended && scheme.s.earned;
   return (
@@ -147,7 +166,7 @@ export function CardFooter({ scheme, t, style, accent = SOLV.blue, accentBg = SO
   );
 }
 
-function Card({ scheme, compact, onPress, onLayout, cardRef, dim, t, chrome }) {
+function Card({ scheme, compact, onPress, onLayout, cardRef, dim, t, chrome, variant = 'a' }) {
   const press = usePressScale(0.96);
   return (
     <Animated.View ref={cardRef} onLayout={onLayout} dataSet={{ card: 'scheme' }} style={[styles.card, { transform: [{ scale: press.scale }] }, dim && { opacity: 0 }]}>
@@ -157,7 +176,7 @@ function Card({ scheme, compact, onPress, onLayout, cardRef, dim, t, chrome }) {
         <View style={styles.art}>
           <Stage scheme={scheme} compact={compact} card cardAnim={ZERO} />
         </View>
-        <CardFooter scheme={scheme} t={t} accent={chrome.navAccent} accentBg={chrome.accentBg} />
+        <CardFooter scheme={scheme} t={t} accent={chrome.navAccent} accentBg={chrome.accentBg} variant={variant} />
       </Pressable>
       <View pointerEvents="none" style={styles.cardEdge} />
     </Animated.View>
@@ -185,7 +204,7 @@ const CHROME = {
   jt: { bar: C.brandGreen, indicator: C.targetSchemeNative, ground: '#EEEEEE', navAccent: C.targetSchemeNative, accentBg: '#E8F4E8', nav: false },
 };
 
-export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
+export default function SchemesList({ viewKey = 'typical', brand = 'solv', compare = false }) {
   const chrome = CHROME[brand] || CHROME.solv;
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -206,11 +225,21 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
   const { pos: tabPos, index: tab, goTo: goTab, pagePan: tabPan, setPageUnit } = tabs;
   useEffect(() => setPageUnit(size.w), [size.w]);
 
+  // A row is [scheme, scheme index, footer variant, entry index]. The entry
+  // index keys the card refs and layouts; in compare mode a scheme has one
+  // entry per variant, and the detail still pages over the schemes.
+  const variants = compare ? Object.keys(VARIANTS) : ['a'];
   const groups = useMemo(() => {
-    const rows = schemes.map((s, i) => [s, i]);
+    const rows = [];
+    let e = 0;
+    schemes.forEach((s, i) => variants.forEach((v) => rows.push([s, i, v, e++])));
     return [rows.filter(([s]) => s.group === 'running'), rows.filter(([s]) => s.group === 'completed')];
-  }, [schemes]);
+  }, [schemes, compare]);
   const groupOf = (i) => (schemes[i].group === 'completed' ? 1 : 0);
+  const entryOf = (i, v) => {
+    for (const g of groups) for (const r of g) if (r[1] === i && r[2] === v) return r[3];
+    return i;
+  };
 
   // The move.
   const progress = useRef(new Animated.Value(0)).current;
@@ -237,12 +266,12 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
     anim.current.start(({ finished }) => finished && done && done());
   };
 
-  const openCard = async (i) => {
+  const openCard = async (e, i = e, v = 'a') => {
     if (phase !== 'list') return;
-    const from = await measureCard(i);
+    const from = await measureCard(e);
     if (!from) return;
     current.current = i;
-    setOpen({ index: i, from, to: target() });
+    setOpen({ index: i, entry: e, variant: v, from, to: target() });
     setPhase('opening');
     progress.setValue(0);
     if (SETTLED) {
@@ -269,7 +298,8 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
       goTab(g);
       tabs._setPos(g);
     }
-    const lay = cardLayouts.current[i];
+    const e = entryOf(i, open ? open.variant : 'a');
+    const lay = cardLayouts.current[e];
     const sv = scrollRefs.current[g];
     if (lay && sv) {
       const viewH = size.h - insets.top - TOOLBAR_H - TAB_H - (chrome.nav ? NAV_H : 0) - insets.bottom;
@@ -280,8 +310,8 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
       }
     }
     await new Promise((r) => setTimeout(r, 40));
-    const from = await measureCard(i);
-    setOpen((o) => ({ index: i, from: from || o.from, to: target() }));
+    const from = await measureCard(e);
+    setOpen((o) => ({ index: i, entry: e, variant: o ? o.variant : 'a', from: from || o.from, to: target() }));
     setPhase('closing');
     return true;
   };
@@ -358,7 +388,8 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
   useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       window.__list = {
-        open: openCard,
+        open: (i) => openCard(entryOf(i, 'a'), i, 'a'),
+        openVariant: (i, v) => openCard(entryOf(i, v), i, v),
         close: closeDetail,
         tab: goTab,
         phase,
@@ -385,7 +416,9 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
   // opened from RUNNING pages through the running schemes, one from COMPLETED
   // through the completed ones. `rows` maps the detail's own indexes back to
   // the list's, for the arrival and for the way back.
-  const rows = open ? groups[groupOf(open.index)] : [];
+  // The detail pages over the schemes of the open card's group, one page per
+  // scheme: in compare mode, only the rows of the open card's variant.
+  const rows = open ? groups[groupOf(open.index)].filter(([, , v]) => v === open.variant) : [];
   const detailSchemes = rows.map(([sc]) => sc);
   const detailIndex = Math.max(0, rows.findIndex(([, i]) => i === open?.index));
   const toListIndex = (i) => (rows[i] ? rows[i][1] : current.current);
@@ -432,7 +465,7 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
                   <Text style={styles.tabLabel} numberOfLines={1} allowFontScaling={false}>{label}</Text>
                   {groups[i].length ? (
                     <View style={styles.tabCount}>
-                      <Text style={styles.tabCountText} allowFontScaling={false}>{groups[i].length}</Text>
+                      <Text style={styles.tabCountText} allowFontScaling={false}>{groups[i].length / variants.length}</Text>
                     </View>
                   ) : null}
                 </Animated.View>
@@ -463,18 +496,21 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
                     }}
                     showsVerticalScrollIndicator={false}
                   >
-                    {rows.map(([sc, i]) => (
-                      <Card
-                        key={sc.id}
-                        scheme={sc}
-                        compact={compact}
-                        cardRef={(r) => (cardRefs.current[i] = r)}
-                        onLayout={(e) => (cardLayouts.current[i] = { y: e.nativeEvent.layout.y, h: e.nativeEvent.layout.height })}
-                        onPress={() => openCard(i)}
-                        dim={open && open.index === i && phase !== 'list'}
-                        t={t}
-                        chrome={chrome}
-                      />
+                    {rows.map(([sc, i, v, e]) => (
+                      <React.Fragment key={`${sc.id}-${v}`}>
+                        {compare ? <Text style={styles.variantTag} allowFontScaling={false}>{VARIANTS[v].label}</Text> : null}
+                        <Card
+                          scheme={sc}
+                          compact={compact}
+                          variant={v}
+                          cardRef={(r) => (cardRefs.current[e] = r)}
+                          onLayout={(ev) => (cardLayouts.current[e] = { y: ev.nativeEvent.layout.y, h: ev.nativeEvent.layout.height })}
+                          onPress={() => openCard(e, i, v)}
+                          dim={open && open.entry === e && phase !== 'list'}
+                          t={t}
+                          chrome={chrome}
+                        />
+                      </React.Fragment>
                     ))}
                   </ScrollView>
                 )}
@@ -524,8 +560,8 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv' }) {
               card's own footer sits; it fades as the body arrives. Anchoring it
               to a fixed offset from the top instead let the growing stage pass
               under it, and its half-faded white cut a grey strip across the art. */}
-          <Animated.View style={[styles.layerFooter, { left: frameInset, right: frameInset, opacity: progress.interpolate({ inputRange: [0, 0.3], outputRange: [1, 0], extrapolate: 'clamp' }) }]} pointerEvents="none">
-            <CardFooter scheme={schemes[open.index]} t={t} accent={chrome.navAccent} accentBg={chrome.accentBg} />
+          <Animated.View style={[styles.layerFooter, { height: footerH(open.variant), left: frameInset, right: frameInset, opacity: progress.interpolate({ inputRange: [0, 0.3], outputRange: [1, 0], extrapolate: 'clamp' }) }]} pointerEvents="none">
+            <CardFooter scheme={schemes[open.index]} t={t} accent={chrome.navAccent} accentBg={chrome.accentBg} variant={open.variant} />
           </Animated.View>
         </Animated.View>
       ) : null}
@@ -590,6 +626,8 @@ const styles = StyleSheet.create({
   footerLine2: { color: SOLV.sub, fontSize: 13, lineHeight: 17 },
   chev: { width: 30, height: 30, borderRadius: 15, backgroundColor: SOLV.blueBg, alignItems: 'center', justifyContent: 'center' },
   layerFooter: { position: 'absolute', bottom: 0, height: FOOTER_H },
+  // The compare mode's tag over each card, in the list ground.
+  variantTag: { marginHorizontal: CARD_MARGIN + 4, marginBottom: 6, color: SOLV.sub, fontFamily: F.bold, fontSize: 11, lineHeight: 14, letterSpacing: 0.6, textTransform: 'uppercase' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
   emptyBadge: { width: 64, height: 64, borderRadius: 32, backgroundColor: SOLV.blueBg, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { marginTop: 14, fontFamily: F.bold, fontSize: 15, lineHeight: 19, color: SOLV.ink },
