@@ -3,10 +3,10 @@
 // for the 10 Sep 2026 comparison against the fixed footer (gift discs and a
 // count line):
 //
-//   chips   pill chips, one per target: a 38 px disc, the slab in bold and a
-//           status word under it (Next, Qualified, Won, Missed). 76 px tall.
+//   chips   one item per target: a 38 px disc, the slab in bold and a status
+//           word under it (Next, Qualified, Won, Missed). 76 px tall.
 //   shelf   square tiles, one per target, the slab as a caption under each.
-//           The next target's tile wears the accent. 86 px tall.
+//           86 px tall.
 //   ladder  the shelf with a track behind the tiles, filled in the accent up
 //           to the shop's buying, a dot at the point reached. 86 px tall.
 //
@@ -14,6 +14,12 @@
 // 16 px of the one before it showing: the qualified targets are one swipe to
 // the left, the rest of the ladder to the right. A fade on the right edge says
 // there is more. On an ended scheme the rail shows won and missed targets.
+//
+// Nothing in the rail is a control, so nothing may look selected: no borders
+// on items, no tint behind the next target. The next target is said in words
+// (Next) and in the accent colour of its slab; qualified and won targets get a
+// check on the picture; missed targets dim. (Review of 10 Sep 2026: an accent
+// ring and tint on the next target read as a selection that a tap would move.)
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -115,7 +121,7 @@ export default function GoalRail({ scheme, variant = 'chips', accent = SOLV.blue
           const dim = status === 'missed';
           if (variant === 'chips') {
             return (
-              <View key={tier.at} style={[styles.chip, isNext && { borderColor: accent, backgroundColor: accentBg }, dim && { opacity: 0.5 }]}>
+              <View key={tier.at} style={[styles.chip, dim && { opacity: 0.5 }]}>
                 <View style={styles.chipThumb}>
                   <GiftThumb gift={tier} size={26} />
                   {isDone ? <Check size={14} /> : null}
@@ -131,7 +137,7 @@ export default function GoalRail({ scheme, variant = 'chips', accent = SOLV.blue
           }
           return (
             <View key={tier.at} style={[styles.item, dim && { opacity: 0.45 }]}>
-              <View style={[styles.tile, isNext && { borderColor: accent, borderWidth: 1.5, backgroundColor: accentBg }]}>
+              <View style={styles.tile}>
                 <GiftThumb gift={tier} size={30} />
                 {isDone ? <Check size={14} /> : null}
               </View>
@@ -154,14 +160,14 @@ const styles = StyleSheet.create({
   fade: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 36 },
   fadeLeft: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 36 },
 
-  chip: { width: CHIP_W, height: 48, borderRadius: 24, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: SOLV.paper, flexDirection: 'row', alignItems: 'center', paddingLeft: 4, paddingRight: 8 },
-  chipThumb: { width: 38, height: 38, borderRadius: 19, backgroundColor: SOLV.paper, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)', alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
+  chip: { width: CHIP_W, height: 48, flexDirection: 'row', alignItems: 'center', paddingLeft: 4, paddingRight: 8 },
+  chipThumb: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
   chipText: { flex: 1, marginLeft: 8 },
   chipSlab: { color: SOLV.ink, fontFamily: F.bold, fontSize: 13, lineHeight: 16 },
   chipWord: { color: SOLV.sub, fontFamily: F.medium, fontSize: 11, lineHeight: 13, marginTop: 1 },
 
   item: { width: ITEM_W, alignItems: 'center' },
-  tile: { width: TILE, height: TILE, borderRadius: 12, backgroundColor: SOLV.paper, borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center' },
+  tile: { width: TILE, height: TILE, borderRadius: 12, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
   caption: { marginTop: 4, color: SOLV.ink, fontFamily: F.medium, fontSize: 11, lineHeight: 14 },
 
   // The ladder's track sits at the tiles' mid-height: 12 px padding + 22.
