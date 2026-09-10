@@ -26,7 +26,7 @@
 // One spring (stiffness 190, damping 26, ratio 0.94) drives every part of the
 // move and can be reversed mid-flight.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Platform } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Easing, Platform } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { STATE } from '../gifts/state';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -111,25 +111,76 @@ function footerGifts(scheme) {
   return pick.slice(-3).reverse();
 }
 
-// The label says the gifts, not the targets: the bar on the stage already
-// shows the target. "8 gifts to win", "Cashback at 3 targets", "Starts 1 Oct ·
-// 8 gifts", "Won the Air Fryer", "No gift won".
-function footerLabel(scheme, t) {
+// The footer's lines: the facts that sell the scheme, in the order a shopper
+// asks them. They say the gifts, not the targets (the bar on the stage shows
+// the target). A ladder gets three lines, which the footer cycles; a single
+// target and an ended scheme get one, still.
+//   gift ladder   8 gifts to win / Top gift: iPhone 17 / Next: Soundbar at ₹10L
+//   cash ladder   Cashback at 3 targets / Win up to ₹5,000 cashback /
+//                 Next: ₹2,000 cashback at ₹80,000
+//   one target    Win the Watch / Win ₹2,000 cashback
+//   before start  Starts 1 Oct · 8 gifts / Top gift: iPhone 17
+//   ended         Won the Air Fryer / Won ₹500 cashback / No gift won
+function footerLines(scheme, t) {
   const s = scheme.s;
   const n = s.ladder.length;
+  const top = s.ladder[n - 1];
   const cash = s.ladder.every((g) => g.cash);
-  const money = (g) => (g && g.cash ? scheme.money(g.cash) : '');
-  if (s.state === STATE.SCHEDULED) return offerLine(scheme, t);
-  if (s.ended && s.earned) return cash ? t.footWonCash(money(s.secured)) : t.footWon(s.secured.shortName);
-  if (s.ended) return cash ? t.footMissedCash : t.footMissed;
-  return cash ? t.footCash(n, money(s.ladder[0])) : t.footGifts(n);
+  // A cash tier carries its amount already formatted ("₹2,000").
+  const money = (g) => (g && g.cash ? String(g.cash) : '');
+  const slab = scheme.fmt;
+  if (s.ended && s.earned) return [cash ? t.footWonCash(money(s.secured)) : t.footWon(s.secured.shortName)];
+  if (s.ended) return [cash ? t.footMissedCash : t.footMissed];
+  if (n === 1) return [cash ? t.footCashOne(money(top)) : t.footWinOne(top.shortName)];
+  if (s.state === STATE.SCHEDULED) return [offerLine(scheme, t), cash ? t.footCashTop(money(top)) : t.footTop(top.shortName)];
+  const lines = [cash ? t.footCash(n, money(s.ladder[0])) : t.footGifts(n), cash ? t.footCashTop(money(top)) : t.footTop(top.shortName)];
+  if (s.next) lines.push(cash ? t.footCashNext(money(s.next), slab(s.next.at)) : t.footNext(s.next.shortName, slab(s.next.at)));
+  return lines;
+}
+
+// The cycling line. Every PERIOD the line leaves upward (8 px, fading) and
+// the next arrives from below, 180 ms each way; the cards start at different
+// moments (the entry index staggers them) so the list never flips as one.
+// Settled motion, or one line, holds the first line still.
+const TICK_PERIOD = 3400;
+const TICK_STAGGER = 650;
+function FooterTicker({ lines, stagger = 0 }) {
+  const [i, setI] = useState(0);
+  const a = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (SETTLED || lines.length < 2) return undefined;
+    let timer = null;
+    let alive = true;
+    const step = () => {
+      Animated.timing(a, { toValue: 0, duration: 180, easing: Easing.in(Easing.quad), useNativeDriver: false }).start(({ finished }) => {
+        if (!finished || !alive) return;
+        setI((k) => (k + 1) % lines.length);
+        Animated.timing(a, { toValue: 1, duration: 180, easing: Easing.out(Easing.quad), useNativeDriver: false }).start();
+      });
+      timer = setTimeout(step, TICK_PERIOD);
+    };
+    timer = setTimeout(step, TICK_PERIOD + (stagger % 5) * TICK_STAGGER);
+    return () => { alive = false; clearTimeout(timer); a.stopAnimation(); a.setValue(1); };
+  }, [lines.length, stagger]);
+  const text = lines[Math.min(i, lines.length - 1)];
+  return (
+    <View style={styles.footerText} accessibilityLabel={lines.join('. ')}>
+      <Animated.Text
+        style={[styles.footerLine, { opacity: a, transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [i % 2 ? 8 : -8, 0] }) }] }]}
+        numberOfLines={1}
+        allowFontScaling={false}
+      >
+        {text}
+      </Animated.Text>
+    </View>
+  );
 }
 
 // One row under the art: the gift images on the left, the gift count (or the
 // won gift) beside them, the chevron on the right. This
 // footer was dropped after the founder review of 4 Sep 2026 and asked back on
 // 10 Sep 2026. The subtitle on the stage says when the scheme ends.
-export function CardFooter({ scheme, t, style, accent = SOLV.blue, accentBg = SOLV.blueBg, variant = 'a' }) {
+export function CardFooter({ scheme, t, style, accent = SOLV.blue, accentBg = SOLV.blueBg, variant = 'a', stagger = 0 }) {
   if (variant !== 'a') {
     return (
       <View style={style}>
@@ -155,7 +206,7 @@ export function CardFooter({ scheme, t, style, accent = SOLV.blue, accentBg = SO
           </View>
         ) : null}
       </View>
-      <Text style={styles.footerLine} numberOfLines={1} allowFontScaling={false}>{footerLabel(scheme, t)}</Text>
+      <FooterTicker lines={footerLines(scheme, t)} stagger={stagger} />
       <View style={[styles.chev, { backgroundColor: accentBg }]}>
         <Svg width={18} height={18} viewBox="0 0 24 24">
           <Path d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.42 1.41l4.59-4.59a1 1 0 0 0 0-1.41L10.71 6.7a1 1 0 0 0-1.42.01z" fill={accent} />
@@ -165,7 +216,7 @@ export function CardFooter({ scheme, t, style, accent = SOLV.blue, accentBg = SO
   );
 }
 
-function Card({ scheme, compact, onPress, onLayout, cardRef, dim, t, chrome, variant = 'a' }) {
+function Card({ scheme, compact, onPress, onLayout, cardRef, dim, t, chrome, variant = 'a', stagger = 0 }) {
   const press = usePressScale(0.96);
   return (
     <Animated.View ref={cardRef} onLayout={onLayout} dataSet={{ card: 'scheme' }} style={[styles.card, { transform: [{ scale: press.scale }] }, dim && { opacity: 0 }]}>
@@ -175,7 +226,7 @@ function Card({ scheme, compact, onPress, onLayout, cardRef, dim, t, chrome, var
         <View style={styles.art}>
           <Stage scheme={scheme} compact={compact} card cardAnim={ZERO} />
         </View>
-        <CardFooter scheme={scheme} t={t} accent={chrome.navAccent} accentBg={chrome.accentBg} variant={variant} />
+        <CardFooter scheme={scheme} t={t} accent={chrome.navAccent} accentBg={chrome.accentBg} variant={variant} stagger={stagger} />
       </Pressable>
       <View pointerEvents="none" style={styles.cardEdge} />
     </Animated.View>
@@ -502,6 +553,7 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv', compa
                           scheme={sc}
                           compact={compact}
                           variant={v}
+                          stagger={e}
                           cardRef={(r) => (cardRefs.current[e] = r)}
                           onLayout={(ev) => (cardLayouts.current[e] = { y: ev.nativeEvent.layout.y, h: ev.nativeEvent.layout.height })}
                           onPress={() => openCard(e, i, v)}
@@ -620,7 +672,8 @@ const styles = StyleSheet.create({
   thumbRow: { flexDirection: 'row', alignItems: 'center', marginRight: 12 },
   thumb: { width: 32, height: 32, borderRadius: 16, backgroundColor: SOLV.paper, borderWidth: 1, borderColor: 'rgba(0,0,0,0.10)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   wonBadge: { position: 'absolute', right: -3, bottom: -1, width: 14, height: 14, borderRadius: 7, backgroundColor: SOLV.green, borderWidth: 1.5, borderColor: SOLV.paper, alignItems: 'center', justifyContent: 'center', zIndex: 4 },
-  footerLine: { flex: 1, marginRight: 12, color: SOLV.ink, fontFamily: F.regular, fontSize: 14, lineHeight: 18, fontVariant: ['tabular-nums'] },
+  footerText: { flex: 1, marginRight: 12, height: 18, overflow: 'hidden', justifyContent: 'center' },
+  footerLine: { color: SOLV.ink, fontFamily: F.regular, fontSize: 14, lineHeight: 18, fontVariant: ['tabular-nums'] },
   chev: { width: 30, height: 30, borderRadius: 15, backgroundColor: SOLV.blueBg, alignItems: 'center', justifyContent: 'center' },
   layerFooter: { position: 'absolute', bottom: 0, height: FOOTER_H },
   // The compare mode's tag over each card, in the list ground.

@@ -388,11 +388,16 @@ array and maps the detail's indexes back to its own, for the arrival and for the
 The footer is one row, 56 px, and it owns the whole band under the art. On the left, up to
 three 32 px discs with the gift images (22 px inside a 1 px ring, overlapped 9 px, highest
 first): the top of the ladder on a running scheme, the won gifts with a green check on a
-completed one, a single note on an all-cash ladder. Beside them the label says the gifts,
-not the targets (the bar on the stage shows the target; review of 10 Sep 2026): "8 gifts to
-win", "1 gift to win", "Cashback at 3 targets", "Won the Air Fryer", "Won ₹500 cashback",
-"No gift won", and before the start "Starts 1 Oct · 8 gifts". A round chevron in the brand
-colour sits on the right. The inset is 18 px before the
+completed one, a single note on an all-cash ladder. Beside them a line that says the gifts,
+not the targets (the bar on the stage shows the target; review of 10 Sep 2026). A ladder
+gets three lines and the footer cycles them every 3.4 s, the line leaving upward 8 px as it
+fades and the next arriving from below, 180 ms each way; the cards start at different moments
+(the entry index staggers them by 650 ms) so the list never flips as one; settled motion
+holds the first line. Gift ladder: "8 gifts to win", "Top gift: iPhone 17", "Next: Soundbar
+at ₹10L". Cash ladder: "Cashback at 3 targets", "Win up to ₹5,000 cashback", "Next: ₹2,000
+cashback at ₹80,000". Before the start: "Starts 1 Oct · 8 gifts", "Top gift: iPhone 17". One
+target, still: "Win the Watch", "Win ₹2,000 cashback". Ended, still: "Won the Air Fryer",
+"Won ₹500 cashback", "No gift won". A round chevron in the brand colour sits on the right. The inset is 18 px before the
 discs and 13 px after the chevron. The subtitle under the title says when the scheme ends,
 card and page alike, so nothing crosses over during the move.
 
