@@ -91,9 +91,9 @@ export const FOOTER_H = 56;
 // use; the others draw the targets as a swipable rail (src/schemes/GoalRail.js).
 const VARIANTS = {
   a: { label: 'A · Gift images and count' },
-  b: { label: 'B · Goal chips', rail: 'chips' },
-  c: { label: 'C · Goal shelf', rail: 'shelf' },
-  d: { label: 'D · Goal ladder', rail: 'ladder' },
+  b: { label: 'B · Goal shelf', rail: 'shelf' },
+  c: { label: 'C · Goal ladder', rail: 'ladder' },
+  d: { label: 'D · Reward cards', rail: 'rewards' },
 };
 const footerH = (v) => (v === 'a' ? FOOTER_H : RAIL_H[VARIANTS[v].rail]);
 

@@ -401,10 +401,15 @@ Sep 2026, with the count label they had on 4 Sep at 17:43 (commit 8f77dc5).
 
 `?compare=1` lays the footer variants side by side for the 10 Sep 2026 review: every scheme
 once per variant, a tag over each card, the tab counts still per scheme. A is the footer
-above. B, C and D draw the targets as a swipable rail (`src/schemes/GoalRail.js`): B, pill
-chips with a 38 px disc, the slab in bold and a status word (Next, Qualified, Won, Missed);
-C, 44 px tiles with the slab as a caption, the next target's tile in the accent; D, the shelf
-with a track behind the tiles filled to the buying reached, a dot in the gap. The rail opens
+above. B and C draw the targets as a swipable rail (`src/schemes/GoalRail.js`): B, 44 px
+tiles on a light neutral square with the slab as a caption, the next target's slab in the
+accent; C, the shelf with a track behind the tiles filled to the buying reached, a dot in the
+gap. Nothing in a rail has a border or a tint, so nothing reads as selected (a chips variant
+with pills and a status word was dropped the same day). D, from the 10 Sep mockup: a header
+("Explore higher rewards", "Total purchase targets", a chevron disc), a row of white product
+cards (a 56 px picture, the short name, the slab in bold) for the targets above the next one
+(every target when there are none above, or the scheme has ended), and a full-width tinted
+button "View all N reward levels". 246 px tall. The rail opens
 scrolled so the next target is the first full item with 16 px of the one before it under a
 left fade; a right fade says there is more; an all-cash ladder shows notes; an ended scheme
 shows won and missed targets. A card opens into the detail from any variant, and the detail
