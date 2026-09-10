@@ -254,19 +254,10 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
       </Text>
     );
 
-  // One line of subtitle, two readings of it. The card says what the scheme
-  // pays; the page says when it ends. They cross over the first third of the
-  // move, in place, so the line never jumps.
-  const h2 = cardAnim ? (
-    <View style={styles.h2Stack}>
-      <Animated.View style={[styles.h2Layer, { opacity: k.interpolate({ inputRange: [0, 0.34], outputRange: [1, 0], extrapolate: 'clamp' }) }]}>
-        <Text style={[styles.h2, TABULAR, { color: st.sub, marginTop: 0 }]} numberOfLines={1} allowFontScaling={false}>{offerLine(scheme, t)}</Text>
-      </Animated.View>
-      <Animated.View style={[styles.h2Layer, { opacity: k.interpolate({ inputRange: [0.34, 1], outputRange: [0, 1], extrapolate: 'clamp' }) }]}>
-        {dates}
-      </Animated.View>
-    </View>
-  ) : dates;
+  // Under the title, card and page alike: when the scheme ends. The card's
+  // footer carries the targets and the gift count (10 Sep 2026), so the
+  // subtitle no longer crosses over during the move.
+  const h2 = dates;
 
   const title = (
     <>
@@ -486,8 +477,6 @@ const styles = StyleSheet.create({
   h1: { fontFamily: F.bold, fontSize: 22, lineHeight: 27, letterSpacing: 0.2, textAlign: 'center', paddingHorizontal: 8 },
   h2: { marginTop: 4, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 17 },
   // The subtitle's own box, so the offer and the dates can cross in place.
-  h2Stack: { height: 21, justifyContent: 'flex-end' },
-  h2Layer: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end' },
 
   secured: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', borderRadius: 20, paddingLeft: 6, paddingRight: 12, height: 40 },
   securedThumb: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },

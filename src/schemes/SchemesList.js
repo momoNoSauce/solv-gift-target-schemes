@@ -31,14 +31,14 @@ import Svg, { Path } from 'react-native-svg';
 import { STATE } from '../gifts/state';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import GiftGlyph from '../gifts/icons';
-import { SOLV, usePressScale } from '../gifts/solv';
+import { SOLV, usePressScale, GiftThumb } from '../gifts/solv';
 
 // The card form of every stage in the list (see Stage's cardAnim).
 const ZERO = new Animated.Value(0);
 import { C, F } from '../theme';
 import { schemesFor } from './registry';
 import { usePager } from './usePager';
-import Stage, { N } from './Stage';
+import Stage, { N, offerLine } from './Stage';
 import SchemePage from './SchemePage';
 import DockScreen from './DockScreen';
 import { useRouter } from 'expo-router';
@@ -88,25 +88,56 @@ export const FOOTER_H = 56;
 // The footer carries the window. The offer ("Targets ₹2L to ₹1.2Cr · 8 gifts")
 // sits under the title on the stage (see Stage's offerLine), where the eye lands
 // first; the dates belong with the small print.
-function footerDate(scheme, t) {
+// Up to three gifts for the footer: the won ones on a completed scheme, else
+// the top of the ladder, highest first.
+function footerGifts(scheme) {
   const s = scheme.s;
-  if (s.state === STATE.SCHEDULED) return [t.startsLine(s.startLabel), null];
-  if (s.ended) return [t.endedLine(s.endLabel), null];
-  return [t.endsLine(s.endLabel), t.daysLeft(s.daysLeft)];
+  const won = s.ladder.filter((g) => s.currentValue >= g.at);
+  const pick = s.ended && won.length ? won : s.ladder;
+  // An all-cash ladder has one picture, the note; three of it say nothing.
+  if (pick.every((g) => g.cash)) return pick.slice(-1);
+  return pick.slice(-3).reverse();
 }
 
-// One row under the art: the window on the left, the chevron on the right. No
-// gift thumbnails (founder review, 4 Sep 2026). The card already has one gift
-// photo, the hero tile; a row of 22 px discs was a second, weaker one, showing
-// the same product again on a single-gift scheme, and the subtitle already
-// counts the gifts in words. The full list with photos lives in the detail.
+// The label, one line for gifts. A cash ladder's line is long ("Targets
+// ₹30,000 to ₹1,50,000 · cashback at 3 targets"), so it breaks at the
+// separator into two lines: the targets, then the reward.
+function footerLabel(scheme, t) {
+  const line = offerLine(scheme, t);
+  const cash = scheme.s.ladder.length > 1 && scheme.s.ladder.every((g) => g.cash);
+  const i = line.indexOf(' · ');
+  if (!cash || scheme.s.ended || scheme.s.state === STATE.SCHEDULED || i < 0) return [line];
+  return [line.slice(0, i), line.slice(i + 3)];
+}
+
+// One row under the art: the gift images on the left, the targets and the
+// gift count (or the won target) beside them, the chevron on the right. This
+// footer was dropped after the founder review of 4 Sep 2026 and asked back on
+// 10 Sep 2026. The subtitle on the stage says when the scheme ends.
 export function CardFooter({ scheme, t, style, accent = SOLV.blue, accentBg = SOLV.blueBg }) {
+  const gifts = footerGifts(scheme);
+  const won = scheme.s.ended && scheme.s.earned;
   return (
     <View style={[styles.footer, style]} pointerEvents="none">
-      <Text style={styles.footerLine} numberOfLines={1} allowFontScaling={false}>
-        {footerDate(scheme, t)[0]}
-        {footerDate(scheme, t)[1] ? <Text style={styles.footerDays} allowFontScaling={false}>{footerDate(scheme, t)[1]}</Text> : null}
-      </Text>
+      <View style={styles.thumbRow}>
+        {gifts.map((g, i) => (
+          <View key={g.at} style={[styles.thumb, i > 0 && { marginLeft: -9 }, { zIndex: 3 - i }]}>
+            <GiftThumb gift={g} size={22} />
+          </View>
+        ))}
+        {won ? (
+          <View style={styles.wonBadge}>
+            <Svg width={9} height={9} viewBox="0 0 24 24">
+              <Path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            </Svg>
+          </View>
+        ) : null}
+      </View>
+      <View style={styles.footerText}>
+        {footerLabel(scheme, t).map((line, i) => (
+          <Text key={i} style={[styles.footerLine, i > 0 && styles.footerLine2]} numberOfLines={1} allowFontScaling={false}>{line}</Text>
+        ))}
+      </View>
       <View style={[styles.chev, { backgroundColor: accentBg }]}>
         <Svg width={18} height={18} viewBox="0 0 24 24">
           <Path d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.42 1.41l4.59-4.59a1 1 0 0 0 0-1.41L10.71 6.7a1 1 0 0 0-1.42.01z" fill={accent} />
@@ -551,8 +582,12 @@ const styles = StyleSheet.create({
   // below, so the disc sits in an even corner). 56 - 18 px of text = 19 px
   // above and below the line.
   footer: { height: FOOTER_H, flexDirection: 'row', alignItems: 'center', backgroundColor: SOLV.paper, paddingLeft: 18, paddingRight: 13 },
-  footerLine: { flex: 1, color: SOLV.sub, fontFamily: F.regular, fontSize: 14, lineHeight: 18, marginRight: 12, fontVariant: ['tabular-nums'] },
-  footerDays: { color: SOLV.ink, fontFamily: F.medium },
+  thumbRow: { flexDirection: 'row', alignItems: 'center', marginRight: 12 },
+  thumb: { width: 32, height: 32, borderRadius: 16, backgroundColor: SOLV.paper, borderWidth: 1, borderColor: 'rgba(0,0,0,0.10)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  wonBadge: { position: 'absolute', right: -3, bottom: -1, width: 14, height: 14, borderRadius: 7, backgroundColor: SOLV.green, borderWidth: 1.5, borderColor: SOLV.paper, alignItems: 'center', justifyContent: 'center', zIndex: 4 },
+  footerText: { flex: 1, marginRight: 12 },
+  footerLine: { color: SOLV.ink, fontFamily: F.regular, fontSize: 14, lineHeight: 18, fontVariant: ['tabular-nums'] },
+  footerLine2: { color: SOLV.sub, fontSize: 13, lineHeight: 17 },
   chev: { width: 30, height: 30, borderRadius: 15, backgroundColor: SOLV.blueBg, alignItems: 'center', justifyContent: 'center' },
   layerFooter: { position: 'absolute', bottom: 0, height: FOOTER_H },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },

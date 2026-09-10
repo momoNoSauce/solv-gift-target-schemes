@@ -385,18 +385,19 @@ The detail sees one group. A card opened from RUNNING pages through the running 
 one opened from COMPLETED pages through the completed ones. The list passes the filtered
 array and maps the detail's indexes back to its own, for the arrival and for the way back.
 
-The footer is one row, 56 px, and it owns the whole band under the art: the window on the
-left ("Ends 9 Nov 2026 · 21 days left", "Ended 12 Sep 2026", "Starts 1 Oct") and a round
-chevron in the brand colour on the right, with 19 px above and below the text and 13 px
-around the chevron. Its edges line up with the art's, not the card's. The card's frame runs
-on three sides (`paddingBottom: 0`) so the footer centres its content in that band; a frame
-under the footer as well put the content a frame's width high in the white, which is what
-the 4 Sep 2026 review caught.
+The footer is one row, 56 px, and it owns the whole band under the art. On the left, up to
+three 32 px discs with the gift images (22 px inside a 1 px ring, overlapped 9 px, highest
+first): the top of the ladder on a running scheme, the won gifts with a green check on a
+completed one, a single note on an all-cash ladder. Beside them the label from `offerLine`:
+"Targets ₹2L to ₹1.2Cr · 8 gifts", "Target ₹60,000 · 1 gift", "Won at the ₹5L target",
+"No target reached", "Starts 1 Oct · 2 gifts". A running cash ladder's label breaks at the
+separator into two lines, the targets over the reward, because the one line runs past the
+column. A round chevron in the brand colour sits on the right. The inset is 18 px before the
+discs and 13 px after the chevron. The subtitle under the title says when the scheme ends,
+card and page alike, so nothing crosses over during the move.
 
-No gift thumbnails there (founder review, 4 Sep 2026). The card already has one gift photo,
-the hero tile; a row of 22 px discs was a second, weaker one that showed the same product
-again on a single-gift scheme, and the subtitle already counts the gifts in words. The full
-list with photos and slab amounts is one tap away in the detail.
+The gift images were dropped after the founder review of 4 Sep 2026 and asked back on 10
+Sep 2026, with the count label they had on 4 Sep at 17:43 (commit 8f77dc5).
 
 The subtitle carries the offer, not the dates: "Targets ₹2L to ₹1.2Cr · 8 gifts", "Target
 ₹60,000 · 1 gift", "Won at the ₹5L target", "No target reached" (Stage's `offerLine`). A
