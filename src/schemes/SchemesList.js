@@ -111,19 +111,22 @@ function footerGifts(scheme) {
   return pick.slice(-3).reverse();
 }
 
-// The label, one line for gifts. A cash ladder's line is long ("Targets
-// ₹30,000 to ₹1,50,000 · cashback at 3 targets"), so it breaks at the
-// separator into two lines: the targets, then the reward.
+// The label says the gifts, not the targets: the bar on the stage already
+// shows the target. "8 gifts to win", "Cashback at 3 targets", "Starts 1 Oct ·
+// 8 gifts", "Won the Air Fryer", "No gift won".
 function footerLabel(scheme, t) {
-  const line = offerLine(scheme, t);
-  const cash = scheme.s.ladder.length > 1 && scheme.s.ladder.every((g) => g.cash);
-  const i = line.indexOf(' · ');
-  if (!cash || scheme.s.ended || scheme.s.state === STATE.SCHEDULED || i < 0) return [line];
-  return [line.slice(0, i), line.slice(i + 3)];
+  const s = scheme.s;
+  const n = s.ladder.length;
+  const cash = s.ladder.every((g) => g.cash);
+  const money = (g) => (g && g.cash ? scheme.money(g.cash) : '');
+  if (s.state === STATE.SCHEDULED) return offerLine(scheme, t);
+  if (s.ended && s.earned) return cash ? t.footWonCash(money(s.secured)) : t.footWon(s.secured.shortName);
+  if (s.ended) return cash ? t.footMissedCash : t.footMissed;
+  return cash ? t.footCash(n, money(s.ladder[0])) : t.footGifts(n);
 }
 
-// One row under the art: the gift images on the left, the targets and the
-// gift count (or the won target) beside them, the chevron on the right. This
+// One row under the art: the gift images on the left, the gift count (or the
+// won gift) beside them, the chevron on the right. This
 // footer was dropped after the founder review of 4 Sep 2026 and asked back on
 // 10 Sep 2026. The subtitle on the stage says when the scheme ends.
 export function CardFooter({ scheme, t, style, accent = SOLV.blue, accentBg = SOLV.blueBg, variant = 'a' }) {
@@ -152,11 +155,7 @@ export function CardFooter({ scheme, t, style, accent = SOLV.blue, accentBg = SO
           </View>
         ) : null}
       </View>
-      <View style={styles.footerText}>
-        {footerLabel(scheme, t).map((line, i) => (
-          <Text key={i} style={[styles.footerLine, i > 0 && styles.footerLine2]} numberOfLines={1} allowFontScaling={false}>{line}</Text>
-        ))}
-      </View>
+      <Text style={styles.footerLine} numberOfLines={1} allowFontScaling={false}>{footerLabel(scheme, t)}</Text>
       <View style={[styles.chev, { backgroundColor: accentBg }]}>
         <Svg width={18} height={18} viewBox="0 0 24 24">
           <Path d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.42 1.41l4.59-4.59a1 1 0 0 0 0-1.41L10.71 6.7a1 1 0 0 0-1.42.01z" fill={accent} />
@@ -621,9 +620,7 @@ const styles = StyleSheet.create({
   thumbRow: { flexDirection: 'row', alignItems: 'center', marginRight: 12 },
   thumb: { width: 32, height: 32, borderRadius: 16, backgroundColor: SOLV.paper, borderWidth: 1, borderColor: 'rgba(0,0,0,0.10)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   wonBadge: { position: 'absolute', right: -3, bottom: -1, width: 14, height: 14, borderRadius: 7, backgroundColor: SOLV.green, borderWidth: 1.5, borderColor: SOLV.paper, alignItems: 'center', justifyContent: 'center', zIndex: 4 },
-  footerText: { flex: 1, marginRight: 12 },
-  footerLine: { color: SOLV.ink, fontFamily: F.regular, fontSize: 14, lineHeight: 18, fontVariant: ['tabular-nums'] },
-  footerLine2: { color: SOLV.sub, fontSize: 13, lineHeight: 17 },
+  footerLine: { flex: 1, marginRight: 12, color: SOLV.ink, fontFamily: F.regular, fontSize: 14, lineHeight: 18, fontVariant: ['tabular-nums'] },
   chev: { width: 30, height: 30, borderRadius: 15, backgroundColor: SOLV.blueBg, alignItems: 'center', justifyContent: 'center' },
   layerFooter: { position: 'absolute', bottom: 0, height: FOOTER_H },
   // The compare mode's tag over each card, in the list ground.
