@@ -388,16 +388,28 @@ array and maps the detail's indexes back to its own, for the arrival and for the
 The footer is one row, 56 px, and it owns the whole band under the art. On the left, up to
 three 32 px discs with the gift images (22 px inside a 1 px ring, overlapped 9 px, highest
 first): the top of the ladder on a running scheme, the won gifts with a green check on a
-completed one, a single note on an all-cash ladder. Beside them a line that says the gifts,
-not the targets (the bar on the stage shows the target; review of 10 Sep 2026). A ladder
-gets three lines and the footer cycles them every 3.4 s, the line leaving upward 8 px as it
-fades and the next arriving from below, 180 ms each way; the cards start at different moments
-(the entry index staggers them by 650 ms) so the list never flips as one; settled motion
-holds the first line. Gift ladder: "8 gifts to win", "Top gift: iPhone 17", "Next: Soundbar
-at ₹10L". Cash ladder: "Cashback at 3 targets", "Win up to ₹5,000 cashback", "Next: ₹2,000
-cashback at ₹80,000". Before the start: "Starts 1 Oct · 8 gifts", "Top gift: iPhone 17". One
-target, still: "Win the Watch", "Win ₹2,000 cashback". Ended, still: "Won the Air Fryer",
-"Won ₹500 cashback", "No gift won". A round chevron in the brand colour sits on the right. The inset is 18 px before the
+completed one, a single note on an all-cash ladder, and when the ladder has more than three
+gifts a fourth disc with the count of the rest ("+5"). Beside them a line that says the gifts,
+not the targets (the bar on the stage shows the target; review of 10 Sep 2026).
+
+A ladder tells a three-step story, and the discs and the line change as one. Step 1, "8 gifts
+to win": the discs spread. Step 2, "Top gift: iPhone 17": the other discs slide behind the
+first and fade, the top gift grows a quarter, a warm radial glow comes up behind it and a
+shine crosses it once. Step 3, "Next: Soundbar at ₹10L": the disc settles back to size, the
+glow goes, the picture crossfades to the next gift (the old one shrinks to 0.8 and fades as
+the new one grows in) and the bar's own target flag lands on its corner. Then back to step 1:
+the flag leaves, the picture crossfades back, the discs fan out nearest first. Timing of one
+change: the words leave at 0 ms (6 px up, 120 ms, ease-in); the discs move at 40 ms on
+springs without bounce (stiffness 300, damping 34), each slot 30 ms after the last; the words
+arrive at 140 ms (240 ms, ease-out); the shine crosses at 300 ms for 560 ms. Steps hold 3.6 s
+and the cards start at different moments (the entry index staggers them by 700 ms), so the
+list never flips as one. A cash ladder tells the same story with the note: "Cashback at 3
+targets", "Win up to ₹5,000 cashback", "Next: ₹2,000 cashback at ₹80,000". Before the start,
+two steps: "Starts 1 Oct · 8 gifts", "Top gift: iPhone 17". One target, still: "Win the
+Watch", "Win ₹2,000 cashback". Ended, still: "Won the Air Fryer", "Won ₹500 cashback", "No
+gift won". Settled motion holds step 1. Nothing in the footer has an outline that reads as
+selected: the top gift is marked by size, glow and shine, the next gift by the flag. A round
+chevron in the brand colour sits on the right. The inset is 18 px before the
 discs and 13 px after the chevron. The subtitle under the title says when the scheme ends,
 card and page alike, so nothing crosses over during the move.
 

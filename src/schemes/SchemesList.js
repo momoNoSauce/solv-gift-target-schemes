@@ -27,7 +27,8 @@
 // move and can be reversed mid-flight.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Easing, Platform } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 import { STATE } from '../gifts/state';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import GiftGlyph from '../gifts/icons';
@@ -43,7 +44,7 @@ import GoalRail, { RAIL_H } from './GoalRail';
 import SchemePage from './SchemePage';
 import DockScreen from './DockScreen';
 import { useRouter } from 'expo-router';
-import { IconBack } from '../icons';
+import { IconBack, IconTargetFlag } from '../icons';
 import { backToEntry } from './nav';
 import SolvBottomNav, { NAV_H } from './SolvBottomNav';
 import { T } from './copy';
@@ -138,41 +139,179 @@ function footerLines(scheme, t) {
   return lines;
 }
 
-// The cycling line. Every PERIOD the line leaves upward (8 px, fading) and
-// the next arrives from below, 180 ms each way; the cards start at different
-// moments (the entry index staggers them) so the list never flips as one.
-// Settled motion, or one line, holds the first line still.
-const TICK_PERIOD = 3400;
-const TICK_STAGGER = 650;
-function FooterTicker({ lines, stagger = 0 }) {
-  const [i, setI] = useState(0);
-  const a = useRef(new Animated.Value(1)).current;
+// The footer's story: each line has its own picture, and the two change as
+// one. Steps for a gift ladder:
+//   1  "8 gifts to win"          three discs, the top of the ladder, spread,
+//                                and a fourth disc with the count of the rest
+//   2  "Top gift: iPhone 17"     the other discs slide behind the first and
+//                                fade; the top gift grows a quarter, a warm
+//                                glow comes up behind it, a shine crosses it
+//   3  "Next: Soundbar at ₹10L"  the disc settles back to size, the glow goes,
+//                                the picture crossfades to the next gift and a
+//                                small flag (the bar's own target flag) lands
+//                                on its corner
+// then back to 1: the flag leaves, the picture crossfades back, the discs fan
+// out again, nearest first.
+//
+// Timing of one change, t = 0 at the end of the hold:
+//     0 ms  the words leave: 6 px up and out, 120 ms, ease-in
+//    40 ms  the discs move: springs without bounce (stiffness 300, damping
+//           34, about 360 ms), each slot 30 ms after the one before it
+//   140 ms  the words arrive: 6 px up into place, 240 ms, ease-out
+//   300 ms  step 2 only: the shine crosses the disc, 560 ms, once
+// The eye reads picture, then words; the words never leave a hole longer than
+// the discs take to start moving. Steps hold 3.6 s. The cards start at
+// different moments (the entry index staggers them by 700 ms) so the list
+// never flips as one. Settled motion, one line, or an ended scheme holds
+// step 1 still.
+const STORY_HOLD = 3600;
+const STORY_STAGGER = 700;
+const DISC = 32;
+const DISC_STEP = DISC - 9;
+const HERO = 1.25;
+const GOLD = '#E9A825';
+const EASE_IN = Easing.bezier(0.4, 0, 1, 1);
+const EASE_OUT = Easing.bezier(0.2, 0, 0, 1);
+const springTo = (v, to, delay = 0) => Animated.spring(v, { toValue: to, stiffness: 300, damping: 34, mass: 1, delay, useNativeDriver: false });
+const fadeTo = (v, to, duration, easing, delay = 0) => Animated.timing(v, { toValue: to, duration, easing, delay, useNativeDriver: false });
+
+function footerSteps(scheme, t) {
+  const s = scheme.s;
+  const lines = footerLines(scheme, t);
+  const stack = footerGifts(scheme);
+  const more = s.ladder.length > stack.length && !s.ended ? s.ladder.length - stack.length : 0;
+  if (lines.length < 2) return [{ line: lines[0], gifts: stack, more }];
+  const top = s.ladder[s.ladder.length - 1];
+  const steps = [{ line: lines[0], gifts: stack, more }, { line: lines[1], gifts: [top], hero: true }];
+  if (lines[2] && s.next) steps.push({ line: lines[2], gifts: [s.next], flag: true });
+  return steps;
+}
+
+// The first disc: its picture can crossfade (the old one shrinks to 0.8 and
+// fades as the new one grows in), it can grow to the hero size with a glow and
+// a shine, and it can carry the target flag.
+function StoryDisc({ gift, hero, flag, accent }) {
+  const [pair, setPair] = useState({ cur: gift, prev: null });
+  const fade = useRef(new Animated.Value(1)).current;
+  const heroA = useRef(new Animated.Value(hero ? 1 : 0)).current;
+  const shine = useRef(new Animated.Value(0)).current;
+  const flagA = useRef(new Animated.Value(flag ? 1 : 0)).current;
   useEffect(() => {
-    if (SETTLED || lines.length < 2) return undefined;
-    let timer = null;
-    let alive = true;
-    const step = () => {
-      Animated.timing(a, { toValue: 0, duration: 180, easing: Easing.in(Easing.quad), useNativeDriver: false }).start(({ finished }) => {
-        if (!finished || !alive) return;
-        setI((k) => (k + 1) % lines.length);
-        Animated.timing(a, { toValue: 1, duration: 180, easing: Easing.out(Easing.quad), useNativeDriver: false }).start();
-      });
-      timer = setTimeout(step, TICK_PERIOD);
-    };
-    timer = setTimeout(step, TICK_PERIOD + (stagger % 5) * TICK_STAGGER);
-    return () => { alive = false; clearTimeout(timer); a.stopAnimation(); a.setValue(1); };
-  }, [lines.length, stagger]);
-  const text = lines[Math.min(i, lines.length - 1)];
+    if (gift.at === pair.cur.at) return;
+    setPair({ cur: gift, prev: pair.cur });
+    fade.setValue(0);
+    fadeTo(fade, 1, 260, EASE_OUT).start();
+  }, [gift.at]);
+  useEffect(() => {
+    springTo(heroA, hero ? 1 : 0).start();
+    if (hero) {
+      shine.setValue(0);
+      fadeTo(shine, 1, 560, Easing.inOut(Easing.quad), 260).start();
+    }
+  }, [hero]);
+  useEffect(() => {
+    if (flag) fadeTo(flagA, 1, 240, EASE_OUT, 220).start();
+    else fadeTo(flagA, 0, 160, EASE_IN).start();
+  }, [flag]);
+  const scale = heroA.interpolate({ inputRange: [0, 1], outputRange: [1, HERO] });
   return (
-    <View style={styles.footerText} accessibilityLabel={lines.join('. ')}>
-      <Animated.Text
-        style={[styles.footerLine, { opacity: a, transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [i % 2 ? 8 : -8, 0] }) }] }]}
-        numberOfLines={1}
-        allowFontScaling={false}
-      >
-        {text}
-      </Animated.Text>
-    </View>
+    <Animated.View style={[styles.thumbSlot, { width: DISC, height: DISC, transform: [{ scale }] }]}>
+      <Animated.View pointerEvents="none" style={[styles.heroGlow, { opacity: heroA }]}>
+        <Svg width={DISC + 28} height={DISC + 28} viewBox="0 0 60 60">
+          <Defs>
+            <RadialGradient id="storyGlow" cx="50%" cy="50%" r="50%">
+              <Stop offset="0.45" stopColor={GOLD} stopOpacity="0.42" />
+              <Stop offset="0.72" stopColor={GOLD} stopOpacity="0.16" />
+              <Stop offset="1" stopColor={GOLD} stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Circle cx="30" cy="30" r="30" fill="url(#storyGlow)" />
+        </Svg>
+      </Animated.View>
+      <View style={styles.thumb}>
+        <View style={styles.thumbClip}>
+          {pair.prev ? (
+            <Animated.View style={[styles.thumbPic, { opacity: Animated.subtract(1, fade), transform: [{ scale: fade.interpolate({ inputRange: [0, 1], outputRange: [1, 0.8] }) }] }]}>
+              <GiftThumb gift={pair.prev} size={22} />
+            </Animated.View>
+          ) : null}
+          <Animated.View style={[styles.thumbPic, { opacity: fade, transform: [{ scale: fade.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) }] }]}>
+            <GiftThumb gift={pair.cur} size={22} />
+          </Animated.View>
+          <Animated.View pointerEvents="none" style={[styles.shine, { opacity: heroA, transform: [{ translateX: shine.interpolate({ inputRange: [0, 1], outputRange: [-30, 44] }) }, { rotate: '24deg' }] }]}>
+            <LinearGradient colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.75)', 'rgba(255,255,255,0)']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={{ flex: 1 }} />
+          </Animated.View>
+        </View>
+      </View>
+      <Animated.View pointerEvents="none" style={[styles.flagBadge, { opacity: flagA, transform: [{ scale: flagA.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1] }) }] }]}>
+        <IconTargetFlag width={6} height={10} color={accent} />
+      </Animated.View>
+    </Animated.View>
+  );
+}
+
+function FooterStory({ steps, accent, stagger = 0 }) {
+  const [k, setK] = useState(0);
+  const slots = useRef([1, 2, 3].map(() => new Animated.Value(1))).current;   // 1: in its place, 0: behind the first
+  const text = useRef(new Animated.Value(1)).current;
+  const first = useRef(true);
+  const step = steps[Math.min(k, steps.length - 1)];
+  const extra = steps[0].gifts.slice(1);                 // the discs behind the first
+  const count = steps[0].more;                           // the "+N" disc, or 0
+  const slotCount = extra.length + (count ? 1 : 0);
+  const spread = step.gifts.length > 1;
+
+  useEffect(() => {
+    if (SETTLED || steps.length < 2) return undefined;
+    let leaving = null;
+    let arriving = null;
+    if (!first.current) {
+      // Collapse from the farthest disc in; fan out from the nearest disc out.
+      const order = spread ? [0, 1, 2] : [2, 1, 0];
+      order.forEach((i, j) => springTo(slots[i], spread ? 1 : 0, 40 + j * 30).start());
+      arriving = setTimeout(() => fadeTo(text, 1, 240, EASE_OUT).start(), 140);
+    }
+    const wait = STORY_HOLD + (first.current ? (stagger % 5) * STORY_STAGGER : 0);
+    first.current = false;
+    const hold = setTimeout(() => {
+      leaving = fadeTo(text, 0, 120, EASE_IN);
+      leaving.start(({ finished }) => finished && setK((x) => (x + 1) % steps.length));
+    }, wait);
+    return () => { clearTimeout(hold); clearTimeout(arriving); if (leaving) leaving.stop(); };
+  }, [k, steps.length, stagger]);
+
+  // The row's width follows the nearest disc's spread and the first disc's size.
+  const heroW = slots[0].interpolate({ inputRange: [0, 1], outputRange: [DISC * HERO, DISC] });
+  const width = Animated.add(heroW, Animated.multiply(slots[0], slotCount * DISC_STEP));
+  const slotStyle = (i) => ({
+    opacity: slots[i],
+    transform: [{ translateX: slots[i].interpolate({ inputRange: [0, 1], outputRange: [0, (i + 1) * DISC_STEP] }) }, { scale: slots[i].interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) }],
+  });
+  return (
+    <>
+      <Animated.View style={[styles.thumbRow, { width }]}>
+        {count ? (
+          <Animated.View style={[styles.thumb, styles.thumbSlot, styles.countDisc, slotStyle(extra.length)]}>
+            <Text style={styles.countText} allowFontScaling={false}>+{count}</Text>
+          </Animated.View>
+        ) : null}
+        {extra.map((g, i) => (
+          <Animated.View key={g.at} style={[styles.thumb, styles.thumbSlot, slotStyle(i)]}>
+            <GiftThumb gift={g} size={22} />
+          </Animated.View>
+        )).reverse()}
+        <StoryDisc gift={step.gifts[0]} hero={Boolean(step.hero)} flag={Boolean(step.flag)} accent={accent} />
+      </Animated.View>
+      <View style={styles.footerText} accessibilityLabel={steps.map((x) => x.line).join('. ')}>
+        <Animated.Text
+          style={[styles.footerLine, { opacity: text, transform: [{ translateY: text.interpolate({ inputRange: [0, 1], outputRange: [k % 2 ? 6 : -6, 0] }) }] }]}
+          numberOfLines={1}
+          allowFontScaling={false}
+        >
+          {step.line}
+        </Animated.Text>
+      </View>
+    </>
   );
 }
 
@@ -190,23 +329,38 @@ export function CardFooter({ scheme, t, style, accent = SOLV.blue, accentBg = SO
   }
   const gifts = footerGifts(scheme);
   const won = scheme.s.ended && scheme.s.earned;
+  const steps = footerSteps(scheme, t);
+  const story = steps.length > 1 && !SETTLED;
   return (
     <View style={[styles.footer, style]} pointerEvents="none">
-      <View style={styles.thumbRow}>
-        {gifts.map((g, i) => (
-          <View key={g.at} style={[styles.thumb, i > 0 && { marginLeft: -9 }, { zIndex: 3 - i }]}>
-            <GiftThumb gift={g} size={22} />
+      {story ? (
+        <FooterStory steps={steps} accent={accent} stagger={stagger} />
+      ) : (
+        <>
+          <View style={[styles.thumbRow, { width: DISC + (gifts.length - 1 + (steps[0].more ? 1 : 0)) * DISC_STEP }]}>
+            {steps[0].more ? (
+              <View style={[styles.thumb, styles.thumbSlot, styles.countDisc, { transform: [{ translateX: gifts.length * DISC_STEP }] }]}>
+                <Text style={styles.countText} allowFontScaling={false}>+{steps[0].more}</Text>
+              </View>
+            ) : null}
+            {gifts.map((g, i) => (
+              <View key={g.at} style={[styles.thumb, styles.thumbSlot, { transform: [{ translateX: i * DISC_STEP }], zIndex: 3 - i }]}>
+                <GiftThumb gift={g} size={22} />
+              </View>
+            ))}
+            {won ? (
+              <View style={[styles.wonBadge, { left: DISC + (gifts.length - 1) * DISC_STEP - 11 }]}>
+                <Svg width={9} height={9} viewBox="0 0 24 24">
+                  <Path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                </Svg>
+              </View>
+            ) : null}
           </View>
-        ))}
-        {won ? (
-          <View style={styles.wonBadge}>
-            <Svg width={9} height={9} viewBox="0 0 24 24">
-              <Path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            </Svg>
+          <View style={styles.footerText}>
+            <Text style={styles.footerLine} numberOfLines={1} allowFontScaling={false}>{steps[0].line}</Text>
           </View>
-        ) : null}
-      </View>
-      <FooterTicker lines={footerLines(scheme, t)} stagger={stagger} />
+        </>
+      )}
       <View style={[styles.chev, { backgroundColor: accentBg }]}>
         <Svg width={18} height={18} viewBox="0 0 24 24">
           <Path d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.42 1.41l4.59-4.59a1 1 0 0 0 0-1.41L10.71 6.7a1 1 0 0 0-1.42.01z" fill={accent} />
@@ -669,9 +823,21 @@ const styles = StyleSheet.create({
   // below, so the disc sits in an even corner). 56 - 18 px of text = 19 px
   // above and below the line.
   footer: { height: FOOTER_H, flexDirection: 'row', alignItems: 'center', backgroundColor: SOLV.paper, paddingLeft: 18, paddingRight: 13 },
-  thumbRow: { flexDirection: 'row', alignItems: 'center', marginRight: 12 },
-  thumb: { width: 32, height: 32, borderRadius: 16, backgroundColor: SOLV.paper, borderWidth: 1, borderColor: 'rgba(0,0,0,0.10)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  wonBadge: { position: 'absolute', right: -3, bottom: -1, width: 14, height: 14, borderRadius: 7, backgroundColor: SOLV.green, borderWidth: 1.5, borderColor: SOLV.paper, alignItems: 'center', justifyContent: 'center', zIndex: 4 },
+  // The discs sit in absolute slots so they can slide over each other; the
+  // first slot is on top and the rest step 23 px to the right.
+  thumbRow: { height: DISC, marginRight: 12 },
+  thumb: { width: DISC, height: DISC, borderRadius: DISC / 2, backgroundColor: SOLV.paper, borderWidth: 1, borderColor: 'rgba(0,0,0,0.10)', alignItems: 'center', justifyContent: 'center' },
+  thumbSlot: { position: 'absolute', left: 0, top: 0 },
+  thumbClip: { width: DISC - 2, height: DISC - 2, borderRadius: DISC / 2 - 1, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  thumbPic: { position: 'absolute', left: 0, top: 0, width: DISC - 2, height: DISC - 2, alignItems: 'center', justifyContent: 'center' },
+  // The hero's warm glow: a soft disc behind, no edge of its own.
+  // The hero's warm glow: a radial falloff, no edge of its own.
+  heroGlow: { position: 'absolute', left: -14, top: -14, width: DISC + 28, height: DISC + 28 },
+  shine: { position: 'absolute', top: -14, left: 0, width: 12, height: DISC + 26 },
+  flagBadge: { position: 'absolute', right: -3, bottom: -2, width: 14, height: 14, borderRadius: 7, backgroundColor: SOLV.paper, borderWidth: 1, borderColor: 'rgba(0,0,0,0.10)', alignItems: 'center', justifyContent: 'center' },
+  countDisc: { backgroundColor: '#F3F4F6' },
+  countText: { color: SOLV.ink, fontFamily: F.bold, fontSize: 11, lineHeight: 14, fontVariant: ['tabular-nums'] },
+  wonBadge: { position: 'absolute', bottom: -1, width: 14, height: 14, borderRadius: 7, backgroundColor: SOLV.green, borderWidth: 1.5, borderColor: SOLV.paper, alignItems: 'center', justifyContent: 'center', zIndex: 4 },
   footerText: { flex: 1, marginRight: 12, height: 18, overflow: 'hidden', justifyContent: 'center' },
   footerLine: { color: SOLV.ink, fontFamily: F.regular, fontSize: 14, lineHeight: 18, fontVariant: ['tabular-nums'] },
   chev: { width: 30, height: 30, borderRadius: 15, backgroundColor: SOLV.blueBg, alignItems: 'center', justifyContent: 'center' },
