@@ -132,6 +132,9 @@ export function CtaButton({ label, bg, fg, glow = false, onPress, containerStyle
 // a heavy check at the centre. Set 12 degrees off square, pressed onto the
 // tile's corner, it lands with the tile and settles from 1.3 to 1.
 const STAMP_INK = '#2BB05B';
+// The meter's done green: the seal's own ink, saturated enough to hold against
+// every stage's night; the theme's pastel `good` was too soft there.
+const METER_GREEN = STAMP_INK;
 // The stage content's own compositing layer, WebKit only (Safari, and every
 // browser on iOS). z-index alone orders the layers for Chrome; WebKit's
 // compositor also needs the sibling of a WebGL canvas to be composited, or it
@@ -228,7 +231,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
   // step runs the full width. The fill ends at fillX; the tag, the runner and
   // the entrance animation key on it. One flag, at the finish.
   const W = trackW;
-  const DISC_R = 9;
+  const DISC_R = 10;
   const SEG_GAP = 6;
   const crossedMark = meter.simple && meter.crossed > 0 ? meter.marks[meter.crossed - 1] : null;
   const xD = meter.crossed > 0 ? (meter.simple ? crossedMark.x * W : Math.round(W * 0.28)) : null;
@@ -443,15 +446,15 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
 
                 <View style={styles.barZone} onLayout={(e) => setTrackW(e.nativeEvent.layout.width)}>
                   {/* Crossed: the green run to the check disc, then the gap. */}
-                  {xD !== null ? <View style={[styles.seg, { left: 0, width: Math.max(0, xD), backgroundColor: st.good }]} /> : null}
+                  {xD !== null ? <View style={[styles.seg, { left: 0, width: Math.max(0, xD), backgroundColor: METER_GREEN }]} /> : null}
                   {/* The step to the next target (the whole bar with nothing crossed). */}
                   <View style={[styles.seg, { left: segX, width: segW, backgroundColor: st.track }]}>
                     <Animated.View style={[styles.barFill, { backgroundColor: st.accent, width: barA.interpolate({ inputRange: [0, 1], outputRange: ['0%', `${meter.pct * 100}%`] }) }]} />
                   </View>
                   {W > 0 && xD !== null ? (
-                    <View style={[styles.checkDisc, { left: xD - DISC_R, backgroundColor: st.good }]}>
+                    <View style={[styles.checkDisc, { left: xD - DISC_R, backgroundColor: METER_GREEN }]}>
                       <Svg width={11} height={11} viewBox="0 0 24 24">
-                        <Path d="M5 12.5l4.5 4.5L19 7.5" stroke={checkInk(st.good)} strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                        <Path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
                       </Svg>
                     </View>
                   ) : null}
@@ -482,9 +485,9 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                     <View style={styles.qualGroup}>
                       <View style={styles.qualTile}>
                         <GiftThumb gift={s.secured} size={22} />
-                        <View style={[styles.qualBadge, { backgroundColor: st.good }]}>
+                        <View style={[styles.qualBadge, { backgroundColor: METER_GREEN }]}>
                           <Svg width={8} height={8} viewBox="0 0 24 24">
-                            <Path d="M5 12.5l4.5 4.5L19 7.5" stroke={checkInk(st.good)} strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                            <Path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" strokeWidth={3.8} strokeLinecap="round" strokeLinejoin="round" fill="none" />
                           </Svg>
                         </View>
                       </View>
@@ -583,13 +586,14 @@ const styles = StyleSheet.create({
   barFill: { height: 10, borderRadius: 5 },
   runnerD: { position: 'absolute', bottom: 8 },
   flagD: { position: 'absolute', bottom: 8 },
-  checkDisc: { position: 'absolute', bottom: -4, width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  // The check disc: 20 px, a 2 px white ring, on the track's centre line.
+  checkDisc: { position: 'absolute', bottom: -5, width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   tick: { position: 'absolute', bottom: -2, width: 2, height: 14, borderRadius: 1, opacity: 0.7 },
   // Under the meter: two mirrored groups on one row, 8 px below the track.
   meterRow: { marginTop: 8, marginHorizontal: 32, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   qualGroup: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1, marginRight: 12 },
   qualTile: { width: 30, height: 30, borderRadius: 8, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  qualBadge: { position: 'absolute', right: -4, bottom: -4, width: 13, height: 13, borderRadius: 7, borderWidth: 1.5, borderColor: 'rgba(0,0,0,0.28)', alignItems: 'center', justifyContent: 'center' },
+  qualBadge: { position: 'absolute', right: -4, bottom: -4, width: 14, height: 14, borderRadius: 7, borderWidth: 1.5, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   targetGroup: { alignItems: 'flex-end' },
   groupBig: { fontFamily: F.bold, fontSize: 13, lineHeight: 17 },
   groupSmall: { fontFamily: F.medium, fontSize: 11, lineHeight: 14 },

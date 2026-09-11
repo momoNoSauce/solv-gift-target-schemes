@@ -397,8 +397,10 @@ cashback", "No gift this time". No ticker and no story (review of 11 Sep 2026: t
 read at a glance, not watched). A round chevron in the brand colour sits on the right.
 
 The meter on the stage (card and page alike, `deriveStage().meter`) replaced the qualified
-chip on 11 Sep 2026. One anatomy: when a target is crossed, a green run (the stage's `good`)
-from the start to an 18 px check disc at xD, a 6 px gap after the disc, then the step to the
+chip on 11 Sep 2026. One anatomy: when a target is crossed, a green run (the seal's own ink,
+#2BB05B; the theme's pastel `good` was too soft against the night) from the start to a 20 px
+check disc at xD (the same green, a 2 px white ring, a white check, so it reads as a coin at
+the seam), a 6 px gap after the disc, then the step to the
 next target filled in the accent to the shop's buying, with the runner and the amount tag at
 the fill's end and one flag at the finish. On a ladder of three or more xD is 28 % of the
 track (the earlier slabs compressed); on a one- or two-target bar xD is the crossed target's
@@ -409,8 +411,7 @@ check badge, then its name in bold 13 px ("Air Fryer", "₹500 cashback") over "
 ₹5L" in 11 px; with nothing crossed the left reads "₹0" on the bold line. Right, under the
 flag: the next target in bold 13 px ("₹10L") over the word "Target". An uncrossed tick on a
 two-target bar gets its number centred under the tick. The tile is square-cornered so it does
-not repeat the footer's discs one row below. The check ink is dark on a light green
-(dark stages) and white on a deep green (light stages). One gift per scheme: the check, the
+not repeat the footer's discs one row below. The badge on the tile is the same green with the same white ring. One gift per scheme: the check, the
 sentence and the footer's disc are the highest target crossed, never a row of them; the
 detail's gift list marks that one row QUALIFIED or YOU WON, dims the rows under it, and badges
 no open target once the scheme has ended. The default list has a completed scheme with no gift
