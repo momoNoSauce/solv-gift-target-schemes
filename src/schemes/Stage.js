@@ -471,39 +471,39 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                   ) : null}
                 </View>
 
-                {/* The scale: numbers only. The crossed target under its check,
-                    an uncrossed tick under its mark, the finish on the right,
-                    zero on the left when nothing is crossed yet. */}
-                <View style={styles.scale}>
-                  {xD === null ? <Text style={[styles.scaleEnd, TABULAR, { color: st.sub }]} allowFontScaling={false}>{slab(0)}</Text> : null}
-                  {W > 0 && xD !== null && s.secured ? (
-                    <Text style={[styles.scaleMark, TABULAR, { color: st.ink, left: xD }]} allowFontScaling={false}>{slab(s.secured.at)}</Text>
-                  ) : null}
-                  {W > 0 ? ticks.map((m) => (
-                    <Text key={m.gift.at} style={[styles.scaleMark, TABULAR, { color: st.sub, left: m.x * W }]} allowFontScaling={false}>{slab(m.gift.at)}</Text>
-                  )) : null}
-                  <Text style={[styles.scaleEnd, styles.scaleRight, TABULAR, { color: st.sub }]} allowFontScaling={false}>
-                    {t.targetWord} <Text style={{ color: st.ink, fontFamily: F.bold }}>{slab(s.next.at)}</Text>
-                  </Text>
-                </View>
-
-                {/* The win, in a sentence: the gift's picture with a check and
-                    "You've qualified for the Air Fryer". */}
-                {s.secured ? (
-                  <View style={styles.qualRow}>
-                    <View style={styles.qualThumb}>
-                      <GiftThumb gift={s.secured} size={20} />
-                      <View style={[styles.qualBadge, { backgroundColor: st.good }]}>
-                        <Svg width={8} height={8} viewBox="0 0 24 24">
-                          <Path d="M5 12.5l4.5 4.5L19 7.5" stroke={checkInk(st.good)} strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                        </Svg>
+                {/* Under the meter, two groups that mirror each other. Left, under
+                    the start: the won gift's picture as a tile with a check badge,
+                    its name in bold, "Qualified at ₹5L" beneath (or "₹0" when
+                    nothing is crossed). Right, under the flag: the next target in
+                    bold over the word Target. An uncrossed tick on a two-target
+                    bar gets its number under the tick. */}
+                <View style={styles.meterRow}>
+                  {s.secured ? (
+                    <View style={styles.qualGroup}>
+                      <View style={styles.qualTile}>
+                        <GiftThumb gift={s.secured} size={22} />
+                        <View style={[styles.qualBadge, { backgroundColor: st.good }]}>
+                          <Svg width={8} height={8} viewBox="0 0 24 24">
+                            <Path d="M5 12.5l4.5 4.5L19 7.5" stroke={checkInk(st.good)} strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                          </Svg>
+                        </View>
+                      </View>
+                      <View style={{ flexShrink: 1 }}>
+                        <Text style={[styles.groupBig, { color: st.ink }]} numberOfLines={1} allowFontScaling={false}>{s.secured.cash ? `${s.secured.cash} ${t.cashbackWord}` : s.secured.shortName}</Text>
+                        <Text style={[styles.groupSmall, TABULAR, { color: st.sub }]} numberOfLines={1} allowFontScaling={false}>{t.qualifiedAt(slab(s.secured.at))}</Text>
                       </View>
                     </View>
-                    <Text style={[styles.qualText, { color: st.ink }]} numberOfLines={1} allowFontScaling={false}>
-                      {s.secured.cash ? t.qualifiedCash(String(s.secured.cash)) : t.securedRow(s.secured.shortName)}
-                    </Text>
+                  ) : (
+                    <Text style={[styles.groupBig, TABULAR, { color: st.sub }]} allowFontScaling={false}>{slab(0)}</Text>
+                  )}
+                  {W > 0 ? ticks.map((m) => (
+                    <Text key={m.gift.at} style={[styles.tickLabel, TABULAR, { color: st.sub, left: m.x * W }]} allowFontScaling={false}>{slab(m.gift.at)}</Text>
+                  )) : null}
+                  <View style={styles.targetGroup}>
+                    <Text style={[styles.groupBig, TABULAR, { color: st.ink }]} allowFontScaling={false}>{slab(s.next.at)}</Text>
+                    <Text style={[styles.groupSmall, { color: st.sub }]} allowFontScaling={false}>{t.targetWord}</Text>
                   </View>
-                ) : null}
+                </View>
 
                 <Animated.View style={[rise(amountA, 10), { opacity: Animated.multiply(amountA, k.interpolate({ inputRange: [0.5, 0.9], outputRange: [0, 1], extrapolate: 'clamp' })), height: dial(0, 65), overflow: 'hidden' }]}>
                   <Text style={[styles.bigMore, TABULAR, { color: amountParts.color }]} allowFontScaling={false}>
@@ -585,16 +585,15 @@ const styles = StyleSheet.create({
   flagD: { position: 'absolute', bottom: 8 },
   checkDisc: { position: 'absolute', bottom: -4, width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   tick: { position: 'absolute', bottom: -2, width: 2, height: 14, borderRadius: 1, opacity: 0.7 },
-  // The scale under the meter: 12 px numbers, the marks centred on their x.
-  scale: { marginTop: 6, marginHorizontal: 32, height: 16, flexDirection: 'row', justifyContent: 'space-between' },
-  scaleEnd: { fontFamily: F.medium, fontSize: 12, lineHeight: 16 },
-  scaleRight: { marginLeft: 'auto' },
-  scaleMark: { position: 'absolute', top: 0, width: 96, marginLeft: -48, textAlign: 'center', fontFamily: F.bold, fontSize: 12, lineHeight: 16 },
-  // The win: a 26 px picture with a check badge, then the sentence.
-  qualRow: { marginTop: 10, marginHorizontal: 32, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  qualThumb: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  qualBadge: { position: 'absolute', right: -3, bottom: -3, width: 12, height: 12, borderRadius: 6, borderWidth: 1.5, borderColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' },
-  qualText: { flex: 1, fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
+  // Under the meter: two mirrored groups on one row, 8 px below the track.
+  meterRow: { marginTop: 8, marginHorizontal: 32, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  qualGroup: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1, marginRight: 12 },
+  qualTile: { width: 30, height: 30, borderRadius: 8, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  qualBadge: { position: 'absolute', right: -4, bottom: -4, width: 13, height: 13, borderRadius: 7, borderWidth: 1.5, borderColor: 'rgba(0,0,0,0.28)', alignItems: 'center', justifyContent: 'center' },
+  targetGroup: { alignItems: 'flex-end' },
+  groupBig: { fontFamily: F.bold, fontSize: 13, lineHeight: 17 },
+  groupSmall: { fontFamily: F.medium, fontSize: 11, lineHeight: 14 },
+  tickLabel: { position: 'absolute', top: 0, width: 96, marginLeft: -48, textAlign: 'center', fontFamily: F.medium, fontSize: 11, lineHeight: 14 },
 
   bigMore: { marginTop: 12, textAlign: 'center', fontFamily: F.bold, fontSize: 26, lineHeight: 32 },
   bigMoreWord: { fontFamily: F.medium, fontSize: 16, lineHeight: 32 },
