@@ -133,8 +133,8 @@ const bata = (now, currentValue, { start = D(9, 20), end = D(10, 28) } = {}) =>
 const prestige = (now, currentValue, { end = D(11, 9) } = {}) =>
   scheme({ id: 'prestige', title: 'Prestige Scheme', dockName: 'Prestige', art: { logo: BRAND.prestige }, tiers: TIERS_CASH_LADDER, currentValue, startTime: D(10, 1), endTime: end, now, rules: RULES_PRESTIGE });
 
-const bombay = (now, currentValue) =>
-  scheme({ id: 'bombaydyeing', title: 'Bombay Dyeing Scheme', dockName: 'B. Dyeing', art: { logo: BRAND.bombaydyeing, wide: true }, tiers: TIER_MIXER, currentValue, startTime: D(10, 5), endTime: D(11, 5), now, rules: RULES_BOMBAY });
+const bombay = (now, currentValue, { start = D(10, 5), end = D(11, 5) } = {}) =>
+  scheme({ id: 'bombaydyeing', title: 'Bombay Dyeing Scheme', dockName: 'B. Dyeing', art: { logo: BRAND.bombaydyeing, wide: true }, tiers: TIER_MIXER, currentValue, startTime: start, endTime: end, now, rules: RULES_BOMBAY });
 
 const funskool = (now, currentValue) =>
   scheme({ id: 'funskool', title: 'Funskool Scheme', dockName: 'Funskool', art: { logo: BRAND.funskool }, tiers: TIER_JC1000, currentValue, startTime: D(10, 10), endTime: D(10, 24), now, rules: RULES_FUNSKOOL });
@@ -156,7 +156,8 @@ export const VIEWS = {
   typical: {
     label: 'Typical',
     running: [diwali(D(10, 19), 6.4 * L), prestige(D(10, 19), 46000), gold(D(10, 19), 58000), bata(D(10, 19), 31200)],
-    completed: [onam(D(10, 19), { orderedAt: D(9, 16), deliveredAt: D(9, 24) }), havells(D(10, 19)), holi(D(10, 19))],
+    // Bombay Dyeing ended at ₹12,500 of a ₹50,000 target: a completed scheme with no gift won.
+    completed: [onam(D(10, 19), { orderedAt: D(9, 16), deliveredAt: D(9, 24) }), havells(D(10, 19)), bombay(D(10, 19), 12500, { start: D(8, 25), end: D(9, 25) }), holi(D(10, 19))],
   },
   start: {
     label: 'Season start',

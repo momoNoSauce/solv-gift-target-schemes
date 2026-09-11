@@ -41,9 +41,13 @@ const PITCH = ITEM_W + ITEM_GAP;
 const RCARD_W = 100;            // rewards: the product card
 const RCARD_GAP = 10;
 
+// One gift per scheme: only the highest target crossed is done (or won); the
+// targets under it are passed, and read dimmer with no check.
 function statusOf(s, tier) {
-  if (s.ended) return s.currentValue >= tier.at ? 'won' : 'missed';
-  if (s.currentValue >= tier.at) return 'done';
+  const secured = s.secured && tier.at === s.secured.at;
+  if (s.ended) return secured ? 'won' : s.currentValue >= tier.at ? 'passed' : 'missed';
+  if (secured) return 'done';
+  if (s.currentValue >= tier.at) return 'passed';
   if (s.next && tier.at === s.next.at) return 'next';
   return 'later';
 }
@@ -106,7 +110,7 @@ export default function GoalRail({ scheme, variant = 'shelf', accent = SOLV.blue
         <View style={styles.rRow}>
           <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} dataSet={{ touch: 'pan-x' }} contentContainerStyle={styles.rContent}>
             {items.map(({ tier, status }) => (
-              <View key={tier.at} style={[styles.rCard, status === 'missed' && { opacity: 0.45 }]}>
+              <View key={tier.at} style={[styles.rCard, (status === 'missed' || status === 'passed') && { opacity: 0.45 }]}>
                 <View style={styles.rPic}>
                   <GiftThumb gift={tier} size={56} />
                   {status === 'done' || status === 'won' ? <Check size={16} /> : null}
@@ -151,7 +155,7 @@ export default function GoalRail({ scheme, variant = 'shelf', accent = SOLV.blue
         {tiers.map(({ tier, k, status }) => {
           const isNext = status === 'next';
           const isDone = status === 'done' || status === 'won';
-          const dim = status === 'missed';
+          const dim = status === 'missed' || status === 'passed';
           return (
             <View key={tier.at} style={[styles.item, dim && { opacity: 0.45 }]}>
               <View style={styles.tile}>

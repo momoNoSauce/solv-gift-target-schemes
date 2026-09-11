@@ -27,8 +27,7 @@
 // move and can be reversed mid-flight.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Easing, Platform } from 'react-native';
-import Svg, { Path, Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
-import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path } from 'react-native-svg';
 import { STATE } from '../gifts/state';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import GiftGlyph from '../gifts/icons';
@@ -44,7 +43,7 @@ import GoalRail, { RAIL_H } from './GoalRail';
 import SchemePage from './SchemePage';
 import DockScreen from './DockScreen';
 import { useRouter } from 'expo-router';
-import { IconBack, IconTargetFlag } from '../icons';
+import { IconBack } from '../icons';
 import { backToEntry } from './nav';
 import SolvBottomNav, { NAV_H } from './SolvBottomNav';
 import { T } from './copy';
@@ -101,222 +100,43 @@ const footerH = (v) => (v === 'a' ? FOOTER_H : RAIL_H[VARIANTS[v].rail]);
 // The footer carries the window. The offer ("Targets ₹2L to ₹1.2Cr · 8 gifts")
 // sits under the title on the stage (see Stage's offerLine), where the eye lands
 // first; the dates belong with the small print.
-// Up to three gifts for the footer: the won ones on a completed scheme, else
-// the top of the ladder, highest first.
+// Up to three gifts for the footer, the top of the ladder highest first. A
+// completed scheme shows the one gift it won; a scheme wins one gift.
 function footerGifts(scheme) {
   const s = scheme.s;
-  const won = s.ladder.filter((g) => s.currentValue >= g.at);
-  const pick = s.ended && won.length ? won : s.ladder;
+  if (s.ended && s.earned) return [s.secured];
+  const pick = s.ladder;
   // An all-cash ladder has one picture, the note; three of it say nothing.
   if (pick.every((g) => g.cash)) return pick.slice(-1);
   return pick.slice(-3).reverse();
 }
 
-// The footer's lines: the facts that sell the scheme, in the order a shopper
-// asks them. They say the gifts, not the targets (the bar on the stage shows
-// the target). A ladder gets three lines, which the footer cycles; a single
-// target and an ended scheme get one, still.
-//   gift ladder   8 gifts to win / Top gift: iPhone 17 / Next: Soundbar at ₹10L
-//   cash ladder   Cashback at 3 targets / Win up to ₹5,000 cashback /
-//                 Next: ₹2,000 cashback at ₹80,000
+// The footer's line: the gifts, with the top one named, never the targets (the
+// bar on the stage shows the target).
+//   gift ladder   8 gifts, up to the iPhone 17
+//   cash ladder   Cashback at 3 targets, up to ₹5,000
 //   one target    Win the Watch / Win ₹2,000 cashback
-//   before start  Starts 1 Oct · 8 gifts / Top gift: iPhone 17
+//   before start  Starts 1 Oct · 8 gifts
 //   ended         Won the Air Fryer / Won ₹500 cashback / No gift won
-function footerLines(scheme, t) {
+function footerLine(scheme, t) {
   const s = scheme.s;
   const n = s.ladder.length;
   const top = s.ladder[n - 1];
   const cash = s.ladder.every((g) => g.cash);
-  // A cash tier carries its amount already formatted ("₹2,000").
   const money = (g) => (g && g.cash ? String(g.cash) : '');
-  const slab = scheme.fmt;
-  if (s.ended && s.earned) return [cash ? t.footWonCash(money(s.secured)) : t.footWon(s.secured.shortName)];
-  if (s.ended) return [cash ? t.footMissedCash : t.footMissed];
-  if (n === 1) return [cash ? t.footCashOne(money(top)) : t.footWinOne(top.shortName)];
-  if (s.state === STATE.SCHEDULED) return [offerLine(scheme, t), cash ? t.footCashTop(money(top)) : t.footTop(top.shortName)];
-  const lines = [cash ? t.footCash(n, money(s.ladder[0])) : t.footGifts(n), cash ? t.footCashTop(money(top)) : t.footTop(top.shortName)];
-  if (s.next) lines.push(cash ? t.footCashNext(money(s.next), slab(s.next.at)) : t.footNext(s.next.shortName, slab(s.next.at)));
-  return lines;
+  if (s.ended && s.earned) return cash ? t.footWonCash(money(s.secured)) : t.footWon(s.secured.shortName);
+  if (s.ended) return cash ? t.footMissedCash : t.footMissed;
+  if (n === 1) return cash ? t.footCashOne(money(top)) : t.footWinOne(top.shortName);
+  if (s.state === STATE.SCHEDULED) return offerLine(scheme, t);
+  return cash ? t.footCashUpTo(n, money(top)) : t.footUpTo(n, top.shortName);
 }
 
-// The footer's story: each line has its own picture, and the two change as
-// one. Steps for a gift ladder:
-//   1  "8 gifts to win"          three discs, the top of the ladder, spread,
-//                                and a fourth disc with the count of the rest
-//   2  "Top gift: iPhone 17"     the other discs slide behind the first and
-//                                fade; the top gift grows a quarter, a warm
-//                                glow comes up behind it, a shine crosses it
-//   3  "Next: Soundbar at ₹10L"  the disc settles back to size, the glow goes,
-//                                the picture crossfades to the next gift and a
-//                                small flag (the bar's own target flag) lands
-//                                on its corner
-// then back to 1: the flag leaves, the picture crossfades back, the discs fan
-// out again, nearest first.
-//
-// Timing of one change, t = 0 at the end of the hold:
-//     0 ms  the words leave: 6 px up and out, 120 ms, ease-in
-//    40 ms  the discs move: springs without bounce (stiffness 300, damping
-//           34, about 360 ms), each slot 30 ms after the one before it
-//   140 ms  the words arrive: 6 px up into place, 240 ms, ease-out
-//   300 ms  step 2 only: the shine crosses the disc, 560 ms, once
-// The eye reads picture, then words; the words never leave a hole longer than
-// the discs take to start moving. Steps hold 3.6 s. The cards start at
-// different moments (the entry index staggers them by 700 ms) so the list
-// never flips as one. Settled motion, one line, or an ended scheme holds
-// step 1 still.
-const STORY_HOLD = 3600;
-const STORY_STAGGER = 700;
 const DISC = 32;
 const DISC_STEP = DISC - 9;
-const HERO = 1.25;
-const GOLD = '#E9A825';
-const EASE_IN = Easing.bezier(0.4, 0, 1, 1);
-const EASE_OUT = Easing.bezier(0.2, 0, 0, 1);
-const springTo = (v, to, delay = 0) => Animated.spring(v, { toValue: to, stiffness: 300, damping: 34, mass: 1, delay, useNativeDriver: false });
-const fadeTo = (v, to, duration, easing, delay = 0) => Animated.timing(v, { toValue: to, duration, easing, delay, useNativeDriver: false });
 
-function footerSteps(scheme, t) {
-  const s = scheme.s;
-  const lines = footerLines(scheme, t);
-  const stack = footerGifts(scheme);
-  const more = s.ladder.length > stack.length && !s.ended ? s.ladder.length - stack.length : 0;
-  if (lines.length < 2) return [{ line: lines[0], gifts: stack, more }];
-  const top = s.ladder[s.ladder.length - 1];
-  const steps = [{ line: lines[0], gifts: stack, more }, { line: lines[1], gifts: [top], hero: true }];
-  if (lines[2] && s.next) steps.push({ line: lines[2], gifts: [s.next], flag: true });
-  return steps;
-}
-
-// The first disc: its picture can crossfade (the old one shrinks to 0.8 and
-// fades as the new one grows in), it can grow to the hero size with a glow and
-// a shine, and it can carry the target flag.
-function StoryDisc({ gift, hero, flag, accent }) {
-  const [pair, setPair] = useState({ cur: gift, prev: null });
-  const fade = useRef(new Animated.Value(1)).current;
-  const heroA = useRef(new Animated.Value(hero ? 1 : 0)).current;
-  const shine = useRef(new Animated.Value(0)).current;
-  const flagA = useRef(new Animated.Value(flag ? 1 : 0)).current;
-  useEffect(() => {
-    if (gift.at === pair.cur.at) return;
-    setPair({ cur: gift, prev: pair.cur });
-    fade.setValue(0);
-    fadeTo(fade, 1, 260, EASE_OUT).start();
-  }, [gift.at]);
-  useEffect(() => {
-    springTo(heroA, hero ? 1 : 0).start();
-    if (hero) {
-      shine.setValue(0);
-      fadeTo(shine, 1, 560, Easing.inOut(Easing.quad), 260).start();
-    }
-  }, [hero]);
-  useEffect(() => {
-    if (flag) fadeTo(flagA, 1, 240, EASE_OUT, 220).start();
-    else fadeTo(flagA, 0, 160, EASE_IN).start();
-  }, [flag]);
-  const scale = heroA.interpolate({ inputRange: [0, 1], outputRange: [1, HERO] });
-  return (
-    <Animated.View style={[styles.thumbSlot, { width: DISC, height: DISC, transform: [{ scale }] }]}>
-      <Animated.View pointerEvents="none" style={[styles.heroGlow, { opacity: heroA }]}>
-        <Svg width={DISC + 28} height={DISC + 28} viewBox="0 0 60 60">
-          <Defs>
-            <RadialGradient id="storyGlow" cx="50%" cy="50%" r="50%">
-              <Stop offset="0.45" stopColor={GOLD} stopOpacity="0.42" />
-              <Stop offset="0.72" stopColor={GOLD} stopOpacity="0.16" />
-              <Stop offset="1" stopColor={GOLD} stopOpacity="0" />
-            </RadialGradient>
-          </Defs>
-          <Circle cx="30" cy="30" r="30" fill="url(#storyGlow)" />
-        </Svg>
-      </Animated.View>
-      <View style={styles.thumb}>
-        <View style={styles.thumbClip}>
-          {pair.prev ? (
-            <Animated.View style={[styles.thumbPic, { opacity: Animated.subtract(1, fade), transform: [{ scale: fade.interpolate({ inputRange: [0, 1], outputRange: [1, 0.8] }) }] }]}>
-              <GiftThumb gift={pair.prev} size={22} />
-            </Animated.View>
-          ) : null}
-          <Animated.View style={[styles.thumbPic, { opacity: fade, transform: [{ scale: fade.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) }] }]}>
-            <GiftThumb gift={pair.cur} size={22} />
-          </Animated.View>
-          <Animated.View pointerEvents="none" style={[styles.shine, { opacity: heroA, transform: [{ translateX: shine.interpolate({ inputRange: [0, 1], outputRange: [-30, 44] }) }, { rotate: '24deg' }] }]}>
-            <LinearGradient colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.75)', 'rgba(255,255,255,0)']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={{ flex: 1 }} />
-          </Animated.View>
-        </View>
-      </View>
-      <Animated.View pointerEvents="none" style={[styles.flagBadge, { opacity: flagA, transform: [{ scale: flagA.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1] }) }] }]}>
-        <IconTargetFlag width={6} height={10} color={accent} />
-      </Animated.View>
-    </Animated.View>
-  );
-}
-
-function FooterStory({ steps, accent, stagger = 0 }) {
-  const [k, setK] = useState(0);
-  const slots = useRef([1, 2, 3].map(() => new Animated.Value(1))).current;   // 1: in its place, 0: behind the first
-  const text = useRef(new Animated.Value(1)).current;
-  const first = useRef(true);
-  const step = steps[Math.min(k, steps.length - 1)];
-  const extra = steps[0].gifts.slice(1);                 // the discs behind the first
-  const count = steps[0].more;                           // the "+N" disc, or 0
-  const slotCount = extra.length + (count ? 1 : 0);
-  const spread = step.gifts.length > 1;
-
-  useEffect(() => {
-    if (SETTLED || steps.length < 2) return undefined;
-    let leaving = null;
-    let arriving = null;
-    if (!first.current) {
-      // Collapse from the farthest disc in; fan out from the nearest disc out.
-      const order = spread ? [0, 1, 2] : [2, 1, 0];
-      order.forEach((i, j) => springTo(slots[i], spread ? 1 : 0, 40 + j * 30).start());
-      arriving = setTimeout(() => fadeTo(text, 1, 240, EASE_OUT).start(), 140);
-    }
-    const wait = STORY_HOLD + (first.current ? (stagger % 5) * STORY_STAGGER : 0);
-    first.current = false;
-    const hold = setTimeout(() => {
-      leaving = fadeTo(text, 0, 120, EASE_IN);
-      leaving.start(({ finished }) => finished && setK((x) => (x + 1) % steps.length));
-    }, wait);
-    return () => { clearTimeout(hold); clearTimeout(arriving); if (leaving) leaving.stop(); };
-  }, [k, steps.length, stagger]);
-
-  // The row's width follows the nearest disc's spread and the first disc's size.
-  const heroW = slots[0].interpolate({ inputRange: [0, 1], outputRange: [DISC * HERO, DISC] });
-  const width = Animated.add(heroW, Animated.multiply(slots[0], slotCount * DISC_STEP));
-  const slotStyle = (i) => ({
-    opacity: slots[i],
-    transform: [{ translateX: slots[i].interpolate({ inputRange: [0, 1], outputRange: [0, (i + 1) * DISC_STEP] }) }, { scale: slots[i].interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) }],
-  });
-  return (
-    <>
-      <Animated.View style={[styles.thumbRow, { width }]}>
-        {count ? (
-          <Animated.View style={[styles.thumb, styles.thumbSlot, styles.countDisc, slotStyle(extra.length)]}>
-            <Text style={styles.countText} allowFontScaling={false}>+{count}</Text>
-          </Animated.View>
-        ) : null}
-        {extra.map((g, i) => (
-          <Animated.View key={g.at} style={[styles.thumb, styles.thumbSlot, slotStyle(i)]}>
-            <GiftThumb gift={g} size={22} />
-          </Animated.View>
-        )).reverse()}
-        <StoryDisc gift={step.gifts[0]} hero={Boolean(step.hero)} flag={Boolean(step.flag)} accent={accent} />
-      </Animated.View>
-      <View style={styles.footerText} accessibilityLabel={steps.map((x) => x.line).join('. ')}>
-        <Animated.Text
-          style={[styles.footerLine, { opacity: text, transform: [{ translateY: text.interpolate({ inputRange: [0, 1], outputRange: [k % 2 ? 6 : -6, 0] }) }] }]}
-          numberOfLines={1}
-          allowFontScaling={false}
-        >
-          {step.line}
-        </Animated.Text>
-      </View>
-    </>
-  );
-}
-
-// One row under the art: the gift images on the left, the gift count (or the
-// won gift) beside them, the chevron on the right. This
+// One row under the art: the gift images on the left (the top of the ladder,
+// and a "+N" disc for the rest), the line beside them, the chevron on the
+// right. Still: no ticker, no story (review of 11 Sep 2026). This
 // footer was dropped after the founder review of 4 Sep 2026 and asked back on
 // 10 Sep 2026. The subtitle on the stage says when the scheme ends.
 export function CardFooter({ scheme, t, style, accent = SOLV.blue, accentBg = SOLV.blueBg, variant = 'a', stagger = 0 }) {
@@ -329,38 +149,31 @@ export function CardFooter({ scheme, t, style, accent = SOLV.blue, accentBg = SO
   }
   const gifts = footerGifts(scheme);
   const won = scheme.s.ended && scheme.s.earned;
-  const steps = footerSteps(scheme, t);
-  const story = steps.length > 1 && !SETTLED;
+  const more = !scheme.s.ended && scheme.s.ladder.length > gifts.length ? scheme.s.ladder.length - gifts.length : 0;
   return (
     <View style={[styles.footer, style]} pointerEvents="none">
-      {story ? (
-        <FooterStory steps={steps} accent={accent} stagger={stagger} />
-      ) : (
-        <>
-          <View style={[styles.thumbRow, { width: DISC + (gifts.length - 1 + (steps[0].more ? 1 : 0)) * DISC_STEP }]}>
-            {steps[0].more ? (
-              <View style={[styles.thumb, styles.thumbSlot, styles.countDisc, { transform: [{ translateX: gifts.length * DISC_STEP }] }]}>
-                <Text style={styles.countText} allowFontScaling={false}>+{steps[0].more}</Text>
-              </View>
-            ) : null}
-            {gifts.map((g, i) => (
-              <View key={g.at} style={[styles.thumb, styles.thumbSlot, { transform: [{ translateX: i * DISC_STEP }], zIndex: 3 - i }]}>
-                <GiftThumb gift={g} size={22} />
-              </View>
-            ))}
-            {won ? (
-              <View style={[styles.wonBadge, { left: DISC + (gifts.length - 1) * DISC_STEP - 11 }]}>
-                <Svg width={9} height={9} viewBox="0 0 24 24">
-                  <Path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                </Svg>
-              </View>
-            ) : null}
+      <View style={[styles.thumbRow, { width: DISC + (gifts.length - 1 + (more ? 1 : 0)) * DISC_STEP }]}>
+        {more ? (
+          <View style={[styles.thumb, styles.thumbSlot, styles.countDisc, { transform: [{ translateX: gifts.length * DISC_STEP }] }]}>
+            <Text style={styles.countText} allowFontScaling={false}>+{more}</Text>
           </View>
-          <View style={styles.footerText}>
-            <Text style={styles.footerLine} numberOfLines={1} allowFontScaling={false}>{steps[0].line}</Text>
+        ) : null}
+        {gifts.map((g, i) => (
+          <View key={g.at} style={[styles.thumb, styles.thumbSlot, { transform: [{ translateX: i * DISC_STEP }], zIndex: 3 - i }]}>
+            <GiftThumb gift={g} size={22} />
           </View>
-        </>
-      )}
+        ))}
+        {won ? (
+          <View style={[styles.wonBadge, { left: DISC - 11 }]}>
+            <Svg width={9} height={9} viewBox="0 0 24 24">
+              <Path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            </Svg>
+          </View>
+        ) : null}
+      </View>
+      <View style={styles.footerText}>
+        <Text style={styles.footerLine} numberOfLines={1} allowFontScaling={false}>{footerLine(scheme, t)}</Text>
+      </View>
       <View style={[styles.chev, { backgroundColor: accentBg }]}>
         <Svg width={18} height={18} viewBox="0 0 24 24">
           <Path d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.42 1.41l4.59-4.59a1 1 0 0 0 0-1.41L10.71 6.7a1 1 0 0 0-1.42.01z" fill={accent} />
@@ -828,13 +641,7 @@ const styles = StyleSheet.create({
   thumbRow: { height: DISC, marginRight: 12 },
   thumb: { width: DISC, height: DISC, borderRadius: DISC / 2, backgroundColor: SOLV.paper, borderWidth: 1, borderColor: 'rgba(0,0,0,0.10)', alignItems: 'center', justifyContent: 'center' },
   thumbSlot: { position: 'absolute', left: 0, top: 0 },
-  thumbClip: { width: DISC - 2, height: DISC - 2, borderRadius: DISC / 2 - 1, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-  thumbPic: { position: 'absolute', left: 0, top: 0, width: DISC - 2, height: DISC - 2, alignItems: 'center', justifyContent: 'center' },
   // The hero's warm glow: a soft disc behind, no edge of its own.
-  // The hero's warm glow: a radial falloff, no edge of its own.
-  heroGlow: { position: 'absolute', left: -14, top: -14, width: DISC + 28, height: DISC + 28 },
-  shine: { position: 'absolute', top: -14, left: 0, width: 12, height: DISC + 26 },
-  flagBadge: { position: 'absolute', right: -3, bottom: -2, width: 14, height: 14, borderRadius: 7, backgroundColor: SOLV.paper, borderWidth: 1, borderColor: 'rgba(0,0,0,0.10)', alignItems: 'center', justifyContent: 'center' },
   countDisc: { backgroundColor: '#F3F4F6' },
   countText: { color: SOLV.ink, fontFamily: F.bold, fontSize: 11, lineHeight: 14, fontVariant: ['tabular-nums'] },
   wonBadge: { position: 'absolute', bottom: -1, width: 14, height: 14, borderRadius: 7, backgroundColor: SOLV.green, borderWidth: 1.5, borderColor: SOLV.paper, alignItems: 'center', justifyContent: 'center', zIndex: 4 },
