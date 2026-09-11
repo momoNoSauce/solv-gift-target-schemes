@@ -406,12 +406,12 @@ the fill's end and one flag at the finish. On a ladder of three or more xD is 28
 track (the earlier slabs compressed); on a one- or two-target bar xD is the crossed target's
 own position, so the bar stays to scale, and an uncrossed target before the finish is a 2 px
 tick with its number. Under the meter, 8 px below the track, two groups mirror each other on
-one row. Left, under the start: the won gift's picture in a 30 px rounded tile with a green
-check badge, then its name in bold 13 px ("Air Fryer", "₹500 cashback") over "Qualified at
+one row. Left, under the start: the won gift's picture in a 30 px rounded tile (no badge: the
+check on the bar says it), then its name in bold 13 px ("Air Fryer", "₹500 cashback") over "Qualified at
 ₹5L" in 11 px; with nothing crossed the left reads "₹0" on the bold line. Right, under the
 flag: the next target in bold 13 px ("₹10L") over the word "Target". An uncrossed tick on a
 two-target bar gets its number centred under the tick. The tile is square-cornered so it does
-not repeat the footer's discs one row below. The badge on the tile is the same green with the same white ring. One gift per scheme: the check, the
+not repeat the footer's discs one row below. One gift per scheme: the check, the
 sentence and the footer's disc are the highest target crossed, never a row of them; the
 detail's gift list marks that one row QUALIFIED or YOU WON, dims the rows under it, and badges
 no open target once the scheme has ended. The default list has a completed scheme with no gift

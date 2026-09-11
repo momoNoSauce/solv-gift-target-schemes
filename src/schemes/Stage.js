@@ -475,7 +475,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                 </View>
 
                 {/* Under the meter, two groups that mirror each other. Left, under
-                    the start: the won gift's picture as a tile with a check badge,
+                    the start: the won gift's picture as a tile,
                     its name in bold, "Qualified at ₹5L" beneath (or "₹0" when
                     nothing is crossed). Right, under the flag: the next target in
                     bold over the word Target. An uncrossed tick on a two-target
@@ -485,11 +485,6 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                     <View style={styles.qualGroup}>
                       <View style={styles.qualTile}>
                         <GiftThumb gift={s.secured} size={22} />
-                        <View style={[styles.qualBadge, { backgroundColor: METER_GREEN }]}>
-                          <Svg width={8} height={8} viewBox="0 0 24 24">
-                            <Path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" strokeWidth={3.8} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                          </Svg>
-                        </View>
                       </View>
                       <View style={{ flexShrink: 1 }}>
                         <Text style={[styles.groupBig, { color: st.ink }]} numberOfLines={1} allowFontScaling={false}>{s.secured.cash ? `${s.secured.cash} ${t.cashbackWord}` : s.secured.shortName}</Text>
@@ -593,7 +588,6 @@ const styles = StyleSheet.create({
   meterRow: { marginTop: 8, marginHorizontal: 32, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   qualGroup: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1, marginRight: 12 },
   qualTile: { width: 30, height: 30, borderRadius: 8, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  qualBadge: { position: 'absolute', right: -4, bottom: -4, width: 14, height: 14, borderRadius: 7, borderWidth: 1.5, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   targetGroup: { alignItems: 'flex-end' },
   groupBig: { fontFamily: F.bold, fontSize: 13, lineHeight: 17 },
   groupSmall: { fontFamily: F.medium, fontSize: 11, lineHeight: 14 },
