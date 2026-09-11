@@ -150,13 +150,15 @@ export default function SchemePage({ scheme, active, near = true, first, still =
   // a card had no white of its own; the card now carries a white footer band, so
   // paper from frame 0 is what matches it. Anything in between reads as a grey
   // flash under the stage.
-  const pageBg = missed ? st.ground2 : N.bg;
+  // A missed scheme reads like every other completed page: paper body, the
+  // gift list it offered, the rules and the facts (11 Sep 2026).
+  const pageBg = N.bg;
 
   return (
     <View style={[styles.page, { backgroundColor: pageBg }]}>
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={[{ paddingBottom: missed ? 0 : bottomPad }, missed && { flexGrow: 1 }]}
+        contentContainerStyle={{ paddingBottom: bottomPad }}
         showsVerticalScrollIndicator={Platform.OS !== 'web'}
         scrollEventThrottle={16}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false, listener: (e) => { scrollTop.current = e.nativeEvent.contentOffset.y; } })}
@@ -170,7 +172,7 @@ export default function SchemePage({ scheme, active, near = true, first, still =
         }}
       >
         <View {...(dismiss ? dismissPan.panHandlers : {})} dataSet={dismiss ? { touch: 'pan-y' } : undefined}>
-          <Stage scheme={scheme} compact={compact} anim={{ labelA, tileA, nameA, barA, amountA, ctaA }} lag={lag} near={near} onTitlePress={onTitlePress} onSeeRunning={onSeeRunning} lang={lang} fill={missed} cardAnim={cardAnim} />
+          <Stage scheme={scheme} compact={compact} anim={{ labelA, tileA, nameA, barA, amountA, ctaA }} lag={lag} near={near} onTitlePress={onTitlePress} onSeeRunning={onSeeRunning} lang={lang} cardAnim={cardAnim} />
         </View>
 
         <Animated.View style={bodyStyle}>
@@ -238,7 +240,9 @@ export default function SchemePage({ scheme, active, near = true, first, still =
         {/* ——— The gift list. Only a ladder needs one: a one-gift scheme already
             shows its gift on the pedestal. A missed scheme does not end on a
             page of lost gifts (peak-end). ——— */}
-        {missed || !multiGift ? null : (
+        {/* A one-gift scheme shows its gift on the stage; a missed one shows
+            nothing there, so its list says what was on offer. */}
+        {!multiGift && !missed ? null : (
           <>
             <Text style={styles.listLabel} allowFontScaling={false}>{s.ladder.every((g) => g.cash) ? t.cashList : t.giftList}</Text>
             <View style={styles.list}>
@@ -297,7 +301,7 @@ export default function SchemePage({ scheme, active, near = true, first, still =
         ) : null}
 
         {/* Eligible products: the app's target_scheme_rule table, restyled. */}
-        {missed ? null : (
+        {(
           <>
             <Text style={styles.listLabel} allowFontScaling={false}>{t.rulesTitle}</Text>
             <View style={styles.rulesCard}>
@@ -318,7 +322,7 @@ export default function SchemePage({ scheme, active, near = true, first, still =
           </>
         )}
 
-        {missed ? null : (
+        {(
           <View style={styles.facts}>
             {t.facts(scheme.deliverBy, `${scheme.startLabel} to ${scheme.endLabel}`, s.ended).map(([icon, text], i) => (
               <View key={icon} style={[styles.factRow, i > 0 && styles.rowDivider]}>

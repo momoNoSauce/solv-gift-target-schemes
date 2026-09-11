@@ -333,6 +333,9 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
           <View style={styles.missedBlock}>
             <Text style={[styles.missedTitle, { color: st.ink }]} allowFontScaling={false}>{t.missedTitle}</Text>
             <Text style={[styles.missedNote, { color: st.sub }]} allowFontScaling={false}>{t.missedNote}</Text>
+            {s.currentValue > 0 ? (
+              <Text style={[styles.finalBought, TABULAR, { color: st.ink }]} allowFontScaling={false}>{t.finalBought(money(s.currentValue))}</Text>
+            ) : null}
             {onSeeRunning ? (
               <View style={styles.missedCta}>
                 <CtaButton label={t.ctaEnded} bg={st.accent} fg={st.accentInk} onPress={onSeeRunning} />
@@ -588,6 +591,7 @@ const styles = StyleSheet.create({
   ctaText: { fontFamily: F.bold, fontSize: 15, lineHeight: 19, letterSpacing: 0.2 },
 
   missedBlock: { alignItems: 'center', paddingTop: 30, paddingBottom: 6, alignSelf: 'stretch' },
+  // (finalBought is shared with the won stage's final line.)
   missedTitle: { fontFamily: F.bold, fontSize: 17, lineHeight: 22 },
   missedNote: { marginTop: 6, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 19, paddingHorizontal: 44 },
   missedCta: { alignSelf: 'stretch', marginTop: 4 },
