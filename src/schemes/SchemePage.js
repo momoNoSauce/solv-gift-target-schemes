@@ -256,7 +256,8 @@ export default function SchemePage({ scheme, active, near = true, first, still =
                 // emphasis inside the same anatomy: the theme's tint behind the row,
                 // the slab value and label in the accent, a sparkle on a festive
                 // scheme. One component, one rhythm, no card inside the card.
-                const isTopOpen = isTop && !isWon;
+                // No open target once the scheme has ended: an ended list badges only the won row.
+                const isTopOpen = isTop && !isWon && !s.ended;
                 return (
                   <View
                     key={tier.at}

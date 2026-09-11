@@ -390,27 +390,31 @@ three 32 px discs with the gift images (22 px inside a 1 px ring, overlapped 9 p
 first): the top of the ladder on a running scheme, the won gifts with a green check on a
 completed one (a scheme wins one gift, so one disc), a single note on an all-cash ladder, and
 when the ladder has more than three gifts a fourth disc with the count of the rest ("+5").
-Beside them one still line that names the count and the top gift: "8 gifts, up to the iPhone
-17", "Cashback at 3 targets, up to ₹5,000", "Win the Watch", "Win ₹2,000 cashback", before
-the start "Starts 1 Oct · 8 gifts", and when ended "Won the Air Fryer", "Won ₹500 cashback",
-"No gift won". No ticker and no story (review of 11 Sep 2026: the footer is read at a glance,
-not watched). A round chevron in the brand colour sits on the right.
+Beside them one still line in the app's own word for a level: "8 slabs · Top gift: iPhone
+17", "3 slabs · Up to ₹5,000 cashback", "Win the Watch", "Win ₹2,000 cashback", before the
+start "Starts 1 Oct · 8 gifts", and when ended "You won the Air Fryer", "You won ₹500
+cashback", "No gift this time". No ticker and no story (review of 11 Sep 2026: the footer is
+read at a glance, not watched). A round chevron in the brand colour sits on the right.
 
 The meter on the stage (card and page alike, `deriveStage().meter`) replaced the qualified
-chip on 11 Sep 2026. A ladder of three or more shows the current step: a short green segment
-(28 % of the track, the stage's `good`) for what is qualified, a check disc where it ends, and
-the step to the next target after a 6 px gap, filled in the accent to the shop's buying with
-the runner and the amount tag at the fill's end and the flag at the target. Under the meter,
-left: "₹5L qualified", the gift's short name and its picture in a 26 px disc; right: "Target
-₹10L". With nothing qualified the left end reads "₹0". One or two targets fit on one track from
-zero to the top target, proportional, a flag at every target not yet crossed; the highest
-crossed target becomes the check disc with the qualified block under it. The check disc's ink
-is dark on a light green (dark stages) and white on a deep green (light stages). One gift per
-scheme: the check, the block and the footer's disc are the highest target crossed, never a row
-of them; the detail's gift list marks that one row QUALIFIED or YOU WON and dims the rows under
-it. The default list has a completed scheme with no gift won (Bombay Dyeing, ended at ₹12,500
-of ₹50,000): the card says "The scheme ended" with "No gift won" in the footer, and the detail
-adds "See running schemes". The inset is 18 px before the
+chip on 11 Sep 2026. One anatomy: when a target is crossed, a green run (the stage's `good`)
+from the start to an 18 px check disc at xD, a 6 px gap after the disc, then the step to the
+next target filled in the accent to the shop's buying, with the runner and the amount tag at
+the fill's end and one flag at the finish. On a ladder of three or more xD is 28 % of the
+track (the earlier slabs compressed); on a one- or two-target bar xD is the crossed target's
+own position, so the bar stays to scale, and an uncrossed target before the finish is a 2 px
+tick with its number. The scale under the meter is numbers only: the crossed target under its
+check in bold, the tick's value under the tick, "Target ₹10L" under the flag, "₹0" on the left
+when nothing is crossed. The win is a sentence under the scale: the gift's picture in a 26 px
+disc with a green check badge and "You've qualified for the Air Fryer" (cash: "You've
+qualified for ₹500 cashback"), 13 px in the stage's ink. The check ink is dark on a light green
+(dark stages) and white on a deep green (light stages). One gift per scheme: the check, the
+sentence and the footer's disc are the highest target crossed, never a row of them; the
+detail's gift list marks that one row QUALIFIED or YOU WON, dims the rows under it, and badges
+no open target once the scheme has ended. The default list has a completed scheme with no gift
+won (Bombay Dyeing, ended at ₹12,500 of ₹50,000): the card says "The scheme ended" with "No
+gift this time" in the footer; the detail is a completed page like the others, with the gift
+it offered, the rules, the facts, the final buying and "See running schemes". The inset is 18 px before the
 discs and 13 px after the chevron. The subtitle under the title says when the scheme ends,
 card and page alike, so nothing crosses over during the move.
 

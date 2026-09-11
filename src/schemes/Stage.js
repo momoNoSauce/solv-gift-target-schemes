@@ -86,7 +86,8 @@ export function deriveStage(scheme, t) {
   const meter = {
     simple,
     crossed,
-    pct: simple ? Math.min(1, top.at > 0 ? s.currentValue / top.at : 0) : localPct,
+    // The fill within the step: from the last crossed target (or zero) to the next.
+    pct: localPct,
     marks: simple ? s.ladder.map((g) => ({ gift: g, x: g.at / top.at, done: s.currentValue >= g.at })) : [],
   };
   const deliveredLabel = scheme.fulfilment.deliveredAt ? ddMMM(scheme.fulfilment.deliveredAt) : '';
@@ -218,19 +219,24 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
   const [trackW, setTrackW] = useState(0);
   const [dTagW, setDTagW] = useState(84);
 
-  // Meter geometry, in the bar zone's width. A ladder with a qualified target
-  // gives 28 % of the track to the green segment and a 6 px gap; the step to
-  // the next target takes the rest. The fill ends at fillX; the tag, the runner
-  // and the entrance animation all key on it.
+  // Meter geometry, in the bar zone's width W. One anatomy for both meters:
+  // when a target is crossed, a green segment runs from the start to the check
+  // disc at xD, a 6 px gap follows the disc, and the step to the next target
+  // takes the rest. On a ladder of three or more xD is 28 % of W (the earlier
+  // slabs compressed); on a one- or two-target bar xD is the crossed target's
+  // own position, so the whole bar stays to scale. With nothing crossed the
+  // step runs the full width. The fill ends at fillX; the tag, the runner and
+  // the entrance animation key on it. One flag, at the finish.
   const W = trackW;
-  const doneSeg = !meter.simple && meter.crossed > 0;
-  const SEG_L = Math.round(W * 0.28);
+  const DISC_R = 9;
   const SEG_GAP = 6;
-  const segX = doneSeg ? SEG_L + SEG_GAP : 0;
+  const crossedMark = meter.simple && meter.crossed > 0 ? meter.marks[meter.crossed - 1] : null;
+  const xD = meter.crossed > 0 ? (meter.simple ? crossedMark.x * W : Math.round(W * 0.28)) : null;
+  const segX = xD !== null ? xD + DISC_R + SEG_GAP : 0;
   const segW = Math.max(0, W - segX);
   const fillX = segX + meter.pct * segW;
   const hasFill = meter.pct > 0;
-  const checkX = doneSeg ? SEG_L : meter.simple && meter.crossed > 0 ? meter.marks[meter.crossed - 1].x * W : null;
+  const ticks = meter.simple ? meter.marks.slice(0, -1).filter((m) => !m.done) : [];
 
   const sparkleAnim = useRef(new Animated.Value(0.5)).current;
   // The runner runs: a 520 ms stride, bob 2.5 px and a 5 deg rock, while the
@@ -436,30 +442,26 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                 </View>
 
                 <View style={styles.barZone} onLayout={(e) => setTrackW(e.nativeEvent.layout.width)}>
-                  {/* The qualified segment: green, full, a check where it ends. */}
-                  {doneSeg ? <View style={[styles.seg, { left: 0, width: SEG_L, backgroundColor: st.good }]} /> : null}
-                  {/* The step to the next target (or the whole ladder on a simple meter). */}
+                  {/* Crossed: the green run to the check disc, then the gap. */}
+                  {xD !== null ? <View style={[styles.seg, { left: 0, width: Math.max(0, xD), backgroundColor: st.good }]} /> : null}
+                  {/* The step to the next target (the whole bar with nothing crossed). */}
                   <View style={[styles.seg, { left: segX, width: segW, backgroundColor: st.track }]}>
                     <Animated.View style={[styles.barFill, { backgroundColor: st.accent, width: barA.interpolate({ inputRange: [0, 1], outputRange: ['0%', `${meter.pct * 100}%`] }) }]} />
                   </View>
-                  {W > 0 && checkX !== null ? (
-                    <View style={[styles.checkDisc, { left: checkX - 9, backgroundColor: st.good }]}>
+                  {W > 0 && xD !== null ? (
+                    <View style={[styles.checkDisc, { left: xD - DISC_R, backgroundColor: st.good }]}>
                       <Svg width={11} height={11} viewBox="0 0 24 24">
                         <Path d="M5 12.5l4.5 4.5L19 7.5" stroke={checkInk(st.good)} strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round" fill="none" />
                       </Svg>
                     </View>
                   ) : null}
-                  {/* Flags: one at the top target; on a simple meter one at every target not yet crossed. */}
+                  {/* An uncrossed target before the finish: a tick on the track. */}
+                  {W > 0 ? ticks.map((m) => <View key={m.gift.at} style={[styles.tick, { left: m.x * W - 1, backgroundColor: st.ink }]} />) : null}
                   {W > 0 ? (
                     <View style={[styles.flagD, { left: W - 14 }]}>
                       <IconTargetFlag width={12} height={22} color={st.accent} />
                     </View>
                   ) : null}
-                  {W > 0 && meter.simple ? meter.marks.slice(0, -1).filter((m) => !m.done).map((m) => (
-                    <View key={m.gift.at} style={[styles.flagD, { left: m.x * W - 3 }]}>
-                      <IconTargetFlag width={12} height={22} color={st.accent} />
-                    </View>
-                  )) : null}
                   {W > 0 && hasFill ? (
                     <Animated.View style={[styles.runnerD, { left: barA.interpolate({ inputRange: [0, 1], outputRange: [segX, Math.min(Math.max(fillX - 11, segX), W - 26)] }) }]}>
                       <Animated.View style={runStyle}>
@@ -469,30 +471,39 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                   ) : null}
                 </View>
 
-                {/* Under the meter: what is qualified (the target, the gift, its
-                    picture) on the left, the next target on the right. With
-                    nothing qualified the left end reads its own value. */}
-                <View style={styles.meterLabels}>
-                  {meter.crossed > 0 && s.secured ? (
-                    <View style={styles.qualBlock}>
-                      <View>
-                        <Text style={[styles.qualAt, TABULAR, { color: st.ink }]} numberOfLines={1} allowFontScaling={false}>{slab(s.secured.at)} {t.qualifiedWord}</Text>
-                        <Text style={[styles.qualGift, { color: st.sub }]} numberOfLines={1} allowFontScaling={false}>{s.secured.shortName}</Text>
-                      </View>
-                      <View style={styles.qualThumb}>
-                        <GiftThumb gift={s.secured} size={20} />
-                      </View>
-                    </View>
-                  ) : (
-                    <Text style={[styles.barEnd, TABULAR, { color: st.sub }]} allowFontScaling={false}>{slab(0)}</Text>
-                  )}
-                  {W > 0 && meter.simple && meter.crossed === 0 ? meter.marks.slice(0, -1).map((m) => (
-                    <Text key={m.gift.at} style={[styles.barEnd, styles.markLabel, TABULAR, { color: st.sub, left: m.x * W }]} allowFontScaling={false}>{slab(m.gift.at)}</Text>
+                {/* The scale: numbers only. The crossed target under its check,
+                    an uncrossed tick under its mark, the finish on the right,
+                    zero on the left when nothing is crossed yet. */}
+                <View style={styles.scale}>
+                  {xD === null ? <Text style={[styles.scaleEnd, TABULAR, { color: st.sub }]} allowFontScaling={false}>{slab(0)}</Text> : null}
+                  {W > 0 && xD !== null && s.secured ? (
+                    <Text style={[styles.scaleMark, TABULAR, { color: st.ink, left: xD }]} allowFontScaling={false}>{slab(s.secured.at)}</Text>
+                  ) : null}
+                  {W > 0 ? ticks.map((m) => (
+                    <Text key={m.gift.at} style={[styles.scaleMark, TABULAR, { color: st.sub, left: m.x * W }]} allowFontScaling={false}>{slab(m.gift.at)}</Text>
                   )) : null}
-                  <Text style={[styles.barEnd, TABULAR, { color: st.sub }]} allowFontScaling={false}>
-                    {t.targetWord} <Text style={{ color: st.ink, fontFamily: F.bold }}>{slab(meter.simple ? top.at : s.next.at)}</Text>
+                  <Text style={[styles.scaleEnd, styles.scaleRight, TABULAR, { color: st.sub }]} allowFontScaling={false}>
+                    {t.targetWord} <Text style={{ color: st.ink, fontFamily: F.bold }}>{slab(s.next.at)}</Text>
                   </Text>
                 </View>
+
+                {/* The win, in a sentence: the gift's picture with a check and
+                    "You've qualified for the Air Fryer". */}
+                {s.secured ? (
+                  <View style={styles.qualRow}>
+                    <View style={styles.qualThumb}>
+                      <GiftThumb gift={s.secured} size={20} />
+                      <View style={[styles.qualBadge, { backgroundColor: st.good }]}>
+                        <Svg width={8} height={8} viewBox="0 0 24 24">
+                          <Path d="M5 12.5l4.5 4.5L19 7.5" stroke={checkInk(st.good)} strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                        </Svg>
+                      </View>
+                    </View>
+                    <Text style={[styles.qualText, { color: st.ink }]} numberOfLines={1} allowFontScaling={false}>
+                      {s.secured.cash ? t.qualifiedCash(String(s.secured.cash)) : t.securedRow(s.secured.shortName)}
+                    </Text>
+                  </View>
+                ) : null}
 
                 <Animated.View style={[rise(amountA, 10), { opacity: Animated.multiply(amountA, k.interpolate({ inputRange: [0.5, 0.9], outputRange: [0, 1], extrapolate: 'clamp' })), height: dial(0, 65), overflow: 'hidden' }]}>
                   <Text style={[styles.bigMore, TABULAR, { color: amountParts.color }]} allowFontScaling={false}>
@@ -573,13 +584,17 @@ const styles = StyleSheet.create({
   runnerD: { position: 'absolute', bottom: 8 },
   flagD: { position: 'absolute', bottom: 8 },
   checkDisc: { position: 'absolute', bottom: -4, width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  meterLabels: { marginTop: 6, marginHorizontal: 32, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', minHeight: 16 },
-  barEnd: { fontFamily: F.medium, fontSize: 12, lineHeight: 16 },
-  markLabel: { position: 'absolute', top: 0, width: 80, marginLeft: -40, textAlign: 'center' },
-  qualBlock: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  qualAt: { fontFamily: F.bold, fontSize: 12, lineHeight: 16 },
-  qualGift: { fontFamily: F.regular, fontSize: 11, lineHeight: 14 },
-  qualThumb: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  tick: { position: 'absolute', bottom: -2, width: 2, height: 14, borderRadius: 1, opacity: 0.7 },
+  // The scale under the meter: 12 px numbers, the marks centred on their x.
+  scale: { marginTop: 6, marginHorizontal: 32, height: 16, flexDirection: 'row', justifyContent: 'space-between' },
+  scaleEnd: { fontFamily: F.medium, fontSize: 12, lineHeight: 16 },
+  scaleRight: { marginLeft: 'auto' },
+  scaleMark: { position: 'absolute', top: 0, width: 96, marginLeft: -48, textAlign: 'center', fontFamily: F.bold, fontSize: 12, lineHeight: 16 },
+  // The win: a 26 px picture with a check badge, then the sentence.
+  qualRow: { marginTop: 10, marginHorizontal: 32, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  qualThumb: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  qualBadge: { position: 'absolute', right: -3, bottom: -3, width: 12, height: 12, borderRadius: 6, borderWidth: 1.5, borderColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' },
+  qualText: { flex: 1, fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
 
   bigMore: { marginTop: 12, textAlign: 'center', fontFamily: F.bold, fontSize: 26, lineHeight: 32 },
   bigMoreWord: { fontFamily: F.medium, fontSize: 16, lineHeight: 32 },
