@@ -183,7 +183,7 @@ export function CardFooter({ scheme, t, style, accent = SOLV.blue, accentBg = SO
   );
 }
 
-function Card({ scheme, compact, onPress, onLayout, cardRef, dim, t, chrome, variant = 'a', stagger = 0 }) {
+export function Card({ scheme, compact, onPress, onLayout, cardRef, dim, t, chrome, variant = 'a', stagger = 0 }) {
   const press = usePressScale(0.96);
   return (
     <Animated.View ref={cardRef} onLayout={onLayout} dataSet={{ card: 'scheme' }} style={[styles.card, { transform: [{ scale: press.scale }] }, dim && { opacity: 0 }]}>
@@ -216,7 +216,7 @@ function Empty({ title, line, bottom }) {
 // Jumbotail flavour takes the tokens of mainandroidapp's jumbotail values:
 // brand_green toolbar and tabs, target_scheme_native for the tab indicator and
 // the active nav item, default_bg_color for the ground.
-const CHROME = {
+export const CHROME = {
   solv: { bar: SOLV.blue, indicator: SOLV.orange, ground: SOLV.listBg, navAccent: SOLV.blue, accentBg: SOLV.blueBg, nav: true },
   jt: { bar: C.brandGreen, indicator: C.targetSchemeNative, ground: '#EEEEEE', navAccent: C.targetSchemeNative, accentBg: '#E8F4E8', nav: false },
 };

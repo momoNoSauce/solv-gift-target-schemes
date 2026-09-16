@@ -6,11 +6,12 @@ export function toList(router, opt) {
   router.replace(`/schemes/list?opt=${opt}`);
 }
 
+// Back from a detail: to wherever the shop came from when there is a history
+// (the product page, the list, the entry), else to the entry.
 export function backToEntry(router) {
-  if (process.env.EXPO_PUBLIC_LANDING === 'options') {
-    router.replace('/');
+  if (typeof router.canGoBack === 'function' && router.canGoBack()) {
+    router.back();
     return;
   }
-  if (typeof router.canGoBack === 'function' && router.canGoBack()) router.back();
-  else router.replace('/options');
+  router.replace(process.env.EXPO_PUBLIC_LANDING === 'options' ? '/' : '/options');
 }

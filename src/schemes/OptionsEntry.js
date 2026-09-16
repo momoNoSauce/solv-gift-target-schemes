@@ -18,6 +18,7 @@ const OPTIONS = [
   { key: 'A', name: 'Solv', href: DETAIL ? '/schemes' : '/schemes/list' },
   { key: 'B', name: 'Jumbotail', href: DETAIL ? '/schemes' : '/schemes/list?brand=jt' },
   { key: 'C', name: 'Footer variants', href: '/schemes/list?compare=1' },
+  { key: 'D', name: 'Product page', href: '/ppv' },
 ];
 
 function Row({ option, anim, onPress }) {
@@ -37,7 +38,8 @@ function Row({ option, anim, onPress }) {
 
 export default function OptionsEntry() {
   const router = useRouter();
-  const a = useRef([0, 1, 2, 3].map(() => new Animated.Value(SETTLED ? 1 : 0))).current;
+  // One value for the title and one per row, so a new row never outruns the array.
+  const a = useRef(Array.from({ length: OPTIONS.length + 1 }, () => new Animated.Value(SETTLED ? 1 : 0))).current;
   useEffect(() => {
     if (SETTLED) return;
     const out = (v) => Animated.timing(v, { toValue: 1, duration: 240, easing: Easing.out(Easing.cubic), useNativeDriver: false });

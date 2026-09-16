@@ -567,3 +567,37 @@ Screenshots: `exploration-screenshots/pager-*.png` (see the capture script).
    characters fit at 11 px; longer names truncate.
 3. The main scheme is the first running scheme. Is that the campaign scheme, or the
    scheme closest to its next slab?
+
+
+## The product page (PPV) and the scheme card
+
+`/ppv` recreates the Solv product page from the Android app's v2 product details screen
+(`productsv2/details/ProductGroupDetailsFragment`, gated by the app-launch flag
+`showProductVariantUx`), read on a 360 dp phone where `_Nsdp` is N dp: a 48 dp blue toolbar
+(back, the home logo, the brand as title, search, share, the cart with its orange badge);
+the header (title 16 bold, the rating row, the "N MORE VARIETIES" pill); the variant chips
+(44 dp pills, 1 dp #CCCCCC, the selected one in #0066FF with a pointer, dots under them); the
+edge-to-edge info card (square, 1 dp #CCCCCC; the offer tag ribbon in #FB9805; the variant
+label 18 bold; the 240 dp image carousel; the offer chips, 4 dp radius, 1 dp #0066FF, 12 bold);
+a 12 dp gap; the green SUBTOTAL strip (#58a159 at 80 %, only with a quantity); the order card
+(MRP/Pc 16 medium in #0066FF, PRICE/Pc 12 bold grey, the price 24 bold with "21.3% margin" in
+#0066FF, the ADD button in #D55D38 at 36 dp or the stepper with #D55D3B circles and a 44 dp
+spinner, then DELIVERY with the Solv right-aligned promise); the CREDIT and SELLER cards; one
+UI node ("Frequently bought together"); and the sticky cart bar (a 2 dp #0066FF rule, the cart
+count, the amount in #0066FF, "+ ₹20 DELIVERY CHARGES", GO TO CART at 44 dp). Every card is
+white with a 1 dp #CCCCCC border and square corners over the #F7F7F7 page; nothing on the page
+casts a shadow but the toolbar, the ADD button and the offer chips.
+
+Target schemes in production appear only as an offer chip ("TARGET SCHEME") among the offers,
+opening a dialog; `/ppv?as=prod` shows that. The design (default) drops the chip and puts a
+small scheme card under the order card, in the page's own card language: the next gift's
+picture in a 48 dp tile, the eyebrow TARGET SCHEME with "+1 more" when a second scheme applies,
+the scheme title 14 bold, and one line for what buying does ("Buy ₹3,60,000 more to win the
+Soundbar"), a chevron disc on the right. A tap opens the scheme sheet
+(`src/ppv/SchemeSheet.js`): a Material bottom sheet on the list's ground, a handle, "Target
+schemes" over "This product counts toward 2 schemes", a close disc, and the list's own card
+(stage, meter, footer) for each scheme, scrollable. A tap on a card leaves for that scheme's
+detail (`/schemes?i=`); back returns to the product page with the sheet closed
+(`backToEntry` prefers history). The product is a Pigeon kettle: Small Appliances count toward
+the Mega Diwali scheme and Gold-exclusive listings toward the Gold scheme, so the page carries
+two.

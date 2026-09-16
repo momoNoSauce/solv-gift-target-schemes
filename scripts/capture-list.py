@@ -63,6 +63,11 @@ SHOTS = [
     ('34-compare-cash-rewards', '/schemes/list?compare=1', ['__scroll(4900)']),
     ('35-compare-completed', '/schemes/list?compare=1', ['window.__list.tab(1)', '__scroll(640)']),
     ('36-compare-start', '/schemes/list?compare=1&view=start', ['__scroll(640)']),
+    ('40-ppv-prod', '/ppv?as=prod', []),
+    ('41-ppv-prod-scrolled', '/ppv?as=prod', ['__scroll(600)']),
+    ('42-ppv-design', '/ppv', ['__scroll(600)']),
+    ('43-ppv-design-added', '/ppv', ['__scroll(600)', "document.querySelector('[aria-label=\"Add\"]').click()"]),
+    ('44-ppv-sheet', '/ppv', ['__scroll(600)', "document.querySelector('[aria-label^=\"Target scheme\"]').click()"]),
 ]
 
 SCROLL = """window.__scroll = (y) => { const sv=[...document.querySelectorAll('div')]
