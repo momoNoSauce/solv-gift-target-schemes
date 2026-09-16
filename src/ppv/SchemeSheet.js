@@ -1,19 +1,23 @@
-// The target-scheme sheet on the product page. A tap on the small scheme card
-// opens it: a bottom sheet over the page with the same card the Target schemes
-// list shows (src/schemes/SchemesList.js Card: the stage with the meter, the
-// footer with the gifts), one per scheme this product counts toward. A tap on
-// a card leaves for that scheme's detail page.
+// The target-scheme sheet on the product page. A tap on a scheme row opens
+// it for that one scheme: a bottom sheet over the page with the same card the
+// Target schemes list shows (src/schemes/SchemesList.js Card: the stage with
+// the meter, the footer with the gifts). A tap on the card leaves for the
+// scheme's detail page.
+//
+// The sheet is drawn inside the screen (an absolute overlay), not as a
+// window-level modal, so it stays inside the phone frame on a desktop.
 //
 // Anatomy (Material bottom sheet, as the app's own sheets):
-//   scrim      black at 32 %, fades in 200 ms
-//   sheet      white, 16 px top radius, a 36 x 4 handle, slides up on a spring
-//              (stiffness 260, damping 30, no bounce), drags down to close
-//   header     "Target schemes" (16 bold), "This product counts toward 2
-//              schemes" (13 sub), a close disc on the right
-//   body       the cards, 16 px apart, scrollable when two do not fit
+//   scrim      black at 32 %, fades with the sheet
+//   sheet      the list's ground, 16 px top radius, a 36 x 4 handle, slides up
+//              on a spring (stiffness 260, damping 30, no bounce), drags down
+//              to close
+//   header     "Target scheme" (16 bold), "Buying this product counts toward
+//              it" (13 sub), a close disc on the right
+//   body       the card; scrolls only when the frame is shorter than the card
 //   bottom     the safe-area inset
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, Modal, ScrollView, StyleSheet, Animated, Easing, PanResponder, useWindowDimensions } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Easing, PanResponder } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -23,10 +27,11 @@ import { Card, CHROME } from '../schemes/SchemesList';
 import { T } from '../schemes/copy';
 import { SETTLED } from '../schemes/motion';
 
-export default function SchemeSheet({ open, schemes, indexOf, onClose, brand = 'solv' }) {
+export default function SchemeSheet({ scheme, indexOf, onClose, brand = 'solv' }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { height: screenH } = useWindowDimensions();
+  const open = Boolean(scheme);
+  const [shown, setShown] = useState(scheme);
   const [mounted, setMounted] = useState(open);
   const y = useRef(new Animated.Value(1)).current;        // 1: off screen, 0: in place
   const t = T.en;
@@ -34,6 +39,7 @@ export default function SchemeSheet({ open, schemes, indexOf, onClose, brand = '
 
   useEffect(() => {
     if (open) {
+      setShown(scheme);
       setMounted(true);
       y.setValue(SETTLED ? 0 : 1);
       if (!SETTLED) Animated.spring(y, { toValue: 0, stiffness: 260, damping: 30, mass: 1, useNativeDriver: false }).start();
@@ -53,31 +59,27 @@ export default function SchemeSheet({ open, schemes, indexOf, onClose, brand = '
     },
   })).current;
 
-  if (!mounted) return null;
-  const sheetH = Math.min(screenH * 0.92, 120 + schemes.length * 620);
-  const translateY = Animated.add(y.interpolate({ inputRange: [0, 1], outputRange: [0, sheetH] }), drag);
+  if (!mounted || !shown) return null;
+  const translateY = Animated.add(y.interpolate({ inputRange: [0, 1], outputRange: [0, 760] }), drag);
   const scrim = y.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
 
-  const goTo = (scheme) => {
+  const goTo = () => {
     onClose();
-    router.push(`/schemes?i=${indexOf(scheme)}`);
+    router.push(`/schemes?i=${indexOf(shown)}`);
   };
 
   return (
-    <Modal visible transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
-      <View style={styles.root}>
+    <View style={styles.root} pointerEvents="box-none">
         <Animated.View style={[styles.scrim, { opacity: scrim }]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
         </Animated.View>
-        <Animated.View style={[styles.sheet, { maxHeight: sheetH, paddingBottom: insets.bottom + 8, transform: [{ translateY }] }]}>
+        <Animated.View style={[styles.sheet, { maxHeight: '92%', paddingBottom: insets.bottom + 8, transform: [{ translateY }] }]}>
           <View {...pan.panHandlers} dataSet={{ touch: 'pan-y' }}>
             <View style={styles.handle} />
             <View style={styles.header}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.title} allowFontScaling={false}>Target schemes</Text>
-                <Text style={styles.sub} allowFontScaling={false}>
-                  {schemes.length === 1 ? 'This product counts toward 1 scheme' : `This product counts toward ${schemes.length} schemes`}
-                </Text>
+                <Text style={styles.title} allowFontScaling={false}>Target scheme</Text>
+                <Text style={styles.sub} allowFontScaling={false}>Buying this product counts toward it</Text>
               </View>
               <Pressable onPress={onClose} style={styles.close} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
                 <Svg width={18} height={18} viewBox="0 0 24 24">
@@ -87,18 +89,15 @@ export default function SchemeSheet({ open, schemes, indexOf, onClose, brand = '
             </View>
           </View>
           <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false} bounces={false}>
-            {schemes.map((sc) => (
-              <Card key={sc.id} scheme={sc} t={t} chrome={chrome} onPress={() => goTo(sc)} />
-            ))}
+            <Card scheme={shown} t={t} chrome={chrome} onPress={goTo} />
           </ScrollView>
         </Animated.View>
-      </View>
-    </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, justifyContent: 'flex-end' },
+  root: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', zIndex: 50 },
   scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.32)' },
   sheet: { backgroundColor: SOLV.listBg, borderTopLeftRadius: 16, borderTopRightRadius: 16, overflow: 'hidden' },
   handle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(17,24,39,0.18)', marginTop: 8 },

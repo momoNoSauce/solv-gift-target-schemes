@@ -590,14 +590,15 @@ casts a shadow but the toolbar, the ADD button and the offer chips.
 
 Target schemes in production appear only as an offer chip ("TARGET SCHEME") among the offers,
 opening a dialog; `/ppv?as=prod` shows that. The design (default) drops the chip and puts a
-small scheme card under the order card, in the page's own card language: the next gift's
-picture in a 48 dp tile, the eyebrow TARGET SCHEME with "+1 more" when a second scheme applies,
-the scheme title 14 bold, and one line for what buying does ("Buy ₹3,60,000 more to win the
-Soundbar"), a chevron disc on the right. A tap opens the scheme sheet
-(`src/ppv/SchemeSheet.js`): a Material bottom sheet on the list's ground, a handle, "Target
-schemes" over "This product counts toward 2 schemes", a close disc, and the list's own card
-(stage, meter, footer) for each scheme, scrollable. A tap on a card leaves for that scheme's
-detail (`/schemes?i=`); back returns to the product page with the sheet closed
+small scheme card under the order card, in the page's own card language: the eyebrow TARGET
+SCHEME(S) once, then a row per scheme the product counts toward (the next gift's picture in a
+48 dp tile, the scheme title 14 bold, one line for what buying does: "Buy ₹3,60,000 more to
+win the Soundbar", a chevron disc), rows divided by 1 dp #ebebeb. A tap on a row opens the
+scheme sheet for that scheme alone (`src/ppv/SchemeSheet.js`): a Material bottom sheet drawn
+inside the screen (an absolute overlay, so it stays in the phone frame on a desktop), on the
+list's ground, with a handle, "Target scheme" over "Buying this product counts toward it", a
+close disc, and the list's own card (stage, meter, footer). A tap on the card leaves for the
+scheme's detail (`/schemes?i=`); back returns to the product page with the sheet closed
 (`backToEntry` prefers history). The product is a Pigeon glass kettle (photos: free-licence stock from Pexels, 10965752 and
 10965749, cropped, in assets/products/): Small Appliances count toward the Mega Diwali scheme
 and Gold-exclusive listings toward the Gold scheme, so the page carries two.

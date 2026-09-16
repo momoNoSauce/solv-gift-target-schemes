@@ -89,7 +89,7 @@ export default function PpvScreen({ as = 'design' }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [qty, setQty] = useState(0);
-  const [sheet, setSheet] = useState(false);
+  const [sheet, setSheet] = useState(null);      // the scheme whose sheet is open
   const all = useMemo(() => schemesFor('typical'), []);
   const schemes = useMemo(() => PRODUCT.appliesTo.map((id) => all.find((s) => s.id === id)).filter(Boolean), [all]);
   const indexOf = (sc) => all.findIndex((s) => s.id === sc.id);
@@ -239,7 +239,7 @@ export default function PpvScreen({ as = 'design' }) {
 
         {/* The design: the target-scheme card, in the card stack. */}
         {!prod && schemes.length ? (
-          <SchemeNodeCard schemes={schemes} onPress={() => setSheet(true)} style={styles.schemeCard} />
+          <SchemeNodeCard schemes={schemes} onPress={(sc) => setSheet(sc)} style={styles.schemeCard} />
         ) : null}
 
         {/* 5.7 Credit */}
@@ -295,7 +295,7 @@ export default function PpvScreen({ as = 'design' }) {
         </View>
       </View>
 
-      <SchemeSheet open={sheet} schemes={schemes} indexOf={indexOf} onClose={() => setSheet(false)} />
+      <SchemeSheet scheme={sheet} indexOf={indexOf} onClose={() => setSheet(null)} />
     </View>
   );
 }
