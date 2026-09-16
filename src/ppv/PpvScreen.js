@@ -165,8 +165,9 @@ export default function PpvScreen({ as = 'design' }) {
           </View>
           <Text style={styles.variantLabel} allowFontScaling={false}>{PRODUCT.variantLabel}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imagesRow}>
-            <View style={styles.imageBox}><Image source={PRODUCT.image} style={styles.image} resizeMode="contain" /></View>
-            <View style={styles.imageBox}><Image source={PRODUCT.image} style={[styles.image, { transform: [{ scaleX: -1 }] }]} resizeMode="contain" /></View>
+            {PRODUCT.images.map((src, i) => (
+              <View key={i} style={styles.imageBox}><Image source={src} style={styles.image} resizeMode="contain" /></View>
+            ))}
           </ScrollView>
           {/* 6 Offer chips, wrapping */}
           <View style={styles.offers}>

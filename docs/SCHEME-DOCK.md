@@ -598,6 +598,6 @@ Soundbar"), a chevron disc on the right. A tap opens the scheme sheet
 schemes" over "This product counts toward 2 schemes", a close disc, and the list's own card
 (stage, meter, footer) for each scheme, scrollable. A tap on a card leaves for that scheme's
 detail (`/schemes?i=`); back returns to the product page with the sheet closed
-(`backToEntry` prefers history). The product is a Pigeon kettle: Small Appliances count toward
-the Mega Diwali scheme and Gold-exclusive listings toward the Gold scheme, so the page carries
-two.
+(`backToEntry` prefers history). The product is a Pigeon glass kettle (photos: free-licence stock from Pexels, 10965752 and
+10965749, cropped, in assets/products/): Small Appliances count toward the Mega Diwali scheme
+and Gold-exclusive listings toward the Gold scheme, so the page carries two.

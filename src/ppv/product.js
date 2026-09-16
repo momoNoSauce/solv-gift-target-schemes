@@ -2,13 +2,17 @@
 // the cart. A kettle: it sits in Small Appliances, which the Mega Diwali
 // scheme counts, and it is a Gold-exclusive listing, which the Gold scheme
 // counts, so the page carries two target schemes.
+//
+// The photos are free-licence stock (Pexels, photos 10965752 and 10965749,
+// "Sleek glass electric kettle" by the same photographer), cropped to the
+// kettle; assets/products/. The Pexels licence asks for no attribution.
 export const PRODUCT = {
   brand: 'Pigeon',
-  title: 'Pigeon Amaze Plus Electric Kettle 1.5 L, Stainless Steel',
-  variantLabel: '1.5 L',
+  title: 'Pigeon Amaze Plus Glass Electric Kettle 1.8 L, Cordless',
+  variantLabel: '1.8 L',
   rating: 4.2,
   moreVarieties: 2,
-  image: require('../../assets/gifts/kettle.jpg'),
+  images: [require('../../assets/products/kettle-glass-1.jpg'), require('../../assets/products/kettle-glass-2.jpg')],
   // The variant chip strip: label (caps) over the value.
   variants: [
     { label: 'PACK', value: '1 Pc', selected: true },
