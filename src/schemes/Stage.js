@@ -242,7 +242,8 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
   // The meter's done colour: the seal's green, or the theme's light green on a
   // green night (Jumbotail), with the check's ink following it.
   const GREEN = st.meterGood || METER_GREEN;
-  const GREEN_INK = checkInk(GREEN);
+  // White on the seal green; dark only on a theme's light green.
+  const GREEN_INK = st.meterGood ? checkInk(GREEN) : '#fff';
   const crossedMark = meter.simple && meter.crossed > 0 ? meter.marks[meter.crossed - 1] : null;
   // Reached: one green run from start to finish, no disc, no step.
   const xD = reached ? null : meter.crossed > 0 ? (meter.simple ? crossedMark.x * W : Math.round(W * 0.28)) : null;
@@ -257,22 +258,8 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
   const ticks = meter.simple ? meter.marks.slice(0, -1).filter((m) => !m.done) : [];
 
   const sparkleAnim = useRef(new Animated.Value(0.5)).current;
-  // The runner runs: a 520 ms stride, bob 2.5 px and a 5 deg rock, while the
-  // page is near. Still on a card (the list would run four loops) and when
-  // motion is settled.
-  const runA = useRef(new Animated.Value(0)).current;
-  const runnerOn = !SETTLED && !card && near && trackW > 0 && hasFill && !s.ended && !reached;
-  useEffect(() => {
-    if (!runnerOn) return undefined;
-    const stride = (to) => Animated.timing(runA, { toValue: to, duration: 260, easing: Easing.inOut(Easing.sin), useNativeDriver: false });
-    const loop = Animated.loop(Animated.sequence([stride(1), stride(0)]));
-    loop.start();
-    return () => { loop.stop(); runA.setValue(0); };
-  }, [runnerOn]);
-  const runStyle = { transform: [
-    { translateY: runA.interpolate({ inputRange: [0, 1], outputRange: [0, -2.5] }) },
-    { rotate: runA.interpolate({ inputRange: [0, 1], outputRange: ['-2deg', '3deg'] }) },
-  ] };
+  // The runner stands still on the bar (the stride loop was removed on
+  // 21 Sep 2026): his place on the track is the signal, not his motion.
   useEffect(() => {
     if (SETTLED || !festive) return;
     const loop = Animated.loop(
@@ -492,9 +479,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                   ) : null}
                   {W > 0 && hasFill && !reached ? (
                     <Animated.View style={[styles.runnerD, { left: barA.interpolate({ inputRange: [0, 1], outputRange: [segX, Math.min(Math.max(fillX - 11, segX), W - 26)] }) }]}>
-                      <Animated.View style={runStyle}>
-                        <IconRunningMan height={22} color="#fff" />
-                      </Animated.View>
+                      <IconRunningMan height={22} color="#fff" />
                     </Animated.View>
                   ) : null}
                 </View>

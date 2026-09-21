@@ -647,3 +647,8 @@ ended / You did not reach the first target." on the card and the page; before th
 "Starts 1 Oct 2026. Buy eligible products to win."; the rules card opens with "Buying these
 counts toward the scheme". The amount tag's caret now shifts to keep pointing at the fill's
 end when the tag is held inside the track's edges (12 px inside the tag's corners).
+
+Two corrections of 21 Sep 2026: the check on the seal green is white (the ink chooser judged
+the seal green light and darkened it for a day; dark ink now applies only to a theme's own
+light `meterGood`), and the runner no longer strides. He stands where the fill ends; his
+place is the signal.
