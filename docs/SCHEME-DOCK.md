@@ -602,3 +602,48 @@ scheme's detail (`/schemes?i=`); back returns to the product page with the sheet
 (`backToEntry` prefers history). The product is a Pigeon glass kettle (photos: free-licence stock from Pexels, 10965752 and
 10965749, cropped, in assets/products/): Small Appliances count toward the Mega Diwali scheme
 and Gold-exclusive listings toward the Gold scheme, so the page carries two.
+
+
+## Additions of 21 Sep 2026
+
+Purchases counted. The app's Transaction History screen ("Amount contributed towards the
+scheme", a list of "Order date: 29 Jun 2026" rows with the amount in blue) becomes a card in
+the detail, after the gift list and the CTA and before ELIGIBLE PRODUCTS, labelled PURCHASES
+COUNTED. The head carries the total (15 bold, tabular) and the count ("8 orders", 12 sub); the
+latest three orders follow as 40 px rows ("Order date: 16 Oct 2026" 13 ink, the amount 13
+bold tabular), and a 44 px line "See 5 more orders" in the theme's deep accent unfolds the
+rest in place. Only when the shop has bought anything. The orders are mocked per scheme
+(`registry.js ordersFor`): a seeded set of 1 to 9 orders on distinct days between the start
+and now, summing to the exact buying.
+
+Jumbotail default paint. A scheme with no theme of its own takes the brand's default:
+Solv's blue, or one of two Jumbotail greens (`themes.js` jtA, jtB), picked by `?brand=jt` and
+`?theme=b`, and applied in `schemesFor(viewKey, { defaultTheme })`. Forest (jtA): the app's
+brand green #2C552D as a deep night falling to #1B3A1C, a white accent, the light green
+#58A159 in the glow. Meadow (jtB): the light green as a brighter ground (#4CA150 to #2C552D)
+with a warm yellow accent #FFE07A. Both carry a light `meterGood` (#8CE0A9, #CFF7D6) because
+the seal green of the Solv meter vanishes on a green night; the check's ink follows it (dark
+on the light greens). The entry page lists "Jumbotail, Forest" and "Jumbotail, Meadow".
+
+Reached, not yet won. A scheme whose top target is crossed while it still runs
+(`STATE.TOP_REACHED`) used to wear the won stamp and say "You won the top gift". It now has
+its own anatomy, since the gift is confirmed only when the scheme ends: the eyebrow TOP GIFT
+REACHED over the goal-size tile; the meter in one green run from start to finish with no
+disc, the flag in the same green and the app's standing man (ic_target_scheme_standing_man)
+beside it in place of the runner; the amount tag held at the right edge with its caret still
+pointing at the finish; under the meter the won gift's tile, its name and "Qualified at
+₹60,000" on the left, "₹60,000" over "Target reached" (in the green) on the right; then, on
+the page, "You've qualified for the Watch" (17 bold) over "Confirmed when the scheme ends on
+28 Oct 2026" where the ask stood, and no CTA. The card footer reads "You've qualified for the
+Watch". Bata in the typical view (₹63,400 of ₹60,000, 9 days left) shows it.
+
+Terms and conditions. The scheme master's free-text terms, one or more paragraphs, as a card
+labelled TERMS AND CONDITIONS after ELIGIBLE PRODUCTS: paragraphs at 12/17 in the sub colour,
+10 px apart. Campaign schemes carry three, brand and cash schemes two.
+
+Plain copy. The empty tabs read "No schemes right now / New schemes will show here." and
+"Nothing completed yet / Finished schemes will show here."; a missed scheme reads "Scheme
+ended / You did not reach the first target." on the card and the page; before the start,
+"Starts 1 Oct 2026. Buy eligible products to win."; the rules card opens with "Buying these
+counts toward the scheme". The amount tag's caret now shifts to keep pointing at the fill's
+end when the tag is held inside the track's edges (12 px inside the tag's corners).

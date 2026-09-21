@@ -56,7 +56,7 @@ export const ddMMM = (ms) => {
   const d = new Date(ms);
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
 };
-const ddMMMyyyy = (ms) => `${ddMMM(ms)} ${new Date(ms).getUTCFullYear()}`;
+export const ddMMMyyyy = (ms) => `${ddMMM(ms)} ${new Date(ms).getUTCFullYear()}`;
 
 // Eligible products per scheme, the shape the app's createTable() flattens.
 const GOLD_LOGO = require('../../assets/remote/gold_logo.png');
@@ -68,6 +68,47 @@ const RULES_BOMBAY = { included: ['Bed sheets', 'Towels', 'Comforters and blanke
 const RULES_GOLD = { included: ['Gold-exclusive listings', 'Gold member prices'], excluded: ['Grocery staples'] };
 const RULES_FUNSKOOL = { included: ['Funskool board games', 'Play-Doh', 'Giggles'], excluded: [] };
 
+// Terms per scheme: plain paragraphs, as the scheme master's terms field is
+// free text and a scheme can carry several.
+const TERMS_CAMPAIGN = [
+  'Only orders delivered and paid within the scheme window count toward your buying. Cancelled or returned items are removed from the total.',
+  'One gift per shop: the highest slab you cross by the end date. Gifts are not exchanged for cash and are shipped to your registered shop address through Amazon.',
+  'Jumbotail may end the scheme early or change the gift for one of equal value if stock runs out. The gift list in the app is the final list.',
+];
+const TERMS_BRAND = [
+  'Only delivered and paid orders of the eligible products count. Returns and cancellations are removed from the total.',
+  'One gift per shop, shipped to your registered address after the scheme ends. The gift is not exchanged for cash.',
+];
+const TERMS_CASH = [
+  'Only delivered and paid orders of the eligible products count. Returns and cancellations are removed from the total.',
+  'The cashback of the highest slab you cross is credited as JumboCash within 7 days of the end date, and can be used on any order.',
+];
+const TERMS_GOLD = [
+  'Open to Gold members only. Only delivered and paid orders of Gold-exclusive listings count toward your buying.',
+  'One gift per shop, shipped to your registered address after the scheme ends. The gift is not exchanged for cash.',
+];
+
+// The orders that count toward a scheme, mocked from its state: the buying so
+// far split into a stable, seeded set of orders on distinct days between the
+// start and now (or the end), latest first, summing to the exact rupee.
+function ordersFor(id, currentValue, startTime, now, endTime) {
+  if (currentValue <= 0 || now < startTime) return [];
+  let h = 11;
+  for (const ch of id) h = (h * 33 + ch.charCodeAt(0)) >>> 0;
+  const rnd = () => ((h = (h * 1103515245 + 12345) >>> 0) / 2 ** 32);
+  const upto = Math.min(now, endTime);
+  const days = Math.max(1, Math.floor((upto - startTime) / DAY));
+  const k = Math.max(1, Math.min(9, Math.min(days, 3 + Math.floor(rnd() * 6))));
+  const weights = Array.from({ length: k }, () => 0.4 + rnd());
+  const total = weights.reduce((a, b) => a + b, 0);
+  const amounts = weights.map((w) => Math.round((currentValue * w) / total));
+  amounts[k - 1] += currentValue - amounts.reduce((a, b) => a + b, 0);
+  const picked = new Set();
+  while (picked.size < k) picked.add(Math.floor(rnd() * days));
+  const dayList = [...picked].sort((a, b) => b - a);
+  return dayList.map((d, i) => ({ date: startTime + d * DAY + 9 * 60 * 60 * 1000, amount: amounts[i] }));
+}
+
 // A stable mock Amazon order number per scheme id.
 function orderNoFor(id) {
   let h = 7;
@@ -78,7 +119,7 @@ function orderNoFor(id) {
   return `Amazon order ${a}-${b}-${c}`;
 }
 
-function scheme({ id, title, dockName, theme = 'default', art = null, tiers, currentValue, startTime, endTime, now, fulfilment = {}, fmt = indianPrice, rules }) {
+function scheme({ id, title, dockName, theme = 'default', art = null, tiers, currentValue, startTime, endTime, now, fulfilment = {}, fmt = indianPrice, rules, terms = TERMS_BRAND }) {
   const startLabel = ddMMMyyyy(startTime);
   const endLabel = ddMMMyyyy(endTime);
   const s = schemeState({ tiers, currentValue, startTime, endTime, now, fulfilment, startLabel, endLabel });
@@ -99,6 +140,8 @@ function scheme({ id, title, dockName, theme = 'default', art = null, tiers, cur
     fmt,
     money: indianPrice,
     rules,
+    terms,
+    orders: ordersFor(id, currentValue, startTime, now, endTime),
     // Delivery runs through Amazon after the window closes: by end + 12 days.
     deliverBy: ddMMMyyyy(endTime + 12 * DAY),
     orderNo: orderNoFor(id),
@@ -114,7 +157,7 @@ export function statusLine(sc) {
     case STATE.LIVE:
     case STATE.EARNED:
     case STATE.NEAR_SLAB: return `${s.daysLeft} days left`;
-    case STATE.TOP_REACHED: return 'Top gift won';
+    case STATE.TOP_REACHED: return 'Top gift reached';
     case STATE.ENDED_MISSED: return `Ended ${ddMMM(sc.endTime)}`;
     case STATE.ENDED_PENDING: return 'Ended. Gift being confirmed';
     case STATE.GIFT_ORDERED: return `On the way, by ${ddMMM(sc.endTime + 12 * DAY)}`;
@@ -125,37 +168,39 @@ export function statusLine(sc) {
 
 // The schemes, parameterised by the clock.
 const diwali = (now, currentValue, fulfilment) =>
-  scheme({ id: 'diwali', title: 'Mega Diwali Scheme', dockName: 'Diwali', theme: 'diwali', tiers: LIFESTYLE.tiers, currentValue, startTime: D(10, 1), endTime: D(11, 9), now, fulfilment, fmt: lakh, rules: RULES_CAMPAIGN });
+  scheme({ id: 'diwali', title: 'Mega Diwali Scheme', dockName: 'Diwali', theme: 'diwali', tiers: LIFESTYLE.tiers, currentValue, startTime: D(10, 1), endTime: D(11, 9), now, fulfilment, fmt: lakh, rules: RULES_CAMPAIGN, terms: TERMS_CAMPAIGN });
 
 const bata = (now, currentValue, { start = D(9, 20), end = D(10, 28) } = {}) =>
   scheme({ id: 'bata', title: 'Bata Scheme', dockName: 'Bata', art: { logo: BRAND.bata }, tiers: TIER_WATCH, currentValue, startTime: start, endTime: end, now, rules: RULES_BATA });
 
 const prestige = (now, currentValue, { end = D(11, 9) } = {}) =>
-  scheme({ id: 'prestige', title: 'Prestige Scheme', dockName: 'Prestige', art: { logo: BRAND.prestige }, tiers: TIERS_CASH_LADDER, currentValue, startTime: D(10, 1), endTime: end, now, rules: RULES_PRESTIGE });
+  scheme({ id: 'prestige', title: 'Prestige Scheme', dockName: 'Prestige', art: { logo: BRAND.prestige }, tiers: TIERS_CASH_LADDER, currentValue, startTime: D(10, 1), endTime: end, now, rules: RULES_PRESTIGE, terms: TERMS_CASH });
 
 const bombay = (now, currentValue, { start = D(10, 5), end = D(11, 5) } = {}) =>
   scheme({ id: 'bombaydyeing', title: 'Bombay Dyeing Scheme', dockName: 'B. Dyeing', art: { logo: BRAND.bombaydyeing, wide: true }, tiers: TIER_MIXER, currentValue, startTime: start, endTime: end, now, rules: RULES_BOMBAY });
 
 const funskool = (now, currentValue) =>
-  scheme({ id: 'funskool', title: 'Funskool Scheme', dockName: 'Funskool', art: { logo: BRAND.funskool }, tiers: TIER_JC1000, currentValue, startTime: D(10, 10), endTime: D(10, 24), now, rules: RULES_FUNSKOOL });
+  scheme({ id: 'funskool', title: 'Funskool Scheme', dockName: 'Funskool', art: { logo: BRAND.funskool }, tiers: TIER_JC1000, currentValue, startTime: D(10, 10), endTime: D(10, 24), now, rules: RULES_FUNSKOOL, terms: TERMS_CASH });
 
 const onam = (now, fulfilment) =>
-  scheme({ id: 'onam', title: 'Onam Scheme', dockName: 'Onam', theme: 'onam', tiers: LIFESTYLE.tiers, currentValue: 7.1 * L, startTime: D(8, 15), endTime: D(9, 12), now, fulfilment, fmt: lakh, rules: RULES_CAMPAIGN });
+  scheme({ id: 'onam', title: 'Onam Scheme', dockName: 'Onam', theme: 'onam', tiers: LIFESTYLE.tiers, currentValue: 7.1 * L, startTime: D(8, 15), endTime: D(9, 12), now, fulfilment, fmt: lakh, rules: RULES_CAMPAIGN, terms: TERMS_CAMPAIGN });
 
 const havells = (now) =>
   scheme({ id: 'havells', title: 'Havells Scheme', dockName: 'Havells', art: { logo: BRAND.havells }, tiers: TIER_KETTLE, currentValue: 47000, startTime: D(8, 20), endTime: D(9, 20), now, fulfilment: { orderedAt: D(9, 24), deliveredAt: D(10, 6) }, rules: RULES_HAVELLS });
 
 const holi = (now) =>
-  scheme({ id: 'holi', title: 'Holi Scheme', dockName: 'Holi', theme: 'holi', tiers: LIFESTYLE.tiers, currentValue: 5.6 * L, startTime: D(3, 1), endTime: D(3, 20), now, fulfilment: { orderedAt: D(3, 24), deliveredAt: D(4, 2) }, fmt: lakh, rules: RULES_CAMPAIGN });
+  scheme({ id: 'holi', title: 'Holi Scheme', dockName: 'Holi', theme: 'holi', tiers: LIFESTYLE.tiers, currentValue: 5.6 * L, startTime: D(3, 1), endTime: D(3, 20), now, fulfilment: { orderedAt: D(3, 24), deliveredAt: D(4, 2) }, fmt: lakh, rules: RULES_CAMPAIGN, terms: TERMS_CAMPAIGN });
 
 // Gold: the membership's own scheme, in the membership's branding (theme gold).
 const gold = (now, currentValue) =>
-  scheme({ id: 'gold', title: 'Gold Exclusive Scheme', dockName: 'Gold', theme: 'gold', art: { logo: GOLD_LOGO, wide: true }, tiers: TIERS_GOLD, currentValue, startTime: D(10, 1), endTime: D(11, 30), now, rules: RULES_GOLD });
+  scheme({ id: 'gold', title: 'Gold Exclusive Scheme', dockName: 'Gold', theme: 'gold', art: { logo: GOLD_LOGO, wide: true }, tiers: TIERS_GOLD, currentValue, startTime: D(10, 1), endTime: D(11, 30), now, rules: RULES_GOLD, terms: TERMS_GOLD });
 
 export const VIEWS = {
   typical: {
     label: 'Typical',
-    running: [diwali(D(10, 19), 6.4 * L), prestige(D(10, 19), 46000), gold(D(10, 19), 58000), bata(D(10, 19), 31200)],
+    // Bata has crossed its one target (₹63,400 of ₹60,000) with 9 days to run:
+    // the reached state, confirmed only when the scheme ends.
+    running: [diwali(D(10, 19), 6.4 * L), prestige(D(10, 19), 46000), gold(D(10, 19), 58000), bata(D(10, 19), 63400)],
     // Bombay Dyeing ended at ₹12,500 of a ₹50,000 target: a completed scheme with no gift won.
     completed: [onam(D(10, 19), { orderedAt: D(9, 16), deliveredAt: D(9, 24) }), havells(D(10, 19)), bombay(D(10, 19), 12500, { start: D(8, 25), end: D(9, 25) }), holi(D(10, 19))],
   },
@@ -179,11 +224,14 @@ export const VIEWS = {
 
 // The dock order: running, then completed. `group` tells the docks where the
 // divider goes and which thumbs read as past tense.
-export function schemesFor(viewKey) {
+// `defaultTheme` is the brand's paint for a scheme with no theme of its own:
+// Solv's blue (default) or one of the Jumbotail greens (jtA, jtB).
+export function schemesFor(viewKey, { defaultTheme = 'default' } = {}) {
   const v = VIEWS[viewKey] || VIEWS.typical;
+  const paint = (x) => (x.theme === 'default' ? { ...x, theme: defaultTheme } : x);
   return [
-    ...v.running.map((x) => ({ ...x, group: 'running' })),
-    ...v.completed.map((x) => ({ ...x, group: 'completed' })),
+    ...v.running.map((x) => ({ ...paint(x), group: 'running' })),
+    ...v.completed.map((x) => ({ ...paint(x), group: 'completed' })),
   ];
 }
 

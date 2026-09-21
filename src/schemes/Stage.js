@@ -18,7 +18,7 @@ import { View, Text, Image, Pressable, StyleSheet, Animated, Easing, Platform } 
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Ellipse, Path, Circle, Defs, Text as SvgText, TextPath } from 'react-native-svg';
 import { F } from '../theme';
-import { IconRunningMan, IconTargetFlag } from '../icons';
+import { IconRunningMan, IconStandingMan, IconTargetFlag } from '../icons';
 import GiftGlyph from '../gifts/icons';
 import StageScene from '../gifts/Scene';
 import ShaderStage from './ShaderStage';
@@ -61,6 +61,10 @@ export function deriveStage(scheme, t) {
   const withDelivery = s.state === STATE.ENDED_PENDING || s.state === STATE.GIFT_ORDERED || s.state === STATE.DELIVERED;
   const missed = s.state === STATE.ENDED_MISSED;
   const runningWithNext = running && s.next;
+  // The top target crossed while the scheme runs: reached, confirmed only when
+  // it ends. The stage keeps the goal anatomy (goal-size tile, the meter) and
+  // says so in words; no stamp, no "won".
+  const reached = Boolean(running && !s.next && s.secured);
   // The eyebrow over the tile names what the slab pays: a gift, or JumboCash.
   const cashTop = Boolean(s.top && s.top.cash);
   const cashNext = Boolean(s.next && s.next.cash);
@@ -70,8 +74,10 @@ export function deriveStage(scheme, t) {
     ? { gift: s.top, label: cashTop ? t.topCash : t.topGift, tone: 'goal' }
     : runningWithNext
     ? { gift: s.next, label: cashNext ? t.nextCash : t.nextGift, tone: 'goal' }
+    : reached
+    ? { gift: s.secured, label: cashTop ? t.topCashReached : t.topReached, tone: 'goal' }
     : { gift: s.secured, label: s.state === STATE.TOP_REACHED ? (cashTop ? t.wonTopCash : t.wonTop) : t.youWon, tone: 'won' };
-  const showBar = Boolean(running && s.next);
+  const showBar = Boolean(running && (s.next || reached));
   const prevAt = s.secured ? s.secured.at : 0;
   const localPct = s.next ? Math.min(1, (s.currentValue - prevAt) / (s.next.at - prevAt)) : 1;
   // The meter. A ladder of three or more shows the current step: a short green
@@ -109,7 +115,7 @@ export function deriveStage(scheme, t) {
       ? { pre: t.onlyPrefix, amt: scheme.money(s.remaining), post: t.onlySuffix, color: st.urgent }
       : { pre: t.morePrefix, amt: scheme.money(s.remaining), post: t.moreSuffix, color: st.accent }
     : null;
-  return { th, st, s, festive: Boolean(th.motif), running, withDelivery, missed, hero, showBar, prevAt, localPct, meter, heroNote, stampWord, stampDate, wonStatus, amountParts, multiGift: s.ladder.length > 1 };
+  return { th, st, s, festive: Boolean(th.motif), running, reached, withDelivery, missed, hero, showBar, prevAt, localPct, meter, heroNote, stampWord, stampDate, wonStatus, amountParts, multiGift: s.ladder.length > 1 };
 }
 
 // The primary pill: a top sheen for depth, a soft glow in its own color, and a
@@ -212,7 +218,7 @@ export const rise = (v, d = 10) => ({
 export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, lag = null, near = true, onTitlePress, onSeeRunning, card = false, cardAnim = null, lang = 'en', fill = false }) {
   const t = T[lang] || T.en;
   const d = deriveStage(scheme, t);
-  const { th, st, s, festive, missed, hero, showBar, prevAt, localPct, meter, heroNote, stampWord, stampDate, wonStatus, amountParts } = d;
+  const { th, st, s, festive, missed, hero, showBar, reached, prevAt, localPct, meter, heroNote, stampWord, stampDate, wonStatus, amountParts } = d;
   const { labelA, tileA, nameA, barA, amountA, ctaA } = anim;
   const k = cardAnim || ONE;
   const dial = (lo, hi) => k.interpolate({ inputRange: [0, 1], outputRange: [lo, hi], extrapolate: 'clamp' });
@@ -233,12 +239,21 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
   const W = trackW;
   const DISC_R = 10;
   const SEG_GAP = 6;
+  // The meter's done colour: the seal's green, or the theme's light green on a
+  // green night (Jumbotail), with the check's ink following it.
+  const GREEN = st.meterGood || METER_GREEN;
+  const GREEN_INK = checkInk(GREEN);
   const crossedMark = meter.simple && meter.crossed > 0 ? meter.marks[meter.crossed - 1] : null;
-  const xD = meter.crossed > 0 ? (meter.simple ? crossedMark.x * W : Math.round(W * 0.28)) : null;
+  // Reached: one green run from start to finish, no disc, no step.
+  const xD = reached ? null : meter.crossed > 0 ? (meter.simple ? crossedMark.x * W : Math.round(W * 0.28)) : null;
   const segX = xD !== null ? xD + DISC_R + SEG_GAP : 0;
   const segW = Math.max(0, W - segX);
-  const fillX = segX + meter.pct * segW;
-  const hasFill = meter.pct > 0;
+  const fillX = reached ? W : segX + meter.pct * segW;
+  const hasFill = reached || meter.pct > 0;
+  // The tag over the fill's end, held inside the track; the caret then shifts
+  // to keep pointing at the end (the caret's own corner radius asks for 12 px).
+  const tagLeft = Math.min(Math.max(fillX - dTagW / 2, 0), Math.max(0, W - dTagW));
+  const caretShift = Math.max(-(dTagW / 2 - 12), Math.min(dTagW / 2 - 12, fillX - (tagLeft + dTagW / 2)));
   const ticks = meter.simple ? meter.marks.slice(0, -1).filter((m) => !m.done) : [];
 
   const sparkleAnim = useRef(new Animated.Value(0.5)).current;
@@ -246,7 +261,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
   // page is near. Still on a card (the list would run four loops) and when
   // motion is settled.
   const runA = useRef(new Animated.Value(0)).current;
-  const runnerOn = !SETTLED && !card && near && trackW > 0 && hasFill && !s.ended;
+  const runnerOn = !SETTLED && !card && near && trackW > 0 && hasFill && !s.ended && !reached;
   useEffect(() => {
     if (!runnerOn) return undefined;
     const stride = (to) => Animated.timing(runA, { toValue: to, duration: 260, easing: Easing.inOut(Easing.sin), useNativeDriver: false });
@@ -430,7 +445,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                           opacity: barA,
                           left: barA.interpolate({
                             inputRange: [0, 1],
-                            outputRange: [32 + Math.min(Math.max(segX - dTagW / 2, 0), Math.max(0, W - dTagW)), 32 + Math.min(Math.max(fillX - dTagW / 2, 0), Math.max(0, W - dTagW))],
+                            outputRange: [32 + Math.min(Math.max(segX - dTagW / 2, 0), Math.max(0, W - dTagW)), 32 + tagLeft],
                           }),
                         },
                       ]}
@@ -439,22 +454,26 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                       <View style={styles.dTag}>
                         <Text style={[styles.dTagText, TABULAR]} numberOfLines={1} allowFontScaling={false}>{money(s.currentValue)}</Text>
                       </View>
-                      <View style={styles.dTagCaret} />
+                      {/* The caret points at the fill's end even when the tag is
+                          held inside the track's edges; it stays 12 px inside the
+                          tag's own corners. */}
+                      <View style={[styles.dTagCaret, { transform: [{ translateX: caretShift }, { rotate: '45deg' }] }]} />
                     </Animated.View>
                   ) : null}
                 </View>
 
                 <View style={styles.barZone} onLayout={(e) => setTrackW(e.nativeEvent.layout.width)}>
                   {/* Crossed: the green run to the check disc, then the gap. */}
-                  {xD !== null ? <View style={[styles.seg, { left: 0, width: Math.max(0, xD), backgroundColor: METER_GREEN }]} /> : null}
-                  {/* The step to the next target (the whole bar with nothing crossed). */}
+                  {xD !== null ? <View style={[styles.seg, { left: 0, width: Math.max(0, xD), backgroundColor: GREEN }]} /> : null}
+                  {/* The step to the next target (the whole bar with nothing crossed;
+                      the whole bar in green once the top is reached). */}
                   <View style={[styles.seg, { left: segX, width: segW, backgroundColor: st.track }]}>
-                    <Animated.View style={[styles.barFill, { backgroundColor: st.accent, width: barA.interpolate({ inputRange: [0, 1], outputRange: ['0%', `${meter.pct * 100}%`] }) }]} />
+                    <Animated.View style={[styles.barFill, { backgroundColor: reached ? GREEN : st.accent, width: barA.interpolate({ inputRange: [0, 1], outputRange: ['0%', `${(reached ? 1 : meter.pct) * 100}%`] }) }]} />
                   </View>
                   {W > 0 && xD !== null ? (
-                    <View style={[styles.checkDisc, { left: xD - DISC_R, backgroundColor: METER_GREEN }]}>
+                    <View style={[styles.checkDisc, { left: xD - DISC_R, backgroundColor: GREEN }]}>
                       <Svg width={11} height={11} viewBox="0 0 24 24">
-                        <Path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                        <Path d="M5 12.5l4.5 4.5L19 7.5" stroke={GREEN_INK} strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
                       </Svg>
                     </View>
                   ) : null}
@@ -462,10 +481,16 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                   {W > 0 ? ticks.map((m) => <View key={m.gift.at} style={[styles.tick, { left: m.x * W - 1, backgroundColor: st.ink }]} />) : null}
                   {W > 0 ? (
                     <View style={[styles.flagD, { left: W - 14 }]}>
-                      <IconTargetFlag width={12} height={22} color={st.accent} />
+                      <IconTargetFlag width={12} height={22} color={reached ? GREEN : st.accent} />
                     </View>
                   ) : null}
-                  {W > 0 && hasFill ? (
+                  {/* Reached: the runner has stopped; he stands at the flag. */}
+                  {W > 0 && reached ? (
+                    <Animated.View style={[styles.standD, { left: W - 30, opacity: barA }]}>
+                      <IconStandingMan height={26} color="#fff" />
+                    </Animated.View>
+                  ) : null}
+                  {W > 0 && hasFill && !reached ? (
                     <Animated.View style={[styles.runnerD, { left: barA.interpolate({ inputRange: [0, 1], outputRange: [segX, Math.min(Math.max(fillX - 11, segX), W - 26)] }) }]}>
                       <Animated.View style={runStyle}>
                         <IconRunningMan height={22} color="#fff" />
@@ -498,11 +523,19 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                     <Text key={m.gift.at} style={[styles.tickLabel, TABULAR, { color: st.sub, left: m.x * W }]} allowFontScaling={false}>{slab(m.gift.at)}</Text>
                   )) : null}
                   <View style={styles.targetGroup}>
-                    <Text style={[styles.groupBig, TABULAR, { color: st.ink }]} allowFontScaling={false}>{slab(s.next.at)}</Text>
-                    <Text style={[styles.groupSmall, { color: st.sub }]} allowFontScaling={false}>{t.targetWord}</Text>
+                    <Text style={[styles.groupBig, TABULAR, { color: st.ink }]} allowFontScaling={false}>{slab(reached ? top.at : s.next.at)}</Text>
+                    <Text style={[styles.groupSmall, { color: reached ? GREEN : st.sub }]} allowFontScaling={false}>{reached ? t.targetReached : t.targetWord}</Text>
                   </View>
                 </View>
 
+                {reached ? (
+                  <Animated.View style={[rise(amountA, 10), { opacity: Animated.multiply(amountA, k.interpolate({ inputRange: [0.5, 0.9], outputRange: [0, 1], extrapolate: 'clamp' })), height: dial(0, 62), overflow: 'hidden' }]}>
+                    <Text style={[styles.reachedHeadline, { color: st.ink }]} allowFontScaling={false}>
+                      {s.secured.cash ? t.reachedHeadlineCash(String(s.secured.cash)) : t.reachedHeadline(s.secured.shortName)}
+                    </Text>
+                    <Text style={[styles.reachedNote, TABULAR, { color: st.sub }]} allowFontScaling={false}>{t.reachedNote(s.endLabel)}</Text>
+                  </Animated.View>
+                ) : (
                 <Animated.View style={[rise(amountA, 10), { opacity: Animated.multiply(amountA, k.interpolate({ inputRange: [0.5, 0.9], outputRange: [0, 1], extrapolate: 'clamp' })), height: dial(0, 65), overflow: 'hidden' }]}>
                   <Text style={[styles.bigMore, TABULAR, { color: amountParts.color }]} allowFontScaling={false}>
                     {amountParts.pre ? <Text style={styles.bigMoreWord}>{amountParts.pre}</Text> : null}
@@ -511,6 +544,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                   </Text>
                   <Text style={[styles.bigRest, { color: st.sub }]} allowFontScaling={false}>{t.rest(s.next.shortName)}</Text>
                 </Animated.View>
+                )}
               </>
             ) : heroNote || s.earned ? (
               <Animated.View style={rise(nameA, 8)}>
@@ -572,7 +606,7 @@ const styles = StyleSheet.create({
   tagWrap: { position: 'absolute', alignItems: 'center' },
   dTag: { backgroundColor: '#fff', borderRadius: 9, paddingHorizontal: 11, height: 30, justifyContent: 'center' },
   dTagText: { color: N.ink, fontFamily: F.bold, fontSize: 15, lineHeight: 18 },
-  dTagCaret: { width: 9, height: 9, marginTop: -6, backgroundColor: '#fff', transform: [{ rotate: '45deg' }] },
+  dTagCaret: { width: 9, height: 9, marginTop: -6, backgroundColor: '#fff' },
 
   // The meter: 34 px zone, the 10 px track on its floor (y 24..34). The check
   // disc (18 px) sits on the track's centre line; the flag's base on the track.
@@ -580,6 +614,7 @@ const styles = StyleSheet.create({
   seg: { position: 'absolute', bottom: 0, height: 10, borderRadius: 5, overflow: 'hidden' },
   barFill: { height: 10, borderRadius: 5 },
   runnerD: { position: 'absolute', bottom: 8 },
+  standD: { position: 'absolute', bottom: 9 },
   flagD: { position: 'absolute', bottom: 8 },
   // The check disc: 20 px, a 2 px white ring, on the track's centre line.
   checkDisc: { position: 'absolute', bottom: -5, width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' },
@@ -593,6 +628,9 @@ const styles = StyleSheet.create({
   groupSmall: { fontFamily: F.medium, fontSize: 11, lineHeight: 14 },
   tickLabel: { position: 'absolute', top: 0, width: 96, marginLeft: -48, textAlign: 'center', fontFamily: F.medium, fontSize: 11, lineHeight: 14 },
 
+  // Reached: the win in words where the ask stood, then when it is confirmed.
+  reachedHeadline: { marginTop: 14, textAlign: 'center', fontFamily: F.bold, fontSize: 17, lineHeight: 22, paddingHorizontal: 24 },
+  reachedNote: { marginTop: 3, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 18, paddingHorizontal: 24 },
   bigMore: { marginTop: 12, textAlign: 'center', fontFamily: F.bold, fontSize: 26, lineHeight: 32 },
   bigMoreWord: { fontFamily: F.medium, fontSize: 16, lineHeight: 32 },
   bigRest: { marginTop: 2, textAlign: 'center', fontFamily: F.medium, fontSize: 14, lineHeight: 19, paddingHorizontal: 24 },

@@ -126,6 +126,7 @@ function footerLine(scheme, t) {
   const money = (g) => (g && g.cash ? String(g.cash) : '');
   if (s.ended && s.earned) return cash ? t.footWonCash(money(s.secured)) : t.footWon(s.secured.shortName);
   if (s.ended) return cash ? t.footMissedCash : t.footMissed;
+  if (s.started && !s.next && s.secured) return cash ? t.footReachedCash(money(s.secured)) : t.footReached(s.secured.shortName);
   if (n === 1) return cash ? t.footCashOne(money(top)) : t.footWinOne(top.shortName);
   if (s.state === STATE.SCHEDULED) return offerLine(scheme, t);
   return cash ? t.footCashUpTo(n, money(top)) : t.footUpTo(n, top.shortName);
@@ -221,11 +222,13 @@ export const CHROME = {
   jt: { bar: C.brandGreen, indicator: C.targetSchemeNative, ground: '#EEEEEE', navAccent: C.targetSchemeNative, accentBg: '#E8F4E8', nav: false },
 };
 
-export default function SchemesList({ viewKey = 'typical', brand = 'solv', compare = false }) {
+// `theme` picks the Jumbotail default paint: 'a' (Forest) or 'b' (Meadow).
+export default function SchemesList({ viewKey = 'typical', brand = 'solv', theme = 'a', compare = false }) {
+  const defaultTheme = brand === 'jt' ? (theme === 'b' ? 'jtB' : 'jtA') : 'default';
   const chrome = CHROME[brand] || CHROME.solv;
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const schemes = useMemo(() => schemesFor(viewKey), [viewKey]);
+  const schemes = useMemo(() => schemesFor(viewKey, { defaultTheme }), [viewKey, defaultTheme]);
   const compact = false;   // one detail now, full screen; the arc's sheet is gone
   const t = T.en;
 

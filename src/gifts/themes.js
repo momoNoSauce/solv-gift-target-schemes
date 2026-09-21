@@ -53,6 +53,83 @@ export const THEMES = {
     },
   },
 
+  // Jumbotail's default paint, two drawings, both from the app's own greens
+  // (brand_green #2c552d, light_green #58a159). The meter keeps its seal green
+  // for the done run on Solv; on a green night it would vanish, so these
+  // themes carry a light `meterGood` and the check's ink follows.
+  //   jtA  Forest: the brand green as a deep night, white accent, the light
+  //        green in the glow. Quiet, close to the app's toolbar.
+  //   jtB  Meadow: the light green as a brighter ground falling to the brand
+  //        green, a warm yellow accent. Livelier, the festive schemes' cousin.
+  jtA: {
+    key: 'jtA',
+    label: 'Jumbotail Forest',
+    motif: null,
+    stage: {
+      grad: ['#2F6B32', '#1B3A1C'],
+      ground: '#2C552D',
+      ground2: '#1B3A1C',
+      glowKey: '#FFFFFF',
+      glowAmbient: '#58A159',
+      speck: '#D7F2D9',
+      ink: '#FFFFFF',
+      sub: '#D6EAD7',
+      accent: '#FFFFFF',
+      accentInk: '#2C552D',
+      accentDeep: '#2C552D',
+      good: '#8CE0A9',
+      meterGood: '#8CE0A9',
+      urgent: '#FFD4A6',
+      track: 'rgba(255,255,255,0.22)',
+    },
+    card: {
+      dark: true,
+      tint: '#EAF4EA',
+      ink: '#FFFFFF',
+      sub: '#D6EAD7',
+      accent: '#2C552D',
+      accentInk: '#FFFFFF',
+      accentDeep: '#2C552D',
+      good: '#1E8E3E',
+      urgent: '#C2410C',
+      track: 'rgba(255,255,255,0.22)',
+    },
+  },
+  jtB: {
+    key: 'jtB',
+    label: 'Jumbotail Meadow',
+    motif: null,
+    stage: {
+      grad: ['#4CA150', '#2C552D'],
+      ground: '#3E8E41',
+      ground2: '#2C552D',
+      glowKey: '#FFF7C2',
+      glowAmbient: '#A5DE7A',
+      speck: '#FFFFFF',
+      ink: '#FFFFFF',
+      sub: '#E3F3E1',
+      accent: '#FFE07A',
+      accentInk: '#2C552D',
+      accentDeep: '#2C552D',
+      good: '#CFF7D6',
+      meterGood: '#CFF7D6',
+      urgent: '#FFD4A6',
+      track: 'rgba(255,255,255,0.24)',
+    },
+    card: {
+      dark: true,
+      tint: '#EEF7E9',
+      ink: '#FFFFFF',
+      sub: '#E3F3E1',
+      accent: '#3E8E41',
+      accentInk: '#FFFFFF',
+      accentDeep: '#2C552D',
+      good: '#1E8E3E',
+      urgent: '#C2410C',
+      track: 'rgba(255,255,255,0.24)',
+    },
+  },
+
   // Gold: the membership's own branding, the app's gold pill (ic_gold_exclusive:
   // a lilac field, a violet crown, a flame) turned into a night: deep violet
   // ground, the crown's colour in the glow, the flame's gold for the accent.

@@ -26,7 +26,7 @@ import { STATE } from '../gifts/state';
 import { RIMG } from '../rewards/assets';
 import { T } from './copy';
 import { SETTLED } from './motion';
-import { ddMMM, SHOP_ADDRESS } from './registry';
+import { ddMMM, ddMMMyyyy, SHOP_ADDRESS } from './registry';
 import Stage, { deriveStage, CtaButton, rise, N, TABULAR } from './Stage';
 
 const PHOTO_EDGE = 'rgba(0,0,0,0.08)';
@@ -41,10 +41,11 @@ function stepsFor(state) {
 export default function SchemePage({ scheme, active, near = true, first, still = false, bodyAnim = null, cardAnim = null, offset, bottomPad, onTitlePress, onSeeRunning, lang = 'en', compact = false, edge = false, dismiss = null, pageIndex = 0 }) {
   const t = T[lang] || T.en;
   const d = deriveStage(scheme, t);
-  const { th, st, s, missed, withDelivery, showBar, multiGift, running, festive } = d;
+  const { th, st, s, missed, withDelivery, showBar, reached, multiGift, running, festive } = d;
   const slab = scheme.fmt;
   const money = scheme.money;
   const [addressConfirmed, setAddressConfirmed] = useState(false);
+  const [allOrders, setAllOrders] = useState(false);
 
   // The fold. scrollY drives the edge band; the sizes tell where the end is.
   const scrollRef = useRef(null);
@@ -295,10 +296,37 @@ export default function SchemePage({ scheme, active, near = true, first, still =
 
         {/* The CTA follows the gift list: the member has just seen what is on
             offer and the next question is what to buy. The rules answer it. */}
-        {showBar ? (
+        {/* No ask once the top is reached: buying more changes nothing. */}
+        {showBar && !reached ? (
           <Animated.View style={rise(ctaA, 10)}>
             <CtaButton label={t.cta()} bg={th.card.accent} fg={th.card.accentInk} glow containerStyle={styles.bottomCta} />
           </Animated.View>
+        ) : null}
+
+        {/* The purchases counted: the app's Transaction History screen, as a
+            card in the page. The total and the count in the head, the latest
+            three orders, and a line that unfolds the rest in place. */}
+        {scheme.orders.length ? (
+          <>
+            <Text style={styles.listLabel} allowFontScaling={false}>{t.ordersTitle}</Text>
+            <View style={styles.ordersCard}>
+              <View style={styles.ordersHead}>
+                <Text style={[styles.ordersSum, TABULAR]} allowFontScaling={false}>{scheme.money(s.currentValue)}</Text>
+                <Text style={[styles.ordersCount, TABULAR]} allowFontScaling={false}>{t.ordersCount(scheme.orders.length)}</Text>
+              </View>
+              {(allOrders ? scheme.orders : scheme.orders.slice(0, 3)).map((o) => (
+                <View key={o.date} style={styles.orderRow}>
+                  <Text style={[styles.orderDate, TABULAR]} allowFontScaling={false}>{t.orderDate(ddMMMyyyy(o.date))}</Text>
+                  <Text style={[styles.orderAmount, TABULAR]} allowFontScaling={false}>{scheme.money(o.amount)}</Text>
+                </View>
+              ))}
+              {scheme.orders.length > 3 && !allOrders ? (
+                <Pressable style={styles.ordersMore} onPress={() => setAllOrders(true)} accessibilityRole="button">
+                  <Text style={[styles.ordersMoreText, { color: st.accentDeep }]} allowFontScaling={false}>{t.ordersMore(scheme.orders.length - 3)}</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          </>
         ) : null}
 
         {/* Eligible products: the app's target_scheme_rule table, restyled. */}
@@ -322,6 +350,18 @@ export default function SchemePage({ scheme, active, near = true, first, still =
             </View>
           </>
         )}
+
+        {/* Terms: free text on the scheme master, one or more paragraphs. */}
+        {scheme.terms && scheme.terms.length ? (
+          <>
+            <Text style={styles.listLabel} allowFontScaling={false}>{t.termsTitle}</Text>
+            <View style={styles.termsCard}>
+              {scheme.terms.map((para, i) => (
+                <Text key={i} style={[styles.termsPara, i > 0 && { marginTop: 10 }]} allowFontScaling={false}>{para}</Text>
+              ))}
+            </View>
+          </>
+        ) : null}
 
         {(
           <View style={styles.facts}>
@@ -394,6 +434,20 @@ const styles = StyleSheet.create({
   ruleName: { flex: 1, fontFamily: F.medium, fontSize: 13, lineHeight: 17, color: N.ink },
   ruleStatus: { fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
 
+  // Purchases counted: the head (total 15 bold, count 12 sub), rows of 40 px
+  // (date 13 ink, amount 13 bold tabular), the unfold line at 44 px.
+  ordersCard: { ...CARD, marginTop: 8, paddingHorizontal: 14 },
+  ordersHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingVertical: 12 },
+  ordersSum: { fontFamily: F.bold, fontSize: 15, lineHeight: 19, color: N.ink },
+  ordersCount: { fontFamily: F.regular, fontSize: 12, lineHeight: 16, color: N.sub },
+  orderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 40, borderTopWidth: 1, borderTopColor: '#F2F3F5' },
+  orderDate: { fontFamily: F.regular, fontSize: 13, lineHeight: 17, color: N.ink },
+  orderAmount: { fontFamily: F.bold, fontSize: 13, lineHeight: 17, color: N.ink },
+  ordersMore: { minHeight: 44, justifyContent: 'center', borderTopWidth: 1, borderTopColor: '#F2F3F5' },
+  ordersMoreText: { fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
+  // Terms: paragraphs at 12/17 in the sub colour, 10 px apart.
+  termsCard: { ...CARD, marginTop: 8, paddingHorizontal: 14, paddingVertical: 12 },
+  termsPara: { fontFamily: F.regular, fontSize: 12, lineHeight: 17, color: N.sub },
   facts: { ...CARD, marginTop: 12, paddingHorizontal: 14 },
   factRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11 },
   factText: { flex: 1, fontFamily: F.regular, fontSize: 13, lineHeight: 18, color: N.ink },

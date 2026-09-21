@@ -12,10 +12,11 @@ export default function ListRoute() {
   const viewKey = VIEWS[params.view] ? params.view : 'typical';
   const brand = params.brand === 'jt' ? 'jt' : 'solv';
   const compare = params.compare === '1';
+  const theme = params.theme === 'b' ? 'b' : 'a';
   return (
     <View style={{ flex: 1 }}>
       <StatusBar style="light" />
-      <SchemesList viewKey={viewKey} brand={brand} compare={compare} />
+      <SchemesList viewKey={viewKey} brand={brand} theme={theme} compare={compare} />
     </View>
   );
 }

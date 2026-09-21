@@ -16,7 +16,8 @@ const INK = '#0B0A14';
 const DETAIL = process.env.EXPO_PUBLIC_ENTRY === 'detail';
 const OPTIONS = [
   { key: 'A', name: 'Solv', href: DETAIL ? '/schemes' : '/schemes/list' },
-  { key: 'B', name: 'Jumbotail', href: DETAIL ? '/schemes' : '/schemes/list?brand=jt' },
+  { key: 'B', name: 'Jumbotail, Forest', href: DETAIL ? '/schemes?brand=jt' : '/schemes/list?brand=jt' },
+  { key: 'E', name: 'Jumbotail, Meadow', href: DETAIL ? '/schemes?brand=jt&theme=b' : '/schemes/list?brand=jt&theme=b' },
   { key: 'C', name: 'Footer variants', href: '/schemes/list?compare=1' },
   { key: 'D', name: 'Product page', href: '/ppv' },
 ];

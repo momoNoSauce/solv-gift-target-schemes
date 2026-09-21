@@ -10,7 +10,9 @@ import { schemesFor, VIEWS } from '../../src/schemes/registry';
 export default function DockRoute() {
   const params = useLocalSearchParams();
   const viewKey = VIEWS[params.view] ? params.view : 'typical';
-  const schemes = useMemo(() => schemesFor(viewKey), [viewKey]);
+  // ?brand=jt paints default schemes in the Jumbotail theme (?theme=b for Meadow).
+  const defaultTheme = params.brand === 'jt' ? (params.theme === 'b' ? 'jtB' : 'jtA') : 'default';
+  const schemes = useMemo(() => schemesFor(viewKey, { defaultTheme }), [viewKey, defaultTheme]);
   const n = schemes.length;
   const initial = Math.min(Math.max(0, Number(params.i) || 0), Math.max(0, n - 1));
   const pinned = params.pos != null && params.pos !== '' && Number.isFinite(Number(params.pos)) ? Number(params.pos) : null;
