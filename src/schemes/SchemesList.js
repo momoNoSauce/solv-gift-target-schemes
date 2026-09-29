@@ -223,7 +223,7 @@ export const CHROME = {
 };
 
 // `theme` picks the Jumbotail default paint: 'a' (Forest) or 'b' (Meadow).
-export default function SchemesList({ viewKey = 'typical', brand = 'solv', theme = 'a', compare = false }) {
+export default function SchemesList({ viewKey = 'typical', brand = 'solv', theme = 'a', compare = false, rulesStyle = 'list' }) {
   const defaultTheme = brand === 'jt' ? (theme === 'b' ? 'jtB' : 'jtA') : 'default';
   const chrome = CHROME[brand] || CHROME.solv;
   const insets = useSafeAreaInsets();
@@ -551,7 +551,7 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv', theme
       {/* The detail, mounted under the layer from the first frame of the move. */}
       {open ? (
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: detailShow }]} pointerEvents={phase === 'open' ? 'auto' : 'none'}>
-          <Detail schemes={detailSchemes} viewKey={viewKey} initialIndex={detailIndex} still embedded arrival={progress} onBack={(i) => closeDetail(toListIndex(i))} dismiss={{ begin: (i) => dismiss.begin(toListIndex(i)), move: dismiss.move, end: dismiss.end }} onIndexChange={(i) => (current.current = toListIndex(i))} />
+          <Detail schemes={detailSchemes} viewKey={viewKey} initialIndex={detailIndex} still embedded arrival={progress} rulesStyle={rulesStyle} onBack={(i) => closeDetail(toListIndex(i))} dismiss={{ begin: (i) => dismiss.begin(toListIndex(i)), move: dismiss.move, end: dismiss.end }} onIndexChange={(i) => (current.current = toListIndex(i))} />
         </Animated.View>
       ) : null}
 
@@ -574,7 +574,7 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv', theme
               borderRadius: progress.interpolate({ inputRange: [0, 0.34], outputRange: [ART_RADIUS, open.to.radius], extrapolate: 'clamp' }),
             }}
           >
-            <SchemePage scheme={schemes[open.index]} active still compact={compact} edge={compact} bottomPad={24} bodyAnim={progress} cardAnim={progress} />
+            <SchemePage scheme={schemes[open.index]} active still compact={compact} edge={compact} bottomPad={24} bodyAnim={progress} cardAnim={progress} rulesStyle={rulesStyle} />
           </Animated.View>
           <Animated.View pointerEvents="none" style={[styles.layerEdge, { borderRadius: layer.borderRadius, opacity: progress.interpolate({ inputRange: [0, 0.34], outputRange: [1, 0], extrapolate: 'clamp' }) }]} />
           {/* The card's footer, on the layer's bottom edge, which is where the

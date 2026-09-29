@@ -46,7 +46,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getEle
 // The peek plays once per session.
 let peeked = false;
 
-export default function DockScreen({ schemes, viewKey = 'typical', initialIndex = 0, pinned = null, demo = false, still = false, embedded = false, onBack, onIndexChange, dismiss = null, arrival = null }) {
+export default function DockScreen({ schemes, viewKey = 'typical', initialIndex = 0, pinned = null, demo = false, still = false, embedded = false, onBack, onIndexChange, dismiss = null, arrival = null, rulesStyle = 'list' }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const n = schemes.length;
@@ -132,6 +132,7 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
                   bottomPad={bottomPad}
                   dismiss={embedded && index === i ? dismiss : null}
                   pageIndex={i}
+                  rulesStyle={rulesStyle}
                   onTitlePress={() => setDemoOpen((v) => !v)}
                   onSeeRunning={sc.group === 'completed' ? () => goTo(firstRunning) : null}
                 />
