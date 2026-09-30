@@ -199,15 +199,15 @@ export function FoldRow({ fold, t, accent }) {
   );
 }
 
-// /schemes/list4: the rules as two groups in one card, both always open, no
-// heading inside the card. Each group is a tinted frame (green for what
-// counts, red for what doesn't) with its mark and count on the head, and a
-// white inset holding the rows: photo, name, status. The status word stays on
+// /schemes/list4: the rules as two cards, eligible then not eligible, both
+// always open, under the ELIGIBILITY label. Each card opens on a plain head
+// (no fill, so it doesn't read as a button): a bold label and the count, no
+// icon. Rows: photo, name, status. The status word stays on
 // every row even though the frame says it; people read row by row. Past three
 // rows a group folds behind "View N more" in its own colour.
 const GROUP = {
-  in: { bg: '#F1F8F2', line: '#D6EBDA', ink: N.green },
-  out: { bg: '#FDF2EE', line: '#F5D7CB', ink: RED },
+  in: { ink: N.green },
+  out: { ink: RED },
 };
 const GROUP_FOLD = 3;
 
@@ -215,12 +215,12 @@ function Group({ names, ok, t }) {
   const g = ok ? GROUP.in : GROUP.out;
   const fold = useFold(names.map((name) => [name, ok]), GROUP_FOLD);
   return (
-    <View style={[styles.group, { backgroundColor: g.bg, borderColor: g.line }]}>
+    <View style={styles.tableCard}>
       <View style={styles.groupHead}>
-        <View style={[styles.panelDisc, { backgroundColor: g.ink }]}>
-          {ok ? <Tick size={11} /> : <Cross size={11} />}
-        </View>
-        <Text style={styles.panelLabel} allowFontScaling={false}>{ok ? t.rulesGroupIn(names.length) : t.rulesGroupOut(names.length)}</Text>
+        <Text style={styles.groupLabel} allowFontScaling={false}>
+          {ok ? t.rulesCardIn : t.rulesCardOut}
+          <Text style={styles.groupCount}>{` (${names.length})`}</Text>
+        </Text>
       </View>
       <View style={styles.groupBody}>
         {fold.shown.map(([name], i) => (
@@ -245,7 +245,7 @@ function Group({ names, ok, t }) {
 
 export function RulesTable({ rules, t }) {
   return (
-    <View style={styles.tableCard}>
+    <View style={styles.groups}>
       {rules.included.length ? <Group names={rules.included} ok t={t} /> : null}
       {rules.excluded.length ? <Group names={rules.excluded} ok={false} t={t} /> : null}
     </View>
@@ -318,16 +318,16 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: '#F2F3F5', marginHorizontal: 14, marginVertical: 16 },
 
   tableCard: {
-    marginHorizontal: 16, marginTop: 8, padding: 12, gap: 12, backgroundColor: N.paper, borderRadius: 16,
+    marginHorizontal: 16, padding: 12, backgroundColor: N.paper, borderRadius: 16,
     borderWidth: 1, borderColor: 'rgba(17,24,39,0.06)', shadowColor: '#0B1B33', shadowOpacity: 0.05,
     shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 1,
   },
-  group: { borderRadius: 14, borderWidth: 1, padding: 4 },
-  groupHead: { flexDirection: 'row', alignItems: 'center', minHeight: 48, paddingHorizontal: 10, gap: 10 },
-  groupBody: { backgroundColor: N.paper, borderRadius: 10, paddingHorizontal: 12 },
+  groups: { marginTop: 8, gap: 12 },
+  groupHead: { flexDirection: 'row', alignItems: 'center', minHeight: 44, paddingHorizontal: 12, gap: 10 },
+  groupLabel: { flex: 1, fontFamily: F.bold, fontSize: 16, lineHeight: 20, color: N.ink },
+  groupCount: { fontFamily: F.regular },
+  groupBody: { paddingHorizontal: 12 },
   groupMore: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48, borderTopWidth: 1, borderTopColor: '#F2F3F5' },
-  panelDisc: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  panelLabel: { flex: 1, fontFamily: F.medium, fontSize: 14, lineHeight: 18, color: N.ink },
   tableRow: { flexDirection: 'row', alignItems: 'center', minHeight: 64, paddingVertical: 10, gap: 12, borderTopWidth: 1, borderTopColor: '#F2F3F5' },
   tableRowFirst: { borderTopWidth: 0 },
   tablePhoto: { width: 44, height: 44, borderRadius: 10, backgroundColor: GROUND, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
