@@ -343,7 +343,7 @@ export default function SchemePage({ scheme, active, near = true, first, still =
             so a single card points to it instead. */}
         {scheme.orders.length ? (
           <View style={styles.ordersCard}>
-            <Text style={styles.ordersTitle} allowFontScaling={false}>{t.ordersTitle}</Text>
+            <Text style={styles.ordersTitle} allowFontScaling={false}>{t.ordersTitle(scheme.orders.length)}</Text>
             <Pressable style={[styles.ordersKnowMore, { borderColor: st.accentDeep }]} accessibilityRole="button">
               <Text style={[styles.ordersKnowMoreText, { color: st.accentDeep }]} allowFontScaling={false}>{t.ordersKnowMore}</Text>
             </Pressable>
