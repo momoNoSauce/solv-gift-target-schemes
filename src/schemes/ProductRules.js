@@ -161,6 +161,27 @@ export default function ProductRules({ rules, t }) {
   );
 }
 
+// /schemes/list4: the /schemes/list table (name and status in one list,
+// eligible first) with the product's photo leading each row.
+export function RulesTable({ rules, t }) {
+  const rows = [
+    ...rules.included.map((name) => [name, true]),
+    ...rules.excluded.map((name) => [name, false]),
+  ];
+  return (
+    <View style={styles.tableCard}>
+      <Text style={styles.tableDesc} allowFontScaling={false}>{t.rulesDesc}</Text>
+      {rows.map(([name, ok]) => (
+        <View key={name} style={styles.tableRow} accessible accessibilityLabel={`${name}, ${ok ? t.eligible : t.notEligible}`}>
+          <Photo name={name} style={styles.tablePhoto} />
+          <Text style={styles.tableName} numberOfLines={2} allowFontScaling={false}>{name}</Text>
+          <Text style={[styles.tableStatus, { color: ok ? N.green : RED }]} allowFontScaling={false}>{ok ? t.eligible : t.notEligible}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 // /schemes/list3: the scheme counts only what the shop buys from one seller.
 // One seller is one fact, so it is a single row, not a shelf: the seller's
 // initials, their name and where they ship from, under the same card-title
@@ -225,6 +246,17 @@ const styles = StyleSheet.create({
   tilePhotoOut: { opacity: 0.6 },
   tileNameOut: { color: N.sub },
   divider: { height: 1, backgroundColor: '#F2F3F5', marginHorizontal: 14, marginVertical: 16 },
+
+  tableCard: {
+    marginHorizontal: 16, marginTop: 8, paddingHorizontal: 14, backgroundColor: N.paper, borderRadius: 16,
+    borderWidth: 1, borderColor: 'rgba(17,24,39,0.06)', shadowColor: '#0B1B33', shadowOpacity: 0.05,
+    shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 1,
+  },
+  tableDesc: { paddingVertical: 11, fontFamily: F.regular, fontSize: 12, lineHeight: 16, color: N.sub },
+  tableRow: { flexDirection: 'row', alignItems: 'center', minHeight: 64, paddingVertical: 10, gap: 12, borderTopWidth: 1, borderTopColor: '#F2F3F5' },
+  tablePhoto: { width: 44, height: 44, borderRadius: 10, backgroundColor: GROUND, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
+  tableName: { flex: 1, fontFamily: F.medium, fontSize: 13, lineHeight: 17, color: N.ink },
+  tableStatus: { fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
 
   sellerRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, marginHorizontal: 14, padding: 12, borderRadius: 12, backgroundColor: GROUND },
   sellerMark: { width: 44, height: 44, borderRadius: 22, backgroundColor: N.paper, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)' },
