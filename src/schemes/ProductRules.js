@@ -162,7 +162,8 @@ export default function ProductRules({ rules, t }) {
 }
 
 // /schemes/list4: the /schemes/list table (name and status in one list,
-// eligible first) with the product's photo leading each row.
+// eligible first) with the product's photo leading each row, a tick or cross
+// on the photo.
 export function RulesTable({ rules, t }) {
   const rows = [
     ...rules.included.map((name) => [name, true]),
@@ -172,7 +173,12 @@ export function RulesTable({ rules, t }) {
     <View style={styles.tableCard}>
       {rows.map(([name, ok], i) => (
         <View key={name} style={[styles.tableRow, i === 0 && styles.tableRowFirst]} accessible accessibilityLabel={`${name}, ${ok ? t.eligible : t.notEligible}`}>
-          <Photo name={name} style={styles.tablePhoto} />
+          <View>
+            <Photo name={name} style={styles.tablePhoto} />
+            <View style={[styles.tableBadge, { backgroundColor: ok ? N.green : RED }]}>
+              {ok ? <Tick size={8} /> : <Cross size={8} />}
+            </View>
+          </View>
           <Text style={styles.tableName} numberOfLines={2} allowFontScaling={false}>{name}</Text>
           <Text style={[styles.tableStatus, { color: ok ? N.green : RED }]} allowFontScaling={false}>{ok ? t.eligible : t.notEligible}</Text>
         </View>
@@ -254,6 +260,10 @@ const styles = StyleSheet.create({
   tableRow: { flexDirection: 'row', alignItems: 'center', minHeight: 64, paddingVertical: 10, gap: 12, borderTopWidth: 1, borderTopColor: '#F2F3F5' },
   tableRowFirst: { borderTopWidth: 0 },
   tablePhoto: { width: 44, height: 44, borderRadius: 10, backgroundColor: GROUND, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
+  tableBadge: {
+    position: 'absolute', right: -4, bottom: -4, width: 18, height: 18, borderRadius: 9,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: N.paper,
+  },
   tableName: { flex: 1, fontFamily: F.medium, fontSize: 13, lineHeight: 17, color: N.ink },
   tableStatus: { fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
 
