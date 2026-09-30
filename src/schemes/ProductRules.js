@@ -17,6 +17,7 @@ import { View, Text, Image, ScrollView, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { F } from '../theme';
 import { N } from './Stage';
+import { SELLER } from './sellers';
 
 const P = {
   sneakers: require('../../assets/eligible/sneakers.jpg'),
@@ -160,6 +161,33 @@ export default function ProductRules({ rules, t }) {
   );
 }
 
+// /schemes/list3: the scheme counts only what the shop buys from one seller.
+// One seller is one fact, so it is a single row, not a shelf: the seller's
+// initials, their name and where they ship from, under the same card-title
+// heading as the other rules cards.
+function initials(name) {
+  return name.split(' ').filter(Boolean).slice(0, 2).map((w) => w.charAt(0)).join('').toUpperCase();
+}
+
+export function SellerRules({ scheme, t }) {
+  const seller = SELLER[scheme.id];
+  if (!seller) return null;
+  return (
+    <View style={styles.card}>
+      <GroupHead label={t.sellersCounts} />
+      <View style={styles.sellerRow} accessible accessibilityLabel={`${seller.name}, ${t.sellerFrom(seller.city)}`}>
+        <View style={styles.sellerMark}>
+          <Text style={styles.sellerMarkText} allowFontScaling={false}>{initials(seller.name)}</Text>
+        </View>
+        <View style={styles.sellerText}>
+          <Text style={styles.sellerName} numberOfLines={1} allowFontScaling={false}>{seller.name}</Text>
+          <Text style={styles.sellerCity} numberOfLines={1} allowFontScaling={false}>{t.sellerFrom(seller.city)}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: 16,
@@ -197,6 +225,13 @@ const styles = StyleSheet.create({
   tilePhotoOut: { opacity: 0.6 },
   tileNameOut: { color: N.sub },
   divider: { height: 1, backgroundColor: '#F2F3F5', marginHorizontal: 14, marginVertical: 16 },
+
+  sellerRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, marginHorizontal: 14, padding: 12, borderRadius: 12, backgroundColor: GROUND },
+  sellerMark: { width: 44, height: 44, borderRadius: 22, backgroundColor: N.paper, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)' },
+  sellerMarkText: { fontFamily: F.bold, fontSize: 14, lineHeight: 18, color: N.ink, letterSpacing: 0.3 },
+  sellerText: { flex: 1, marginLeft: 12 },
+  sellerName: { fontFamily: F.medium, fontSize: 14, lineHeight: 18, color: N.ink },
+  sellerCity: { marginTop: 2, fontFamily: F.regular, fontSize: 12, lineHeight: 16, color: N.sub },
 
   lettered: { alignItems: 'center', justifyContent: 'center' },
   letter: { fontFamily: F.bold, fontSize: 22, color: '#B8B2A7' },

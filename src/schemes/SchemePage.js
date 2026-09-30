@@ -28,7 +28,7 @@ import { T } from './copy';
 import { SETTLED } from './motion';
 import { ddMMM, SHOP_ADDRESS } from './registry';
 import Stage, { deriveStage, CtaButton, rise, N, TABULAR } from './Stage';
-import ProductRules from './ProductRules';
+import ProductRules, { SellerRules } from './ProductRules';
 
 const PHOTO_EDGE = 'rgba(0,0,0,0.08)';
 const STATIC = SETTLED;
@@ -306,8 +306,14 @@ export default function SchemePage({ scheme, active, near = true, first, still =
         {/* Eligible products: the app's target_scheme_rule table, restyled.
             Sits right under the CTA so the ask and the answer read together. */}
         {/* `rulesStyle` 'images' (/schemes/list2): the same rules as photo
-            tiles, see ProductRules.js. */}
-        {rulesStyle === 'images' ? (
+            tiles; 'sellers' (/schemes/list3): the eligible sellers instead.
+            See ProductRules.js. */}
+        {rulesStyle === 'sellers' ? (
+          <>
+            <Text style={styles.listLabel} allowFontScaling={false}>{t.sellersTitle}</Text>
+            <SellerRules scheme={scheme} t={t} />
+          </>
+        ) : rulesStyle === 'images' ? (
           <>
             <Text style={styles.listLabel} allowFontScaling={false}>{t.rulesTitle}</Text>
             <ProductRules rules={scheme.rules} t={t} />
