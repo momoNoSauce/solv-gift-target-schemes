@@ -199,26 +199,54 @@ export function FoldRow({ fold, t, accent }) {
   );
 }
 
-// /schemes/list4: the /schemes/list table (name and status in one list,
-// eligible first) with the product's photo leading each row, a tick or cross
-// on the photo.
+// /schemes/list4: the rules as two accordion panels in one card, no heading
+// inside it. "Eligible categories (n)" opens by default on a light green
+// head; "Not eligible categories (n)" starts closed on a grey one and turns a
+// light red when opened. The tick or cross sits on the head, so the rows are
+// plain: photo, name, status. Each panel folds past five rows.
+const TINT = { in: '#EAF5EC', out: '#FCEEE8', shut: '#F6F6F6' };
+
+function Panel({ names, ok, t, accent, startOpen }) {
+  const [open, setOpen] = useState(startOpen);
+  const fold = useFold(names.map((name) => [name, ok]));
+  const label = ok ? t.rulesPanelIn(names.length) : t.rulesPanelOut(names.length);
+  return (
+    <View style={styles.panel}>
+      <Pressable
+        onPress={() => setOpen((v) => !v)}
+        style={[styles.panelHead, { backgroundColor: open ? (ok ? TINT.in : TINT.out) : TINT.shut }]}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+      >
+        <View style={[styles.panelDisc, { backgroundColor: ok ? N.green : RED }]}>
+          {ok ? <Tick size={11} /> : <Cross size={11} />}
+        </View>
+        <Text style={styles.panelLabel} allowFontScaling={false}>{label}</Text>
+        <Svg width={16} height={16} viewBox="0 0 12 12" style={open ? styles.foldChevronUp : null}>
+          <Path d="M3 4.5l3 3 3-3" stroke={N.ink} strokeWidth={1.4} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+      </Pressable>
+      {open ? (
+        <View style={styles.panelBody}>
+          {fold.shown.map(([name], i) => (
+            <View key={name} style={[styles.tableRow, i === 0 && styles.tableRowFirst]} accessible accessibilityLabel={`${name}, ${ok ? t.eligible : t.notEligible}`}>
+              <Photo name={name} style={styles.tablePhoto} />
+              <Text style={styles.tableName} numberOfLines={2} allowFontScaling={false}>{name}</Text>
+              <Text style={[styles.tableStatus, { color: ok ? N.green : RED }]} allowFontScaling={false}>{ok ? t.eligible : t.notEligible}</Text>
+            </View>
+          ))}
+          <FoldRow fold={fold} t={t} accent={accent} />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export function RulesTable({ rules, t, accent }) {
-  const fold = useFold(ruleRows(rules));
   return (
     <View style={styles.tableCard}>
-      {fold.shown.map(([name, ok], i) => (
-        <View key={name} style={[styles.tableRow, i === 0 && styles.tableRowFirst]} accessible accessibilityLabel={`${name}, ${ok ? t.eligible : t.notEligible}`}>
-          <View>
-            <Photo name={name} style={styles.tablePhoto} />
-            <View style={[styles.tableBadge, { backgroundColor: ok ? N.green : RED }]}>
-              {ok ? <Tick size={8} /> : <Cross size={8} />}
-            </View>
-          </View>
-          <Text style={styles.tableName} numberOfLines={2} allowFontScaling={false}>{name}</Text>
-          <Text style={[styles.tableStatus, { color: ok ? N.green : RED }]} allowFontScaling={false}>{ok ? t.eligible : t.notEligible}</Text>
-        </View>
-      ))}
-      <FoldRow fold={fold} t={t} accent={accent} />
+      {rules.included.length ? <Panel names={rules.included} ok t={t} accent={accent} startOpen /> : null}
+      {rules.excluded.length ? <Panel names={rules.excluded} ok={false} t={t} accent={accent} startOpen={false} /> : null}
     </View>
   );
 }
@@ -289,17 +317,18 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: '#F2F3F5', marginHorizontal: 14, marginVertical: 16 },
 
   tableCard: {
-    marginHorizontal: 16, marginTop: 8, paddingHorizontal: 14, backgroundColor: N.paper, borderRadius: 16,
+    marginHorizontal: 16, marginTop: 8, padding: 12, gap: 12, backgroundColor: N.paper, borderRadius: 16,
     borderWidth: 1, borderColor: 'rgba(17,24,39,0.06)', shadowColor: '#0B1B33', shadowOpacity: 0.05,
     shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 1,
   },
+  panel: { borderRadius: 12, borderWidth: 1, borderColor: 'rgba(17,24,39,0.08)', overflow: 'hidden' },
+  panelHead: { flexDirection: 'row', alignItems: 'center', minHeight: 52, paddingHorizontal: 14, gap: 12 },
+  panelDisc: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  panelLabel: { flex: 1, fontFamily: F.medium, fontSize: 14, lineHeight: 18, color: N.ink },
+  panelBody: { paddingHorizontal: 12 },
   tableRow: { flexDirection: 'row', alignItems: 'center', minHeight: 64, paddingVertical: 10, gap: 12, borderTopWidth: 1, borderTopColor: '#F2F3F5' },
   tableRowFirst: { borderTopWidth: 0 },
   tablePhoto: { width: 44, height: 44, borderRadius: 10, backgroundColor: GROUND, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
-  tableBadge: {
-    position: 'absolute', right: -4, bottom: -4, width: 18, height: 18, borderRadius: 9,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: N.paper,
-  },
   tableName: { flex: 1, fontFamily: F.medium, fontSize: 13, lineHeight: 17, color: N.ink },
   tableStatus: { fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
 
