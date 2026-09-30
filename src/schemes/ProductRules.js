@@ -12,8 +12,8 @@
 //
 // Photos: generated catalog shots on one warm off-white ground
 // (assets/eligible). A rule entry with no photo gets a lettered tile.
-import React from 'react';
-import { View, Text, Image, ScrollView, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Image, ScrollView, Pressable, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { F } from '../theme';
 import { N } from './Stage';
@@ -161,17 +161,52 @@ export default function ProductRules({ rules, t }) {
   );
 }
 
-// /schemes/list4: the /schemes/list table (name and status in one list,
-// eligible first) with the product's photo leading each row, a tick or cross
-// on the photo.
-export function RulesTable({ rules, t }) {
-  const rows = [
+// The rules as one list, eligible first: [name, eligible].
+export function ruleRows(rules) {
+  return [
     ...rules.included.map((name) => [name, true]),
     ...rules.excluded.map((name) => [name, false]),
   ];
+}
+
+// A long rules list folds: past FOLD rows it shows the first FOLD and a row
+// that unfolds the rest in place (and folds it back).
+const FOLD = 5;
+
+export function useFold(rows) {
+  const [open, setOpen] = useState(false);
+  const folds = rows.length > FOLD;
+  return {
+    shown: folds && !open ? rows.slice(0, FOLD) : rows,
+    folds,
+    open,
+    hidden: rows.length - FOLD,
+    toggle: () => setOpen((v) => !v),
+  };
+}
+
+export function FoldRow({ fold, t, accent }) {
+  if (!fold.folds) return null;
+  return (
+    <Pressable onPress={fold.toggle} style={styles.foldRow} accessibilityRole="button" hitSlop={4}>
+      <Text style={[styles.foldText, { color: accent }]} allowFontScaling={false}>
+        {fold.open ? t.rulesLess : t.rulesMore(fold.hidden)}
+      </Text>
+      <Svg width={12} height={12} viewBox="0 0 12 12" style={fold.open ? styles.foldChevronUp : null}>
+        <Path d="M3 4.5l3 3 3-3" stroke={accent} strokeWidth={1.6} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      </Svg>
+    </Pressable>
+  );
+}
+
+// /schemes/list4: the /schemes/list table (name and status in one list,
+// eligible first) with the product's photo leading each row, a tick or cross
+// on the photo.
+export function RulesTable({ rules, t, accent }) {
+  const fold = useFold(ruleRows(rules));
   return (
     <View style={styles.tableCard}>
-      {rows.map(([name, ok], i) => (
+      {fold.shown.map(([name, ok], i) => (
         <View key={name} style={[styles.tableRow, i === 0 && styles.tableRowFirst]} accessible accessibilityLabel={`${name}, ${ok ? t.eligible : t.notEligible}`}>
           <View>
             <Photo name={name} style={styles.tablePhoto} />
@@ -183,6 +218,7 @@ export function RulesTable({ rules, t }) {
           <Text style={[styles.tableStatus, { color: ok ? N.green : RED }]} allowFontScaling={false}>{ok ? t.eligible : t.notEligible}</Text>
         </View>
       ))}
+      <FoldRow fold={fold} t={t} accent={accent} />
     </View>
   );
 }
@@ -266,6 +302,10 @@ const styles = StyleSheet.create({
   },
   tableName: { flex: 1, fontFamily: F.medium, fontSize: 13, lineHeight: 17, color: N.ink },
   tableStatus: { fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
+
+  foldRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 44, borderTopWidth: 1, borderTopColor: '#F2F3F5' },
+  foldText: { fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
+  foldChevronUp: { transform: [{ rotate: '180deg' }] },
 
   sellerRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, marginHorizontal: 14, padding: 12, borderRadius: 12, backgroundColor: GROUND },
   sellerMark: { width: 44, height: 44, borderRadius: 22, backgroundColor: N.paper, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)' },

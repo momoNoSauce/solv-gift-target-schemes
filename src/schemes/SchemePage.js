@@ -28,7 +28,7 @@ import { T } from './copy';
 import { SETTLED } from './motion';
 import { ddMMM, SHOP_ADDRESS } from './registry';
 import Stage, { deriveStage, CtaButton, rise, N, TABULAR } from './Stage';
-import ProductRules, { SellerRules, RulesTable } from './ProductRules';
+import ProductRules, { SellerRules, RulesTable, ruleRows, useFold, FoldRow } from './ProductRules';
 
 const PHOTO_EDGE = 'rgba(0,0,0,0.08)';
 const STATIC = SETTLED;
@@ -46,6 +46,8 @@ export default function SchemePage({ scheme, active, near = true, first, still =
   const slab = scheme.fmt;
   const money = scheme.money;
   const [addressConfirmed, setAddressConfirmed] = useState(false);
+  // A long rules list folds after five rows (ProductRules.js useFold).
+  const ruleFold = useFold(ruleRows(scheme.rules));
 
   // The fold. scrollY drives the edge band; the sizes tell where the end is.
   const scrollRef = useRef(null);
@@ -312,7 +314,7 @@ export default function SchemePage({ scheme, active, near = true, first, still =
         {rulesStyle === 'table' ? (
           <>
             <Text style={styles.listLabel} allowFontScaling={false}>{t.rulesTitle}</Text>
-            <RulesTable rules={scheme.rules} t={t} />
+            <RulesTable rules={scheme.rules} t={t} accent={st.accentDeep} />
           </>
         ) : rulesStyle === 'sellers' ? (
           <>
@@ -328,18 +330,13 @@ export default function SchemePage({ scheme, active, near = true, first, still =
           <>
             <Text style={styles.listLabel} allowFontScaling={false}>{t.rulesTitle}</Text>
             <View style={styles.rulesCard}>
-              {scheme.rules.included.map((name, i) => (
+              {ruleFold.shown.map(([name, ok], i) => (
                 <View key={name} style={[styles.ruleRow, i === 0 && styles.ruleRowFirst]}>
                   <Text style={styles.ruleName} allowFontScaling={false}>{name}</Text>
-                  <Text style={[styles.ruleStatus, { color: N.green }]} allowFontScaling={false}>{t.eligible}</Text>
+                  <Text style={[styles.ruleStatus, { color: ok ? N.green : '#C2410C' }]} allowFontScaling={false}>{ok ? t.eligible : t.notEligible}</Text>
                 </View>
               ))}
-              {scheme.rules.excluded.map((name, i) => (
-                <View key={name} style={[styles.ruleRow, i === 0 && !scheme.rules.included.length && styles.ruleRowFirst]}>
-                  <Text style={styles.ruleName} allowFontScaling={false}>{name}</Text>
-                  <Text style={[styles.ruleStatus, { color: '#C2410C' }]} allowFontScaling={false}>{t.notEligible}</Text>
-                </View>
-              ))}
+              <FoldRow fold={ruleFold} t={t} accent={st.accentDeep} />
             </View>
           </>
         )}
