@@ -173,14 +173,14 @@ export function ruleRows(rules) {
 // that unfolds the rest in place (and folds it back).
 const FOLD = 5;
 
-export function useFold(rows) {
+export function useFold(rows, at = FOLD) {
   const [open, setOpen] = useState(false);
-  const folds = rows.length > FOLD;
+  const folds = rows.length > at;
   return {
-    shown: folds && !open ? rows.slice(0, FOLD) : rows,
+    shown: folds && !open ? rows.slice(0, at) : rows,
     folds,
     open,
-    hidden: rows.length - FOLD,
+    hidden: rows.length - at,
     toggle: () => setOpen((v) => !v),
   };
 }
@@ -199,54 +199,55 @@ export function FoldRow({ fold, t, accent }) {
   );
 }
 
-// /schemes/list4: the rules as two accordion panels in one card, no heading
-// inside it. "Eligible categories (n)" opens by default on a light green
-// head; "Not eligible categories (n)" starts closed on a grey one and turns a
-// light red when opened. The tick or cross sits on the head, so the rows are
-// plain: photo, name, status. Each panel folds past five rows.
-const TINT = { in: '#EAF5EC', out: '#FCEEE8', shut: '#F6F6F6' };
+// /schemes/list4: the rules as two groups in one card, both always open, no
+// heading inside the card. Each group is a tinted frame (green for what
+// counts, red for what doesn't) with its mark and count on the head, and a
+// white inset holding the rows: photo, name, status. The status word stays on
+// every row even though the frame says it; people read row by row. Past three
+// rows a group folds behind "View N more" in its own colour.
+const GROUP = {
+  in: { bg: '#F1F8F2', line: '#D6EBDA', ink: N.green },
+  out: { bg: '#FDF2EE', line: '#F5D7CB', ink: RED },
+};
+const GROUP_FOLD = 3;
 
-function Panel({ names, ok, t, accent, startOpen }) {
-  const [open, setOpen] = useState(startOpen);
-  const fold = useFold(names.map((name) => [name, ok]));
-  const label = ok ? t.rulesPanelIn(names.length) : t.rulesPanelOut(names.length);
+function Group({ names, ok, t }) {
+  const g = ok ? GROUP.in : GROUP.out;
+  const fold = useFold(names.map((name) => [name, ok]), GROUP_FOLD);
   return (
-    <View style={styles.panel}>
-      <Pressable
-        onPress={() => setOpen((v) => !v)}
-        style={[styles.panelHead, { backgroundColor: open ? (ok ? TINT.in : TINT.out) : TINT.shut }]}
-        accessibilityRole="button"
-        accessibilityState={{ expanded: open }}
-      >
-        <View style={[styles.panelDisc, { backgroundColor: ok ? N.green : RED }]}>
+    <View style={[styles.group, { backgroundColor: g.bg, borderColor: g.line }]}>
+      <View style={styles.groupHead}>
+        <View style={[styles.panelDisc, { backgroundColor: g.ink }]}>
           {ok ? <Tick size={11} /> : <Cross size={11} />}
         </View>
-        <Text style={styles.panelLabel} allowFontScaling={false}>{label}</Text>
-        <Svg width={16} height={16} viewBox="0 0 12 12" style={open ? styles.foldChevronUp : null}>
-          <Path d="M3 4.5l3 3 3-3" stroke={N.ink} strokeWidth={1.4} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-        </Svg>
-      </Pressable>
-      {open ? (
-        <View style={styles.panelBody}>
-          {fold.shown.map(([name], i) => (
-            <View key={name} style={[styles.tableRow, i === 0 && styles.tableRowFirst]} accessible accessibilityLabel={`${name}, ${ok ? t.eligible : t.notEligible}`}>
-              <Photo name={name} style={styles.tablePhoto} />
-              <Text style={styles.tableName} numberOfLines={2} allowFontScaling={false}>{name}</Text>
-              <Text style={[styles.tableStatus, { color: ok ? N.green : RED }]} allowFontScaling={false}>{ok ? t.eligible : t.notEligible}</Text>
-            </View>
-          ))}
-          <FoldRow fold={fold} t={t} accent={accent} />
-        </View>
-      ) : null}
+        <Text style={styles.panelLabel} allowFontScaling={false}>{ok ? t.rulesGroupIn(names.length) : t.rulesGroupOut(names.length)}</Text>
+      </View>
+      <View style={styles.groupBody}>
+        {fold.shown.map(([name], i) => (
+          <View key={name} style={[styles.tableRow, i === 0 && styles.tableRowFirst]} accessible accessibilityLabel={`${name}, ${ok ? t.eligible : t.notEligible}`}>
+            <Photo name={name} style={styles.tablePhoto} />
+            <Text style={styles.tableName} numberOfLines={2} allowFontScaling={false}>{name}</Text>
+            <Text style={[styles.tableStatus, { color: g.ink }]} allowFontScaling={false}>{ok ? t.eligible : t.notEligible}</Text>
+          </View>
+        ))}
+        {fold.folds ? (
+          <Pressable onPress={fold.toggle} style={styles.groupMore} accessibilityRole="button">
+            <Text style={[styles.foldText, { color: g.ink }]} allowFontScaling={false}>{fold.open ? t.rulesViewLess : t.rulesViewMore(fold.hidden)}</Text>
+            <Svg width={16} height={16} viewBox="0 0 12 12" style={fold.open ? styles.foldChevronUp : null}>
+              <Path d="M3 4.5l3 3 3-3" stroke={N.sub} strokeWidth={1.4} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </Svg>
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 }
 
-export function RulesTable({ rules, t, accent }) {
+export function RulesTable({ rules, t }) {
   return (
     <View style={styles.tableCard}>
-      {rules.included.length ? <Panel names={rules.included} ok t={t} accent={accent} startOpen /> : null}
-      {rules.excluded.length ? <Panel names={rules.excluded} ok={false} t={t} accent={accent} startOpen={false} /> : null}
+      {rules.included.length ? <Group names={rules.included} ok t={t} /> : null}
+      {rules.excluded.length ? <Group names={rules.excluded} ok={false} t={t} /> : null}
     </View>
   );
 }
@@ -321,11 +322,12 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(17,24,39,0.06)', shadowColor: '#0B1B33', shadowOpacity: 0.05,
     shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 1,
   },
-  panel: { borderRadius: 12, borderWidth: 1, borderColor: 'rgba(17,24,39,0.08)', overflow: 'hidden' },
-  panelHead: { flexDirection: 'row', alignItems: 'center', minHeight: 52, paddingHorizontal: 14, gap: 12 },
+  group: { borderRadius: 14, borderWidth: 1, padding: 4 },
+  groupHead: { flexDirection: 'row', alignItems: 'center', minHeight: 48, paddingHorizontal: 10, gap: 10 },
+  groupBody: { backgroundColor: N.paper, borderRadius: 10, paddingHorizontal: 12 },
+  groupMore: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48, borderTopWidth: 1, borderTopColor: '#F2F3F5' },
   panelDisc: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   panelLabel: { flex: 1, fontFamily: F.medium, fontSize: 14, lineHeight: 18, color: N.ink },
-  panelBody: { paddingHorizontal: 12 },
   tableRow: { flexDirection: 'row', alignItems: 'center', minHeight: 64, paddingVertical: 10, gap: 12, borderTopWidth: 1, borderTopColor: '#F2F3F5' },
   tableRowFirst: { borderTopWidth: 0 },
   tablePhoto: { width: 44, height: 44, borderRadius: 10, backgroundColor: GROUND, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },

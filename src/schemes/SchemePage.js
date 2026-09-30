@@ -314,7 +314,7 @@ export default function SchemePage({ scheme, active, near = true, first, still =
         {rulesStyle === 'table' ? (
           <>
             <Text style={styles.listLabel} allowFontScaling={false}>{t.rulesTitle}</Text>
-            <RulesTable rules={scheme.rules} t={t} accent={st.accentDeep} />
+            <RulesTable rules={scheme.rules} t={t} />
           </>
         ) : rulesStyle === 'sellers' ? (
           <>
