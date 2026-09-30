@@ -328,15 +328,14 @@ export default function SchemePage({ scheme, active, near = true, first, still =
           <>
             <Text style={styles.listLabel} allowFontScaling={false}>{t.rulesTitle}</Text>
             <View style={styles.rulesCard}>
-              <Text style={styles.rulesDesc} allowFontScaling={false}>{t.rulesDesc}</Text>
-              {scheme.rules.included.map((name) => (
-                <View key={name} style={styles.ruleRow}>
+              {scheme.rules.included.map((name, i) => (
+                <View key={name} style={[styles.ruleRow, i === 0 && styles.ruleRowFirst]}>
                   <Text style={styles.ruleName} allowFontScaling={false}>{name}</Text>
                   <Text style={[styles.ruleStatus, { color: N.green }]} allowFontScaling={false}>{t.eligible}</Text>
                 </View>
               ))}
-              {scheme.rules.excluded.map((name) => (
-                <View key={name} style={styles.ruleRow}>
+              {scheme.rules.excluded.map((name, i) => (
+                <View key={name} style={[styles.ruleRow, i === 0 && !scheme.rules.included.length && styles.ruleRowFirst]}>
                   <Text style={styles.ruleName} allowFontScaling={false}>{name}</Text>
                   <Text style={[styles.ruleStatus, { color: '#C2410C' }]} allowFontScaling={false}>{t.notEligible}</Text>
                 </View>
@@ -434,8 +433,8 @@ const styles = StyleSheet.create({
   topLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 
   rulesCard: { ...CARD, marginTop: 8, paddingHorizontal: 14 },
-  rulesDesc: { paddingVertical: 11, fontFamily: F.regular, fontSize: 12, lineHeight: 16, color: N.sub },
   ruleRow: { flexDirection: 'row', alignItems: 'center', minHeight: 44, gap: 12, borderTopWidth: 1, borderTopColor: '#F2F3F5' },
+  ruleRowFirst: { borderTopWidth: 0 },
   ruleName: { flex: 1, fontFamily: F.medium, fontSize: 13, lineHeight: 17, color: N.ink },
   ruleStatus: { fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
 

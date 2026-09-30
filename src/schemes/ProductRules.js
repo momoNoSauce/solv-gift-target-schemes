@@ -170,9 +170,8 @@ export function RulesTable({ rules, t }) {
   ];
   return (
     <View style={styles.tableCard}>
-      <Text style={styles.tableDesc} allowFontScaling={false}>{t.rulesDesc}</Text>
-      {rows.map(([name, ok]) => (
-        <View key={name} style={styles.tableRow} accessible accessibilityLabel={`${name}, ${ok ? t.eligible : t.notEligible}`}>
+      {rows.map(([name, ok], i) => (
+        <View key={name} style={[styles.tableRow, i === 0 && styles.tableRowFirst]} accessible accessibilityLabel={`${name}, ${ok ? t.eligible : t.notEligible}`}>
           <Photo name={name} style={styles.tablePhoto} />
           <Text style={styles.tableName} numberOfLines={2} allowFontScaling={false}>{name}</Text>
           <Text style={[styles.tableStatus, { color: ok ? N.green : RED }]} allowFontScaling={false}>{ok ? t.eligible : t.notEligible}</Text>
@@ -252,8 +251,8 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(17,24,39,0.06)', shadowColor: '#0B1B33', shadowOpacity: 0.05,
     shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 1,
   },
-  tableDesc: { paddingVertical: 11, fontFamily: F.regular, fontSize: 12, lineHeight: 16, color: N.sub },
   tableRow: { flexDirection: 'row', alignItems: 'center', minHeight: 64, paddingVertical: 10, gap: 12, borderTopWidth: 1, borderTopColor: '#F2F3F5' },
+  tableRowFirst: { borderTopWidth: 0 },
   tablePhoto: { width: 44, height: 44, borderRadius: 10, backgroundColor: GROUND, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
   tableName: { flex: 1, fontFamily: F.medium, fontSize: 13, lineHeight: 17, color: N.ink },
   tableStatus: { fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
