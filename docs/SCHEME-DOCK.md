@@ -678,7 +678,7 @@ What changed today:
   resolved by `pageThemeOf()` in `themes.js` and read by `SchemePage`. Gold keeps its violet
   stage; its page takes Mega Diwali's (the light gold #E3A62B it had read at 2.1:1 on white).
 - A theme can carry a stage picture, `stage.image`. It replaces the drawn scene and its shader.
-  Mega Diwali's is the red frame with hanging diyas (`assets/stages/diwali.jpg`, 1200 x 1200),
+  Mega Diwali's is a marigold garland over a magenta paisley ground (`assets/stages/diwali.jpg`, 1024 x 1144),
   covering the stage and centred on it. The Image needs an explicit 100 % width and height:
   react-native-web sizes an Image to the asset's natural pixels ahead of the style, so
   `absoluteFill` alone pinned a 1200 px box to the stage's top left. Diwali's colour tokens
