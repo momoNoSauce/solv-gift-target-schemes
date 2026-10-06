@@ -96,7 +96,7 @@ export default function DockScreen({ schemes, viewKey = 'typical', initialIndex 
   const grounds = schemes.map((x) => themeOf(x.theme).stage.ground2);
   const backdrop = n > 1
     ? pos.interpolate({ inputRange: schemes.map((_, i) => i), outputRange: grounds, extrapolate: 'clamp' })
-    : grounds[0] || '#0847A6';
+    : grounds[0] || '#0038CC';
 
   const bottomPad = insets.bottom + 44;
   const firstRunning = Math.max(0, schemes.findIndex((x) => x.group === 'running'));
@@ -206,6 +206,6 @@ const styles = StyleSheet.create({
   demoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   demoLabel: { fontFamily: F.medium, fontSize: 11, lineHeight: 14, color: '#6B6B6B' },
   demoChip: { fontFamily: F.medium, fontSize: 12, lineHeight: 15, color: '#6B6B6B' },
-  demoChipActive: { color: '#0A66E8', fontFamily: F.bold },
+  demoChipActive: { color: '#004FFA', fontFamily: F.bold },
   demoLink: { fontFamily: F.medium, fontSize: 11, lineHeight: 14, color: '#6B6B6B', textDecorationLine: 'underline' },
 });

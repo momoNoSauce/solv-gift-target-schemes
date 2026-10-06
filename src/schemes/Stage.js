@@ -106,14 +106,14 @@ export function deriveStage(scheme, t) {
     : ddMMM(scheme.now)
   ).toUpperCase() + ' ' + new Date(scheme.endTime).getUTCFullYear();
   const wonStatus =
-    s.state === STATE.DELIVERED ? { text: t.wonStatusDelivered(deliveredLabel), color: st.good, icon: 'check' }
-    : s.state === STATE.GIFT_ORDERED ? { text: t.wonStatusOnTheWay(scheme.deliverBy), color: st.accent, icon: 'truck' }
+    s.state === STATE.DELIVERED ? { text: t.wonStatusDelivered(deliveredLabel), color: SOLV_STAGE.good, icon: 'check' }
+    : s.state === STATE.GIFT_ORDERED ? { text: t.wonStatusOnTheWay(scheme.deliverBy), color: SOLV_STAGE.accent, icon: 'truck' }
     : s.state === STATE.TOP_REACHED ? { text: t.wonStatusTop(s.endLabel), color: st.sub, icon: 'gift' }
     : { text: t.wonStatusPending, color: st.sub, icon: 'gift' };
   const amountParts = s.next
     ? s.nearSlab
-      ? { pre: t.onlyPrefix, amt: scheme.money(s.remaining), post: t.onlySuffix, color: st.urgent }
-      : { pre: t.morePrefix, amt: scheme.money(s.remaining), post: t.moreSuffix, color: st.accent }
+      ? { pre: t.onlyPrefix, amt: scheme.money(s.remaining), post: t.onlySuffix, color: SOLV_STAGE.urgent }
+      : { pre: t.morePrefix, amt: scheme.money(s.remaining), post: t.moreSuffix, color: SOLV_STAGE.accent }
     : null;
   return { th, st, s, festive: Boolean(th.motif), running, reached, withDelivery, missed, hero, showBar, prevAt, localPct, meter, heroNote, stampWord, stampDate, wonStatus, amountParts, multiGift: s.ladder.length > 1 };
 }
@@ -141,10 +141,12 @@ const STAMP_INK = '#2BB05B';
 // The meter's done green: the seal's own ink, saturated enough to hold against
 // every stage's night; the theme's pastel `good` was too soft there.
 const METER_GREEN = STAMP_INK;
-// The meter (track, fill, flag, runner) wears the default Solv paint on every
-// theme, so the bar reads the same on every scheme. The theme keeps the stage,
-// the CTA and the page; green keeps its meaning (a target crossed or reached).
-const METER = THEMES.default.stage;
+// The default Solv paint. The meter (track, fill, flag, runner) and the
+// accents on the stage (the amount to go, days left, the eyebrow, the status
+// line, the festival motif and its sparkles) wear it on every theme, so they
+// read the same on every scheme. The theme keeps the stage itself and the
+// CTA; the page below keeps its own accents; green keeps its meaning.
+const SOLV_STAGE = THEMES.default.stage;
 // The stage content's own compositing layer, WebKit only (Safari, and every
 // browser on iOS). z-index alone orders the layers for Chrome; WebKit's
 // compositor also needs the sibling of a WebGL canvas to be composited, or it
@@ -302,7 +304,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
     : (
       <Text style={[styles.h2, TABULAR, { color: st.sub }]} numberOfLines={1} allowFontScaling={false}>
         {t.endsLine(s.endLabel)}
-        <Text style={{ color: st.accent, fontFamily: F.medium }} allowFontScaling={false}>{t.daysLeft(s.daysLeft)}</Text>
+        <Text style={{ color: SOLV_STAGE.accent, fontFamily: F.medium }} allowFontScaling={false}>{t.daysLeft(s.daysLeft)}</Text>
       </Text>
     );
 
@@ -317,7 +319,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
         <View>
           {th.motif ? (
             <View style={styles.motifHang}>
-              <GiftGlyph kind={th.motif} size={22} color={st.accent} strokeWidth={1.5} />
+              <GiftGlyph kind={th.motif} size={22} color={SOLV_STAGE.accent} strokeWidth={1.5} />
             </View>
           ) : scheme.art?.logo ? (
             <View style={[styles.motifHang, { top: 0 }]}>
@@ -370,15 +372,15 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
               {festive ? (
                 <>
                   <Animated.View style={[styles.sparkleL, { opacity: sparkleOpacity }]}>
-                    <GiftGlyph kind="sparkle" size={16} color={st.accent} />
+                    <GiftGlyph kind="sparkle" size={16} color={SOLV_STAGE.accent} />
                   </Animated.View>
                   <Animated.View style={[styles.sparkleR, { opacity: sparkleOpacity }]}>
-                    <GiftGlyph kind="sparkle" size={12} color={st.accent} />
+                    <GiftGlyph kind="sparkle" size={12} color={SOLV_STAGE.accent} />
                   </Animated.View>
                 </>
               ) : null}
               {hero.tone === 'won' ? null : (
-                <Animated.Text style={[styles.heroLabel, { color: st.accent, opacity: showBar ? Animated.multiply(labelA, k.interpolate({ inputRange: [0.45, 0.9], outputRange: [0, 1], extrapolate: 'clamp' })) : labelA }]} allowFontScaling={false}>
+                <Animated.Text style={[styles.heroLabel, { color: SOLV_STAGE.accent, opacity: showBar ? Animated.multiply(labelA, k.interpolate({ inputRange: [0.45, 0.9], outputRange: [0, 1], extrapolate: 'clamp' })) : labelA }]} allowFontScaling={false}>
                   {hero.label}
                 </Animated.Text>
               )}
@@ -458,8 +460,8 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                   {xD !== null ? <View style={[styles.seg, { left: 0, width: Math.max(0, xD), backgroundColor: GREEN }]} /> : null}
                   {/* The step to the next target (the whole bar with nothing crossed;
                       the whole bar in green once the top is reached). */}
-                  <View style={[styles.seg, { left: segX, width: segW, backgroundColor: METER.track }]}>
-                    <Animated.View style={[styles.barFill, { backgroundColor: reached ? GREEN : METER.accent, width: barA.interpolate({ inputRange: [0, 1], outputRange: ['0%', `${(reached ? 1 : meter.pct) * 100}%`] }) }]} />
+                  <View style={[styles.seg, { left: segX, width: segW, backgroundColor: SOLV_STAGE.track }]}>
+                    <Animated.View style={[styles.barFill, { backgroundColor: reached ? GREEN : SOLV_STAGE.accent, width: barA.interpolate({ inputRange: [0, 1], outputRange: ['0%', `${(reached ? 1 : meter.pct) * 100}%`] }) }]} />
                   </View>
                   {W > 0 && xD !== null ? (
                     <View style={[styles.checkDisc, { left: xD - DISC_R, backgroundColor: GREEN }]}>
@@ -472,7 +474,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                   {W > 0 ? ticks.map((m) => <View key={m.gift.at} style={[styles.tick, { left: m.x * W - 1, backgroundColor: st.ink }]} />) : null}
                   {W > 0 ? (
                     <View style={[styles.flagD, { left: W - 14 }]}>
-                      <IconTargetFlag width={12} height={22} color={reached ? GREEN : METER.accent} />
+                      <IconTargetFlag width={12} height={22} color={reached ? GREEN : SOLV_STAGE.accent} />
                     </View>
                   ) : null}
                   {/* Reached: the runner has stopped; he stands at the flag. */}
