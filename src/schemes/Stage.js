@@ -147,6 +147,10 @@ const METER_GREEN = STAMP_INK;
 // read the same on every scheme. The theme keeps the stage itself and the
 // CTA; the page below keeps its own accents; green keeps its meaning.
 const SOLV_STAGE = THEMES.default.stage;
+// The meter's captions ("Qualified at", "Target", the tick amounts): white at
+// 80 %, one step under the bold values above them. The alpha takes each
+// stage's own hue and holds 4.5:1 where the captions sit on every theme.
+const CAPTION_INK = 'rgba(255,255,255,0.8)';
 // The stage content's own compositing layer, WebKit only (Safari, and every
 // browser on iOS). z-index alone orders the layers for Chrome; WebKit's
 // compositor also needs the sibling of a WebGL canvas to be composited, or it
@@ -506,18 +510,18 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                       </View>
                       <View style={{ flexShrink: 1 }}>
                         <Text style={[styles.groupBig, { color: st.ink }]} numberOfLines={1} allowFontScaling={false}>{s.secured.cash ? `${s.secured.cash} ${t.cashbackWord}` : s.secured.shortName}</Text>
-                        <Text style={[styles.groupSmall, TABULAR, { color: SOLV_STAGE.ink }]} numberOfLines={1} allowFontScaling={false}>{t.qualifiedAt(slab(s.secured.at))}</Text>
+                        <Text style={[styles.groupSmall, TABULAR, { color: CAPTION_INK }]} numberOfLines={1} allowFontScaling={false}>{t.qualifiedAt(slab(s.secured.at))}</Text>
                       </View>
                     </View>
                   ) : (
                     <Text style={[styles.groupBig, TABULAR, { color: st.sub }]} allowFontScaling={false}>{slab(0)}</Text>
                   )}
                   {W > 0 ? ticks.map((m) => (
-                    <Text key={m.gift.at} style={[styles.tickLabel, TABULAR, { color: SOLV_STAGE.ink, left: m.x * W }]} allowFontScaling={false}>{slab(m.gift.at)}</Text>
+                    <Text key={m.gift.at} style={[styles.tickLabel, TABULAR, { color: CAPTION_INK, left: m.x * W }]} allowFontScaling={false}>{slab(m.gift.at)}</Text>
                   )) : null}
                   <View style={styles.targetGroup}>
                     <Text style={[styles.groupBig, TABULAR, { color: st.ink }]} allowFontScaling={false}>{slab(reached ? top.at : s.next.at)}</Text>
-                    <Text style={[styles.groupSmall, { color: reached ? GREEN : SOLV_STAGE.ink }]} allowFontScaling={false}>{reached ? t.targetReached : t.targetWord}</Text>
+                    <Text style={[styles.groupSmall, { color: reached ? GREEN : CAPTION_INK }]} allowFontScaling={false}>{reached ? t.targetReached : t.targetWord}</Text>
                   </View>
                 </View>
 
