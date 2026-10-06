@@ -337,9 +337,12 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
 
   return (
     <View style={[styles.stage, compact && styles.stageCompact, fill && { flex: 1 }, card && styles.stageCard]}>
-      {/* A theme with a picture (st.image) wears it in place of the drawn scene and its shader. */}
+      {/* A theme with a picture (st.image) wears it in place of the drawn scene
+          and its shader, covering the stage and centred on it. The explicit 100 %
+          size matters: react-native-web otherwise sizes an Image to the asset's
+          natural pixels, pinned to the top left. */}
       {st.image ? (
-        <Image source={st.image} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        <Image source={st.image} style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]} resizeMode="cover" />
       ) : (
         <>
           <StageScene stage={st} festive={festive} focusY={missed ? 0.2 : 0.44} />
