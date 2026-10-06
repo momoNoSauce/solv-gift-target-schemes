@@ -165,7 +165,7 @@ export function CardFooter({ scheme, t, style, accent = SOLV.blue, accentBg = SO
           </View>
         ))}
         {won ? (
-          {/* The won check wears the footer's accent (Solv blue), like the chevron. */}
+          // The won check wears the footer's accent (Solv blue), like the chevron.
           <View style={[styles.wonBadge, { left: DISC - 11, backgroundColor: accent }]}>
             <Svg width={9} height={9} viewBox="0 0 24 24">
               <Path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
