@@ -183,7 +183,7 @@ export const THEMES = {
     label: 'Diwali',
     motif: 'diya',
     stage: {
-      // Hanging gold diyas over a plum night with pink bokeh; replaces the scene and its shader
+      // Hanging gold diyas over an antique-gold ground with bokeh; replaces the scene and its shader
       // on the stage, covering it and centred (Stage.js).
       image: require('../../assets/stages/diwali.jpg'),
       grad: ['#6D2400', '#330400'],
