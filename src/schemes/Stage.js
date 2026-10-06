@@ -24,7 +24,7 @@ import StageScene from '../gifts/Scene';
 import ShaderStage from './ShaderStage';
 import { usePressScale, GiftThumb } from '../gifts/solv';
 import { STATE } from '../gifts/state';
-import { themeOf } from '../gifts/themes';
+import { themeOf, THEMES } from '../gifts/themes';
 import { T } from './copy';
 import { SETTLED } from './motion';
 import SchemeArt from './SchemeArt';
@@ -141,6 +141,10 @@ const STAMP_INK = '#2BB05B';
 // The meter's done green: the seal's own ink, saturated enough to hold against
 // every stage's night; the theme's pastel `good` was too soft there.
 const METER_GREEN = STAMP_INK;
+// The meter (track, fill, flag, runner) wears the default Solv paint on every
+// theme, so the bar reads the same on every scheme. The theme keeps the stage,
+// the CTA and the page; green keeps its meaning (a target crossed or reached).
+const METER = THEMES.default.stage;
 // The stage content's own compositing layer, WebKit only (Safari, and every
 // browser on iOS). z-index alone orders the layers for Chrome; WebKit's
 // compositor also needs the sibling of a WebGL canvas to be composited, or it
@@ -454,8 +458,8 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                   {xD !== null ? <View style={[styles.seg, { left: 0, width: Math.max(0, xD), backgroundColor: GREEN }]} /> : null}
                   {/* The step to the next target (the whole bar with nothing crossed;
                       the whole bar in green once the top is reached). */}
-                  <View style={[styles.seg, { left: segX, width: segW, backgroundColor: st.track }]}>
-                    <Animated.View style={[styles.barFill, { backgroundColor: reached ? GREEN : st.accent, width: barA.interpolate({ inputRange: [0, 1], outputRange: ['0%', `${(reached ? 1 : meter.pct) * 100}%`] }) }]} />
+                  <View style={[styles.seg, { left: segX, width: segW, backgroundColor: METER.track }]}>
+                    <Animated.View style={[styles.barFill, { backgroundColor: reached ? GREEN : METER.accent, width: barA.interpolate({ inputRange: [0, 1], outputRange: ['0%', `${(reached ? 1 : meter.pct) * 100}%`] }) }]} />
                   </View>
                   {W > 0 && xD !== null ? (
                     <View style={[styles.checkDisc, { left: xD - DISC_R, backgroundColor: GREEN }]}>
@@ -468,7 +472,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                   {W > 0 ? ticks.map((m) => <View key={m.gift.at} style={[styles.tick, { left: m.x * W - 1, backgroundColor: st.ink }]} />) : null}
                   {W > 0 ? (
                     <View style={[styles.flagD, { left: W - 14 }]}>
-                      <IconTargetFlag width={12} height={22} color={reached ? GREEN : st.accent} />
+                      <IconTargetFlag width={12} height={22} color={reached ? GREEN : METER.accent} />
                     </View>
                   ) : null}
                   {/* Reached: the runner has stopped; he stands at the flag. */}

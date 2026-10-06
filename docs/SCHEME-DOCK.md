@@ -401,7 +401,8 @@ chip on 11 Sep 2026. One anatomy: when a target is crossed, a green run (the sea
 #2BB05B; the theme's pastel `good` was too soft against the night) from the start to a 20 px
 check disc at xD (the same green, a 2 px white ring, a white check, so it reads as a coin at
 the seam), a 6 px gap after the disc, then the step to the
-next target filled in the accent to the shop's buying, with the runner and the amount tag at
+next target filled to the shop's buying (track, fill, flag and runner wear the default Solv paint on every
+theme since 6 Oct 2026, so the bar reads the same on every scheme), with the runner and the amount tag at
 the fill's end and one flag at the finish. On a ladder of three or more xD is 28 % of the
 track (the earlier slabs compressed); on a one- or two-target bar xD is the crossed target's
 own position, so the bar stays to scale, and an uncrossed target before the finish is a 2 px
