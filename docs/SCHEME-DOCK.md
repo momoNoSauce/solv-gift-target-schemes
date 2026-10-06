@@ -653,3 +653,37 @@ Two corrections of 21 Sep 2026: the check on the seal green is white (the ink ch
 the seal green light and darkened it for a day; dark ink now applies only to a theme's own
 light `meterGood`), and the runner no longer strides. He stands where the fill ends; his
 place is the signal.
+
+
+## Colour rule and additions of 6 Oct 2026
+
+`/schemes/list4` is the final list. Its card and detail follow one colour rule, so a dev can
+place any new element without asking:
+
+| Layer | Colour | Where |
+|---|---|---|
+| The scheme's theme (`themes.js`) | per scheme | the stage background (drawn scene, or a picture), the title and the bold values (`st.ink`), the secondary notes (`st.sub`: "Confirmed when the scheme ends…", "Final buying", "Your gift order will be placed soon", the missed note, "₹0"), the CTA (`card.accent` on the page, `stage.accent` for "See running schemes"), and the page below the stage (`pageThemeOf`: gift-list tint and highlighted amounts, "next" / "top gift", "See N more", "Know more", the current delivery step) |
+| Default Solv paint on every theme (`SOLV_STAGE` in `Stage.js`, the default theme's stage tokens) | the same on every scheme | the meter (track, fill, flag, runner, standing man), the date line ("Ends 9 Nov 2026 • 21 days left", "Starts…", "Ended…", 13 medium white), "Buy ₹X more" (white), "Only ₹X more" (`urgent` peach), the eyebrow over the gift, "On the way…", "Delivered…" (`good` pale green), the festival motif and its sparkles, and the meter's captions "Qualified at ₹X", "Target", the tick amounts and "to win the Soundbar" (white #FFFFFF, weights unchanged) |
+| Fixed meaning | never themed | green on the stage #2BB05B (a crossed target, the check disc, a reached meter and "Target reached", the won stamp; the Jumbotail greens keep their light `meterGood`), green on white #177E36 (Eligible, the won chip, finished delivery steps), red #C2410C (Not eligible) |
+| App chrome | per brand | toolbar, tabs, bottom navigation, and the card footer (chevron and the won check on a completed scheme's gift disc take the footer accent: Solv blue, Jumbotail orange) |
+
+What changed today:
+
+- The meter wears the default Solv paint on every theme (it took the theme's accent: gold on
+  Diwali and Gold, yellow on Holi). Crossed and reached stay green.
+- The default theme takes Solv's own blues, `primary_color` #004FFA falling to `primary_dark`
+  #0038CC (it was #0A66E8 to #0847A6, a second blue under the toolbar); its card tint is
+  `blueBg` #E6F0FF. `card.good` is #177E36 in every theme (it was #1E8E3E, defined but unused).
+- A theme can borrow a sibling's paint for the page below the stage: `page: 'diwali'` on Gold,
+  resolved by `pageThemeOf()` in `themes.js` and read by `SchemePage`. Gold keeps its violet
+  stage; its page takes Mega Diwali's (the light gold #E3A62B it had read at 2.1:1 on white).
+- A theme can carry a stage picture, `stage.image`. It replaces the drawn scene and its shader.
+  Mega Diwali's is the red frame with hanging diyas (`assets/stages/diwali.jpg`, 1200 x 1200),
+  covering the stage and centred on it. The Image needs an explicit 100 % width and height:
+  react-native-web sizes an Image to the asset's natural pixels ahead of the style, so
+  `absoluteFill` alone pinned a 1200 px box to the stage's top left. Diwali's colour tokens
+  (#6D2400 to #330400, the cream `sub` #F2CBA6) stay for what the picture does not cover: the
+  pager's backdrop, the page's confirm button, the secondary notes, and the fallback scene.
+- Deploys: a push to `master` builds on Vercel (`vercel.json` runs `npx expo export -p web` and
+  serves `dist`) and reaches https://solv-gift-target-schemes.vercel.app in about 90 seconds. See
+  [DEPLOY.md](../DEPLOY.md).

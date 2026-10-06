@@ -198,11 +198,12 @@ detail state in WebKit (Safari's engine, and every browser on iOS) at 412 x 915 
 The latest set is in `exploration-screenshots/list/`.
 
 Two lines of work. `master` (this copy) carries the scheme list and the App Store
-card-to-detail move, and ships to a new link. `review-live` (working copy
-`../target-schemes-live`, tag `live-review-2026-09-04`) is what https://solvts.vercel.app
-serves: the Option A / Option B entry that opens the detail screens directly. `master`
-ships to https://solvts-list.vercel.app (project `solvts-list`). Fixes to
-the review experience go to that branch; see its `DEPLOY.md`.
+card-to-detail move. Every push to `master` deploys to
+https://solv-gift-target-schemes.vercel.app; the final list is `/schemes/list4`, and its
+colour rule is in [docs/SCHEME-DOCK.md](docs/SCHEME-DOCK.md) ("Colour rule and additions of
+6 Oct 2026"). See [DEPLOY.md](DEPLOY.md). `review-live` (tag `live-review-2026-09-04`, not in
+this repo) is what https://solvts.vercel.app serves: the Option A / Option B entry that opens
+the detail screens directly.
 | `/schemes/arc` | My Schemes, Option A (3 Sep 2026): the scheme page is a floating sheet that ends above an ARC of scheme thumbs (the reference video's arrangement); the focused scheme's name and status read under the apex; a "N schemes" button opens the full list. Same `?view=`, `?i=`, `?pos=`, `?static=1`. See [docs/SCHEME-DOCK.md](docs/SCHEME-DOCK.md) |
 | `/schemes` | My Schemes, Option B (3 Sep 2026): the main scheme's page opens first; every scheme sits in a dock near the thumb; swipe the page or the dock, or tap a thumb. `?view=typical\|start\|over\|many\|empty`, `?i=`, `?pos=`, `?static=1`. See [docs/SCHEME-DOCK.md](docs/SCHEME-DOCK.md) |
 | `/history/[smtId]` | Target scheme transaction history |

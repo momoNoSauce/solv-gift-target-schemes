@@ -172,17 +172,19 @@ export const THEMES = {
     },
   },
 
-  // Diwali's night is picked from a photo of a lit rangoli (6 Oct 2026): the
-  // dark warm floor falling to the shadow under it, the amber of the lit wall
-  // as the ambient glow, the flame's core as the key glow and the embers. The
-  // sub ink is a warm cream, so secondary text sits in the same light.
+  // Diwali's stage is a picture (stage.image, 6 Oct 2026). The colours below
+  // stay for what the picture does not cover: the pager's backdrop and the
+  // page's confirm button (ground2), the secondary notes (sub, a warm cream),
+  // and the drawn scene should the picture be removed. They were picked from a
+  // photo of a lit rangoli: the dark warm floor falling to its shadow, the lit
+  // wall's amber as the ambient glow, the flame's core as the key glow.
   diwali: {
     key: 'diwali',
     label: 'Diwali',
     motif: 'diya',
     stage: {
-      // A picture in place of the drawn night (6 Oct 2026); `image` replaces
-      // the scene and its shader on the stage (Stage.js).
+      // The red frame with hanging diyas; replaces the scene and its shader
+      // on the stage, covering it and centred (Stage.js).
       image: require('../../assets/stages/diwali.jpg'),
       grad: ['#6D2400', '#330400'],
       ground: '#6D2400',
