@@ -141,10 +141,6 @@ const STAMP_INK = '#2BB05B';
 // The meter's done green: the seal's own ink, saturated enough to hold against
 // every stage's night; the theme's pastel `good` was too soft there.
 const METER_GREEN = STAMP_INK;
-// The meter's running ink: the fill, the flag and the runner are white on every
-// theme, so the bar reads the same on every scheme. The theme's accent stays on
-// the CTA and the page; green keeps its meaning (a target crossed or reached).
-const METER_INK = '#FFFFFF';
 // The stage content's own compositing layer, WebKit only (Safari, and every
 // browser on iOS). z-index alone orders the layers for Chrome; WebKit's
 // compositor also needs the sibling of a WebGL canvas to be composited, or it
@@ -459,7 +455,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                   {/* The step to the next target (the whole bar with nothing crossed;
                       the whole bar in green once the top is reached). */}
                   <View style={[styles.seg, { left: segX, width: segW, backgroundColor: st.track }]}>
-                    <Animated.View style={[styles.barFill, { backgroundColor: reached ? GREEN : METER_INK, width: barA.interpolate({ inputRange: [0, 1], outputRange: ['0%', `${(reached ? 1 : meter.pct) * 100}%`] }) }]} />
+                    <Animated.View style={[styles.barFill, { backgroundColor: reached ? GREEN : st.accent, width: barA.interpolate({ inputRange: [0, 1], outputRange: ['0%', `${(reached ? 1 : meter.pct) * 100}%`] }) }]} />
                   </View>
                   {W > 0 && xD !== null ? (
                     <View style={[styles.checkDisc, { left: xD - DISC_R, backgroundColor: GREEN }]}>
@@ -472,18 +468,18 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                   {W > 0 ? ticks.map((m) => <View key={m.gift.at} style={[styles.tick, { left: m.x * W - 1, backgroundColor: st.ink }]} />) : null}
                   {W > 0 ? (
                     <View style={[styles.flagD, { left: W - 14 }]}>
-                      <IconTargetFlag width={12} height={22} color={reached ? GREEN : METER_INK} />
+                      <IconTargetFlag width={12} height={22} color={reached ? GREEN : st.accent} />
                     </View>
                   ) : null}
                   {/* Reached: the runner has stopped; he stands at the flag. */}
                   {W > 0 && reached ? (
                     <Animated.View style={[styles.standD, { left: W - 30, opacity: barA }]}>
-                      <IconStandingMan height={26} color={METER_INK} />
+                      <IconStandingMan height={26} color="#fff" />
                     </Animated.View>
                   ) : null}
                   {W > 0 && hasFill && !reached ? (
                     <Animated.View style={[styles.runnerD, { left: barA.interpolate({ inputRange: [0, 1], outputRange: [segX, Math.min(Math.max(fillX - 11, segX), W - 26)] }) }]}>
-                      <IconRunningMan height={22} color={METER_INK} />
+                      <IconRunningMan height={22} color="#fff" />
                     </Animated.View>
                   ) : null}
                 </View>
