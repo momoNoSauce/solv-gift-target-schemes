@@ -297,14 +297,16 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
     ? { top: dial(contactTopCard, contactTopDetail), width: dial(2 * shadowCard.rx, 2 * shadow.rx), height: dial(2 * shadowCard.ry, 2 * shadow.ry), marginLeft: dial(-shadowCard.rx, -shadow.rx) }
     : { top: contactTopDetail, width: 2 * shadow.rx, height: 2 * shadow.ry, marginLeft: -shadow.rx };
 
+  // The date line reads as one piece, the end date in the same medium white as
+  // the days left (6 Oct 2026); the start and end lines match it.
   const dates = s.state === STATE.SCHEDULED
-    ? <Text style={[styles.h2, TABULAR, { color: st.sub }]} numberOfLines={1} allowFontScaling={false}>{t.startsLine(s.startLabel)}</Text>
+    ? <Text style={[styles.h2, TABULAR, { color: SOLV_STAGE.accent }]} numberOfLines={1} allowFontScaling={false}>{t.startsLine(s.startLabel)}</Text>
     : s.ended
-    ? <Text style={[styles.h2, TABULAR, { color: st.sub }]} numberOfLines={1} allowFontScaling={false}>{t.endedLine(s.endLabel)}</Text>
+    ? <Text style={[styles.h2, TABULAR, { color: SOLV_STAGE.accent }]} numberOfLines={1} allowFontScaling={false}>{t.endedLine(s.endLabel)}</Text>
     : (
-      <Text style={[styles.h2, TABULAR, { color: st.sub }]} numberOfLines={1} allowFontScaling={false}>
+      <Text style={[styles.h2, TABULAR, { color: SOLV_STAGE.accent }]} numberOfLines={1} allowFontScaling={false}>
         {t.endsLine(s.endLabel)}
-        <Text style={{ color: SOLV_STAGE.accent, fontFamily: F.medium }} allowFontScaling={false}>{t.daysLeft(s.daysLeft)}</Text>
+        {t.daysLeft(s.daysLeft)}
       </Text>
     );
 
@@ -564,7 +566,7 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 0 },
   motifHang: { position: 'absolute', right: '100%', marginRight: 8, top: 3 },
   h1: { fontFamily: F.bold, fontSize: 22, lineHeight: 27, letterSpacing: 0.2, textAlign: 'center', paddingHorizontal: 8 },
-  h2: { marginTop: 4, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 17 },
+  h2: { marginTop: 4, textAlign: 'center', fontFamily: F.medium, fontSize: 13, lineHeight: 17 },
   // The subtitle's own box, so the offer and the dates can cross in place.
 
   // The dial collapses the ask block to 0 on the card.
