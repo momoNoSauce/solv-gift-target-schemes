@@ -516,18 +516,18 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                       </View>
                       <View style={{ flexShrink: 1 }}>
                         <Text style={[styles.groupBig, { color: st.ink }]} numberOfLines={1} allowFontScaling={false}>{s.secured.cash ? `${s.secured.cash} ${t.cashbackWord}` : s.secured.shortName}</Text>
-                        <Text style={[styles.groupSmall, TABULAR, { color: st.sub }]} numberOfLines={1} allowFontScaling={false}>{t.qualifiedAt(slab(s.secured.at))}</Text>
+                        <Text style={[styles.groupSmall, TABULAR, { color: SOLV_STAGE.ink }]} numberOfLines={1} allowFontScaling={false}>{t.qualifiedAt(slab(s.secured.at))}</Text>
                       </View>
                     </View>
                   ) : (
                     <Text style={[styles.groupBig, TABULAR, { color: st.sub }]} allowFontScaling={false}>{slab(0)}</Text>
                   )}
                   {W > 0 ? ticks.map((m) => (
-                    <Text key={m.gift.at} style={[styles.tickLabel, TABULAR, { color: st.sub, left: m.x * W }]} allowFontScaling={false}>{slab(m.gift.at)}</Text>
+                    <Text key={m.gift.at} style={[styles.tickLabel, TABULAR, { color: SOLV_STAGE.ink, left: m.x * W }]} allowFontScaling={false}>{slab(m.gift.at)}</Text>
                   )) : null}
                   <View style={styles.targetGroup}>
                     <Text style={[styles.groupBig, TABULAR, { color: st.ink }]} allowFontScaling={false}>{slab(reached ? top.at : s.next.at)}</Text>
-                    <Text style={[styles.groupSmall, { color: reached ? GREEN : st.sub }]} allowFontScaling={false}>{reached ? t.targetReached : t.targetWord}</Text>
+                    <Text style={[styles.groupSmall, { color: reached ? GREEN : SOLV_STAGE.ink }]} allowFontScaling={false}>{reached ? t.targetReached : t.targetWord}</Text>
                   </View>
                 </View>
 
@@ -545,7 +545,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                     {amountParts.amt}
                     <Text style={styles.bigMoreWord}>{amountParts.post}</Text>
                   </Text>
-                  <Text style={[styles.bigRest, { color: st.sub }]} allowFontScaling={false}>{t.rest(s.next.shortName)}</Text>
+                  <Text style={[styles.bigRest, { color: SOLV_STAGE.ink }]} allowFontScaling={false}>{t.rest(s.next.shortName)}</Text>
                 </Animated.View>
                 )}
               </>
