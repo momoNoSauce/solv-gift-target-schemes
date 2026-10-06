@@ -139,6 +139,9 @@ export const THEMES = {
     key: 'gold',
     label: 'Gold',
     motif: null,
+    // The page below the stage wears Mega Diwali's paint (pageThemeOf); the
+    // stage keeps the Gold night.
+    page: 'diwali',
     stage: {
       grad: ['#3B0F6E', '#1E0740'],
       ground: '#3B0F6E',
@@ -274,6 +277,13 @@ export const THEMES = {
 
 export function themeOf(key) {
   return THEMES[key] || THEMES.default;
+}
+
+// The theme that paints the page below the stage: the scheme's own, unless it
+// borrows a sibling's (`page`). The stage always wears the scheme's own theme.
+export function pageThemeOf(key) {
+  const th = themeOf(key);
+  return th.page ? themeOf(th.page) : th;
 }
 
 export const THEME_KEYS = Object.keys(THEMES);

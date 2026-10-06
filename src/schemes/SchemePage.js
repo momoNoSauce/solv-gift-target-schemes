@@ -23,6 +23,7 @@ import GiftGlyph from '../gifts/icons';
 import { GiftThumb } from '../gifts/solv';
 import StageScene from '../gifts/Scene';
 import { STATE } from '../gifts/state';
+import { pageThemeOf } from '../gifts/themes';
 import { RIMG } from '../rewards/assets';
 import { T } from './copy';
 import { SETTLED } from './motion';
@@ -42,7 +43,13 @@ function stepsFor(state) {
 export default function SchemePage({ scheme, active, near = true, first, still = false, bodyAnim = null, cardAnim = null, offset, bottomPad, onTitlePress, onSeeRunning, lang = 'en', compact = false, edge = false, dismiss = null, pageIndex = 0, rulesStyle = 'list' }) {
   const t = T[lang] || T.en;
   const d = deriveStage(scheme, t);
-  const { th, st, s, missed, withDelivery, showBar, reached, multiGift, running, festive } = d;
+  const { s, missed, withDelivery, showBar, reached, multiGift, running } = d;
+  // The page below the stage takes its paint from pageThemeOf: the scheme's
+  // own theme, unless it borrows a sibling's (Gold wears Mega Diwali's). The
+  // stage (Stage.js) keeps the scheme's own theme.
+  const th = pageThemeOf(scheme.theme);
+  const st = th.stage;
+  const festive = Boolean(th.motif);
   const slab = scheme.fmt;
   const money = scheme.money;
   const [addressConfirmed, setAddressConfirmed] = useState(false);
