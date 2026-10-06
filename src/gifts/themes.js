@@ -181,6 +181,9 @@ export const THEMES = {
     label: 'Diwali',
     motif: 'diya',
     stage: {
+      // A picture in place of the drawn night (6 Oct 2026); `image` replaces
+      // the scene and its shader on the stage (Stage.js).
+      image: require('../../assets/stages/diwali.jpg'),
       grad: ['#6D2400', '#330400'],
       ground: '#6D2400',
       ground2: '#330400',

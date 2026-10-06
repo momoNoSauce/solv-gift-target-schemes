@@ -337,8 +337,15 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
 
   return (
     <View style={[styles.stage, compact && styles.stageCompact, fill && { flex: 1 }, card && styles.stageCard]}>
-      <StageScene stage={st} festive={festive} focusY={missed ? 0.2 : 0.44} />
-      {festive && !missed ? <ShaderStage theme={th.key} stage={st} near={near} /> : null}
+      {/* A theme with a picture (st.image) wears it in place of the drawn scene and its shader. */}
+      {st.image ? (
+        <Image source={st.image} style={StyleSheet.absoluteFill} resizeMode="cover" />
+      ) : (
+        <>
+          <StageScene stage={st} festive={festive} focusY={missed ? 0.2 : 0.44} />
+          {festive && !missed ? <ShaderStage theme={th.key} stage={st} near={near} /> : null}
+        </>
+      )}
       {/* Everything on the stage sits above the canvas by explicit order, and
           on its own compositing layer (data-layer, CSS below): Safari's
           compositor otherwise paints the WebGL canvas over siblings it has not
