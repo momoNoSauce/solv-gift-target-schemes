@@ -172,19 +172,23 @@ export const THEMES = {
     },
   },
 
+  // Diwali's night is picked from a photo of a lit rangoli (6 Oct 2026): the
+  // dark warm floor falling to the shadow under it, the amber of the lit wall
+  // as the ambient glow, the flame's core as the key glow and the embers. The
+  // sub ink is a warm cream, so secondary text sits in the same light.
   diwali: {
     key: 'diwali',
     label: 'Diwali',
     motif: 'diya',
     stage: {
-      grad: ['#160E33', '#2C1D57'],
-      ground: '#1B1140',
-      ground2: '#120B2B',
-      glowKey: '#F2B84B',
-      glowAmbient: '#5F3DC4',
-      speck: '#F2C46B',
+      grad: ['#6D2400', '#330400'],
+      ground: '#6D2400',
+      ground2: '#330400',
+      glowKey: '#FEE72B',
+      glowAmbient: '#CE6A00',
+      speck: '#FEE72B',
       ink: '#FFFFFF',
-      sub: '#B9ACDF',
+      sub: '#F2CBA6',
       accent: '#F2B84B',
       accentInk: '#160E33',
       accentDeep: '#9A5F0B',
@@ -196,7 +200,7 @@ export const THEMES = {
       dark: true,
       tint: '#FBF2DF',
       ink: '#FFFFFF',
-      sub: '#B9ACDF',
+      sub: '#F2CBA6',
       accent: '#F2B84B',
       accentInk: '#160E33',
       accentDeep: '#9A5F0B',
