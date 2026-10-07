@@ -379,13 +379,16 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
             </Animated.View>
             <View style={[styles.tileWrap, compact && styles.tileWrapCompact]}>
               <Animated.View style={[styles.tile, compact ? styles.tileWonCompact : styles.tileWon, { opacity: tileA, transform: [{ scale: tileA.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}>
-                {missedGift.cash || missedGift.voucher ? (
-                  <GiftThumb gift={missedGift} size={compact ? 92 : 104} />
-                ) : missedGift.image ? (
-                  <Image source={missedGift.image} style={[styles.tileImg, compact ? styles.tileImgWonCompact : styles.tileImgWon]} resizeMode="contain" />
-                ) : (
-                  <GiftGlyph kind={missedGift.icon} size={80} color={st.accentDeep} strokeWidth={1.2} />
-                )}
+                {/* Greyed and faded: the gift was on offer, not won. */}
+                <View style={styles.missedArt}>
+                  {missedGift.cash || missedGift.voucher ? (
+                    <GiftThumb gift={missedGift} size={compact ? 92 : 104} />
+                  ) : missedGift.image ? (
+                    <Image source={missedGift.image} style={[styles.tileImg, compact ? styles.tileImgWonCompact : styles.tileImgWon]} resizeMode="contain" />
+                  ) : (
+                    <GiftGlyph kind={missedGift.icon} size={80} color={st.accentDeep} strokeWidth={1.2} />
+                  )}
+                </View>
               </Animated.View>
               <WonStamp word={stampWord} date={stampDate} anim={tileA} ink={MISSED_INK} mark="cross" />
             </View>
@@ -675,6 +678,7 @@ const styles = StyleSheet.create({
   ctaGlow: { shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 6 },
   ctaText: { fontFamily: F.bold, fontSize: 15, lineHeight: 19, letterSpacing: 0.2 },
 
+  missedArt: { opacity: 0.45, filter: 'grayscale(1)' },
   missedBlock: { alignItems: 'center', paddingTop: 30, paddingBottom: 6, alignSelf: 'stretch' },
   // (finalBought is shared with the won stage's final line.)
   missedTitle: { fontFamily: F.bold, fontSize: 17, lineHeight: 22 },
