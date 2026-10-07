@@ -109,7 +109,7 @@ export function deriveStage(scheme, t) {
     : ddMMM(scheme.now)
   ).toUpperCase() + ' ' + new Date(scheme.endTime).getUTCFullYear();
   const wonStatus =
-    s.state === STATE.DELIVERED ? { text: t.wonStatusDelivered(deliveredLabel), color: SOLV_STAGE.good, icon: 'check' }
+    s.state === STATE.DELIVERED ? { text: t.wonStatusDelivered(deliveredLabel), color: SOLV_STAGE.accent, icon: 'check' }
     : s.state === STATE.GIFT_ORDERED ? { text: t.wonStatusOnTheWay(scheme.deliverBy), color: SOLV_STAGE.accent, icon: 'truck' }
     : s.state === STATE.TOP_REACHED ? { text: t.wonStatusTop(s.endLabel), color: st.sub, icon: 'gift' }
     : { text: t.wonStatusPending, color: st.sub, icon: 'gift' };
