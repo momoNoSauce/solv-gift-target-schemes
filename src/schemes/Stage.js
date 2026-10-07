@@ -98,9 +98,12 @@ export function deriveStage(scheme, t) {
   };
   const deliveredLabel = scheme.fulfilment.deliveredAt ? ddMMM(scheme.fulfilment.deliveredAt) : '';
   const heroNote = s.state === STATE.SCHEDULED ? t.startsNote(s.startLabel) : null;
-  const stampWord = s.state === STATE.DELIVERED ? t.stampDelivered : s.state === STATE.GIFT_ORDERED ? t.stampOnTheWay : t.stampWon;
+  const stampWord = missed ? t.stampMissed : s.state === STATE.DELIVERED ? t.stampDelivered : s.state === STATE.GIFT_ORDERED ? t.stampOnTheWay : t.stampWon;
+  // A missed scheme's tile shows the first target's gift, the one it fell short of.
+  const missedGift = missed ? s.ladder[0] : null;
   const stampDate = (
-    s.state === STATE.DELIVERED && scheme.fulfilment.deliveredAt ? ddMMM(scheme.fulfilment.deliveredAt)
+    missed ? ddMMM(scheme.endTime)
+    : s.state === STATE.DELIVERED && scheme.fulfilment.deliveredAt ? ddMMM(scheme.fulfilment.deliveredAt)
     : s.state === STATE.GIFT_ORDERED && scheme.fulfilment.orderedAt ? ddMMM(scheme.fulfilment.orderedAt)
     : s.ended ? ddMMM(scheme.endTime + 24 * 60 * 60 * 1000)
     : ddMMM(scheme.now)
@@ -115,7 +118,7 @@ export function deriveStage(scheme, t) {
       ? { pre: t.onlyPrefix, amt: scheme.money(s.remaining), post: t.onlySuffix, color: SOLV_STAGE.urgent }
       : { pre: t.morePrefix, amt: scheme.money(s.remaining), post: t.moreSuffix, color: SOLV_STAGE.accent }
     : null;
-  return { th, st, s, festive: Boolean(th.motif), running, reached, withDelivery, missed, hero, showBar, prevAt, localPct, meter, heroNote, stampWord, stampDate, wonStatus, amountParts, multiGift: s.ladder.length > 1 };
+  return { th, st, s, festive: Boolean(th.motif), running, reached, withDelivery, missed, missedGift, hero, showBar, prevAt, localPct, meter, heroNote, stampWord, stampDate, wonStatus, amountParts, multiGift: s.ladder.length > 1 };
 }
 
 // The primary pill: a top sheen for depth, a soft glow in its own color, and a
@@ -164,7 +167,10 @@ if (Platform.OS === 'web' && typeof document !== 'undefined' && typeof navigator
   }
 }
 
-export function WonStamp({ word, date, anim }) {
+// `mark` 'cross' with a red `ink` is the missed stamp: the same seal, a cross
+// at the centre in place of the check.
+const MISSED_INK = '#FF6B6B';
+export function WonStamp({ word, date, anim, ink = STAMP_INK, mark = 'check' }) {
   const id = React.useRef(`st${Math.random().toString(36).slice(2, 7)}`).current;
   return (
     <Animated.View pointerEvents="none" style={[styles.stamp, { opacity: anim, transform: [{ rotate: '-12deg' }, { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [1.3, 1] }) }] }]}>
@@ -174,18 +180,22 @@ export function WonStamp({ word, date, anim }) {
           <Path id={`${id}bot`} d="M 14 50 A 36 36 0 0 0 86 50" />
         </Defs>
         <Circle cx="50" cy="50" r="48" fill="#FFFFFF" opacity="0.10" />
-        <Circle cx="50" cy="50" r="46" stroke={STAMP_INK} strokeWidth="3.2" fill="none" opacity="0.92" />
+        <Circle cx="50" cy="50" r="46" stroke={ink} strokeWidth="3.2" fill="none" opacity="0.92" />
         <Circle cx="50" cy="50" r="46" stroke="#FFFFFF" strokeWidth="1.2" fill="none" opacity="0.35" strokeDasharray="1 27 2 41 1 33 2 52 1 38" />
-        <Circle cx="50" cy="50" r="28" stroke={STAMP_INK} strokeWidth="1.4" fill="none" opacity="0.9" />
-        <SvgText fill={STAMP_INK} fontFamily={F.bold} fontSize="9.5" letterSpacing="2.2" textAnchor="middle">
+        <Circle cx="50" cy="50" r="28" stroke={ink} strokeWidth="1.4" fill="none" opacity="0.9" />
+        <SvgText fill={ink} fontFamily={F.bold} fontSize="9.5" letterSpacing="2.2" textAnchor="middle">
           <TextPath href={`#${id}top`} startOffset="50%">{word}</TextPath>
         </SvgText>
-        <SvgText fill={STAMP_INK} fontFamily={F.bold} fontSize="8" letterSpacing="1.6" textAnchor="middle">
+        <SvgText fill={ink} fontFamily={F.bold} fontSize="8" letterSpacing="1.6" textAnchor="middle">
           <TextPath href={`#${id}bot`} startOffset="50%">{date}</TextPath>
         </SvgText>
-        <Circle cx="12" cy="50" r="1.6" fill={STAMP_INK} />
-        <Circle cx="88" cy="50" r="1.6" fill={STAMP_INK} />
-        <Path d="M38 51.5l8.5 8.5L63 41" stroke={STAMP_INK} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.94" />
+        <Circle cx="12" cy="50" r="1.6" fill={ink} />
+        <Circle cx="88" cy="50" r="1.6" fill={ink} />
+        {mark === 'cross' ? (
+          <Path d="M41 41L59 59M59 41L41 59" stroke={ink} strokeWidth="6" strokeLinecap="round" fill="none" opacity="0.94" />
+        ) : (
+          <Path d="M38 51.5l8.5 8.5L63 41" stroke={ink} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.94" />
+        )}
       </Svg>
     </Animated.View>
   );
@@ -224,7 +234,7 @@ export const rise = (v, d = 10) => ({
 export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, lag = null, near = true, onTitlePress, onSeeRunning, card = false, cardAnim = null, lang = 'en', fill = false }) {
   const t = T[lang] || T.en;
   const d = deriveStage(scheme, t);
-  const { th, st, s, festive, missed, hero, showBar, reached, prevAt, localPct, meter, heroNote, stampWord, stampDate, wonStatus, amountParts } = d;
+  const { th, st, s, festive, missed, missedGift, hero, showBar, reached, prevAt, localPct, meter, heroNote, stampWord, stampDate, wonStatus, amountParts } = d;
   const { labelA, tileA, nameA, barA, amountA, ctaA } = anim;
   const k = cardAnim || ONE;
   const dial = (lo, hi) => k.interpolate({ inputRange: [0, 1], outputRange: [lo, hi], extrapolate: 'clamp' });
@@ -284,8 +294,8 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
   // follows, smaller and closer on the card so it stays inside the pedestal.
   const pedH = compact ? 204 : 236;
   const pedCardH = compact ? 162 : 188;
-  // hero is null on a missed scheme, which draws no pedestal at all.
-  const tileLayout = hero && hero.tone === 'won' ? (compact ? 128 : 136) : compact ? 148 : 168;
+  // hero is null on a missed scheme; its pedestal holds the first target's gift at the won size.
+  const tileLayout = missed || (hero && hero.tone === 'won') ? (compact ? 128 : 136) : compact ? 148 : 168;
   const tileCardScale = showBar ? (compact ? 128 / 148 : 136 / 168) : 1;
   const tileTopMargin = compact ? 14 : 16;
   const shadow = { rx: compact ? 68 : 76, ry: compact ? 8 : 9, gap: 10 };
@@ -359,7 +369,28 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
         {card ? <View>{title}</View> : <Pressable onPress={onTitlePress}>{title}</Pressable>}
 
         {missed ? (
-          <View style={styles.missedBlock}>
+          <>
+          {/* The gift it fell short of, on the won tile with a MISSED stamp. */}
+          <Animated.View style={[styles.pedestal, compact && styles.pedestalCompact, lag]}>
+            <Animated.View pointerEvents="none" style={[styles.contact, contact]}>
+              <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <Ellipse cx="50" cy="50" rx="50" ry="50" fill="#000" opacity="0.3" />
+              </Svg>
+            </Animated.View>
+            <View style={[styles.tileWrap, compact && styles.tileWrapCompact]}>
+              <Animated.View style={[styles.tile, compact ? styles.tileWonCompact : styles.tileWon, { opacity: tileA, transform: [{ scale: tileA.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}>
+                {missedGift.cash || missedGift.voucher ? (
+                  <GiftThumb gift={missedGift} size={compact ? 92 : 104} />
+                ) : missedGift.image ? (
+                  <Image source={missedGift.image} style={[styles.tileImg, compact ? styles.tileImgWonCompact : styles.tileImgWon]} resizeMode="contain" />
+                ) : (
+                  <GiftGlyph kind={missedGift.icon} size={80} color={st.accentDeep} strokeWidth={1.2} />
+                )}
+              </Animated.View>
+              <WonStamp word={stampWord} date={stampDate} anim={tileA} ink={MISSED_INK} mark="cross" />
+            </View>
+          </Animated.View>
+          <View style={[styles.missedBlock, { paddingTop: 6 }]}>
             <Text style={[styles.missedTitle, { color: st.ink }]} allowFontScaling={false}>{t.missedTitle}</Text>
             <Text style={[styles.missedNote, { color: st.sub }]} allowFontScaling={false}>{t.missedNote}</Text>
             {s.currentValue > 0 ? (
@@ -371,6 +402,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
               </View>
             ) : null}
           </View>
+          </>
         ) : (
           <>
             <Animated.View style={[styles.pedestal, compact && styles.pedestalCompact, lag, showBar && { height: dial(pedCardH, pedH) }]}>
