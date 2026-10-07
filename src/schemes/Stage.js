@@ -167,10 +167,10 @@ if (Platform.OS === 'web' && typeof document !== 'undefined' && typeof navigator
   }
 }
 
-// `mark` 'cross' with a red `ink` is the missed stamp: the same seal, a cross
-// at the centre in place of the check.
-const MISSED_INK = '#FF6B6B';
-export function WonStamp({ word, date, anim, ink = STAMP_INK, mark = 'check' }) {
+// Both stamps are white (7 Oct 2026): the word and the mark carry won or
+// missed. `mark` 'cross' is the missed stamp, a cross in place of the check.
+const STAMP_WHITE = '#FFFFFF';
+export function WonStamp({ word, date, anim, ink = STAMP_WHITE, mark = 'check' }) {
   const id = React.useRef(`st${Math.random().toString(36).slice(2, 7)}`).current;
   return (
     <Animated.View pointerEvents="none" style={[styles.stamp, { opacity: anim, transform: [{ rotate: '-12deg' }, { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [1.3, 1] }) }] }]}>
@@ -390,7 +390,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
                   )}
                 </View>
               </Animated.View>
-              <WonStamp word={stampWord} date={stampDate} anim={tileA} ink={MISSED_INK} mark="cross" />
+              <WonStamp word={stampWord} date={stampDate} anim={tileA} mark="cross" />
             </View>
           </Animated.View>
           <View style={[styles.missedBlock, { paddingTop: 6 }]}>
