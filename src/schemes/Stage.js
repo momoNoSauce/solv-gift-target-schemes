@@ -170,6 +170,10 @@ if (Platform.OS === 'web' && typeof document !== 'undefined' && typeof navigator
 // `mark` 'cross' with a red `ink` is the missed stamp: the same seal, a cross
 // at the centre in place of the check.
 const MISSED_INK = '#FF6B6B';
+// A missed scheme's stage: flat grey under white text. #6B6B6B is light enough
+// to read grey and dark enough for AA: white 5.3:1, the #EDEDED note 4.55:1.
+const MISSED_BG = '#6B6B6B';
+const MISSED_SUB = '#EDEDED';
 export function WonStamp({ word, date, anim, ink = STAMP_INK, mark = 'check' }) {
   const id = React.useRef(`st${Math.random().toString(36).slice(2, 7)}`).current;
   return (
@@ -359,8 +363,8 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
           {festive && !missed ? <ShaderStage theme={th.key} stage={st} near={near} /> : null}
         </>
       )}
-      {/* A missed scheme's stage is washed grey, behind its content: the scheme
-          is over and nothing on it can be won (7 Oct 2026). */}
+      {/* A missed scheme's stage is covered in flat grey, behind its content:
+          the scheme is over and nothing on it can be won. */}
       {missed ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.missedWash]} /> : null}
       {/* Everything on the stage sits above the canvas by explicit order, and
           on its own compositing layer (data-layer, CSS below): Safari's
@@ -398,7 +402,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
           </Animated.View>
           <View style={[styles.missedBlock, { paddingTop: 6 }]}>
             <Text style={[styles.missedTitle, { color: st.ink }]} allowFontScaling={false}>{t.missedTitle}</Text>
-            <Text style={[styles.missedNote, { color: st.sub }]} allowFontScaling={false}>{t.missedNote}</Text>
+            <Text style={[styles.missedNote, { color: MISSED_SUB }]} allowFontScaling={false}>{t.missedNote}</Text>
             {s.currentValue > 0 ? (
               <Text style={[styles.finalBought, TABULAR, { color: st.ink }]} allowFontScaling={false}>{t.finalBought(money(s.currentValue))}</Text>
             ) : null}
@@ -681,7 +685,7 @@ const styles = StyleSheet.create({
   ctaGlow: { shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 6 },
   ctaText: { fontFamily: F.bold, fontSize: 15, lineHeight: 19, letterSpacing: 0.2 },
 
-  missedWash: { backgroundColor: 'rgba(72,72,72,0.72)' },
+  missedWash: { backgroundColor: MISSED_BG },
   missedArt: { opacity: 0.45, filter: 'grayscale(1)' },
   missedBlock: { alignItems: 'center', paddingTop: 30, paddingBottom: 6, alignSelf: 'stretch' },
   // (finalBought is shared with the won stage's final line.)
