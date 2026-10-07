@@ -359,6 +359,9 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
           {festive && !missed ? <ShaderStage theme={th.key} stage={st} near={near} /> : null}
         </>
       )}
+      {/* A missed scheme's stage is washed grey, behind its content: the scheme
+          is over and nothing on it can be won (7 Oct 2026). */}
+      {missed ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.missedWash]} /> : null}
       {/* Everything on the stage sits above the canvas by explicit order, and
           on its own compositing layer (data-layer, CSS below): Safari's
           compositor otherwise paints the WebGL canvas over siblings it has not
@@ -678,6 +681,7 @@ const styles = StyleSheet.create({
   ctaGlow: { shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 6 },
   ctaText: { fontFamily: F.bold, fontSize: 15, lineHeight: 19, letterSpacing: 0.2 },
 
+  missedWash: { backgroundColor: 'rgba(72,72,72,0.72)' },
   missedArt: { opacity: 0.45, filter: 'grayscale(1)' },
   missedBlock: { alignItems: 'center', paddingTop: 30, paddingBottom: 6, alignSelf: 'stretch' },
   // (finalBought is shared with the won stage's final line.)
