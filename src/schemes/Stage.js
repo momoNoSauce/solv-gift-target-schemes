@@ -169,7 +169,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined' && typeof navigator
 
 // `mark` 'cross' with a red `ink` is the missed stamp: the same seal, a cross
 // at the centre in place of the check.
-const MISSED_INK = '#FF6B6B';
+const MISSED_INK = '#E5404F';
 // A missed scheme's stage: flat grey under white text. #6B6B6B is light enough
 // to read grey and dark enough for AA: white 5.3:1, the #EDEDED note 4.55:1.
 const MISSED_BG = '#6B6B6B';
