@@ -9,9 +9,14 @@
 //   NEAR_SLAB      derived: the gap to the next slab is 20% or less of the slab step
 //   TOP_REACHED    the top slab is crossed; nothing left to win
 //   ENDED_MISSED   window closed, no slab crossed; terminal
-//   ENDED_PENDING  window closed with a slab crossed, gift order not placed yet
-//   GIFT_ORDERED   gift order placed
+//   ENDED_PENDING  window closed with a slab crossed; the confirmation call is still to come
+//   CALL_MISSED    the confirmation call went unanswered; we will call again
+//   CALL_FAILED    no answer after several calls; the shop is asked to call us
+//   GIFT_ORDERED   address confirmed on the call, gift ordered and on the way
+//   DELIVERY_ATTEMPT_FAILED a delivery attempt failed; the courier will try again
 //   DELIVERED      delivery confirmed; terminal
+//   DELIVERY_FAILED the courier gave up; the shop is asked to call us
+// A gift is never lost in the failed states: a call to support sorts it out.
 //
 // NEAR_SLAB and TOP_REACHED are refinements of EARNED/LIVE, so `earned` tells a caller
 // whether a gift is secured without having to list the states again.
@@ -24,8 +29,12 @@ export const STATE = {
   TOP_REACHED: 'TOP_REACHED',
   ENDED_MISSED: 'ENDED_MISSED',
   ENDED_PENDING: 'ENDED_PENDING',
+  CALL_MISSED: 'CALL_MISSED',
+  CALL_FAILED: 'CALL_FAILED',
   GIFT_ORDERED: 'GIFT_ORDERED',
+  DELIVERY_ATTEMPT_FAILED: 'DELIVERY_ATTEMPT_FAILED',
   DELIVERED: 'DELIVERED',
+  DELIVERY_FAILED: 'DELIVERY_FAILED',
 };
 
 // The gap that turns EARNED into NEAR_SLAB, as a share of the current slab step.
@@ -34,7 +43,8 @@ export const NEAR_SLAB_SHARE = 0.2;
 const DAY = 24 * 60 * 60 * 1000;
 
 // tiers: [{ at, name, shortName, icon }] in ascending order of `at`.
-// fulfilment: { orderedAt, deliveredAt } for the terminal states; both optional.
+// fulfilment: { callMissedAt, callFailedAt, orderedAt, attemptFailedAt, deliveredAt, failedAt }
+// for the won states; all optional.
 export function schemeState({ tiers, currentValue, startTime, endTime, now, fulfilment = {}, startLabel = '', endLabel = '' }) {
   const ladder = [...tiers].sort((a, b) => a.at - b.at);
   const top = ladder[ladder.length - 1];
@@ -65,8 +75,16 @@ export function schemeState({ tiers, currentValue, startTime, endTime, now, fulf
     state = STATE.ENDED_MISSED;
   } else if (fulfilment.deliveredAt) {
     state = STATE.DELIVERED;
+  } else if (fulfilment.failedAt) {
+    state = STATE.DELIVERY_FAILED;
+  } else if (fulfilment.attemptFailedAt) {
+    state = STATE.DELIVERY_ATTEMPT_FAILED;
   } else if (fulfilment.orderedAt) {
     state = STATE.GIFT_ORDERED;
+  } else if (fulfilment.callFailedAt) {
+    state = STATE.CALL_FAILED;
+  } else if (fulfilment.callMissedAt) {
+    state = STATE.CALL_MISSED;
   } else {
     state = STATE.ENDED_PENDING;
   }
@@ -98,7 +116,11 @@ export function isTerminal(state) {
   return (
     state === STATE.ENDED_MISSED ||
     state === STATE.ENDED_PENDING ||
+    state === STATE.CALL_MISSED ||
+    state === STATE.CALL_FAILED ||
     state === STATE.GIFT_ORDERED ||
-    state === STATE.DELIVERED
+    state === STATE.DELIVERY_ATTEMPT_FAILED ||
+    state === STATE.DELIVERED ||
+    state === STATE.DELIVERY_FAILED
   );
 }

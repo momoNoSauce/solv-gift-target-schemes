@@ -15,7 +15,7 @@
 //   - While the pager moves, the pedestal lags the page by 36px per page of
 //     travel (parallax).
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Image, Pressable, ScrollView, StyleSheet, Animated, Easing, Platform, PanResponder } from 'react-native';
+import { View, Text, Image, Pressable, ScrollView, StyleSheet, Animated, Easing, Platform, PanResponder, Linking } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { F } from '../theme';
@@ -27,17 +27,53 @@ import { pageThemeOf } from '../gifts/themes';
 import { RIMG } from '../rewards/assets';
 import { T } from './copy';
 import { SETTLED } from './motion';
-import { ddMMM, SHOP_ADDRESS } from './registry';
+import { ddMMM, SUPPORT_PHONE } from './registry';
 import Stage, { deriveStage, CtaButton, rise, N, TABULAR } from './Stage';
 import ProductRules, { SellerRules, RulesTable, ruleRows, useFold, FoldRow } from './ProductRules';
 
 const PHOTO_EDGE = 'rgba(0,0,0,0.08)';
 const STATIC = SETTLED;
 
+// Won, Confirmation call, On the way, Delivered. Each step is done (green), in
+// progress (blue), being retried (amber), given up (red) or still to come.
 function stepsFor(state) {
-  if (state === STATE.ENDED_PENDING) return ['done', 'now', 'todo', 'todo'];
-  if (state === STATE.GIFT_ORDERED) return ['done', 'done', 'now', 'todo'];
-  return ['done', 'done', 'done', 'done'];
+  switch (state) {
+    case STATE.ENDED_PENDING: return ['done', 'now', 'todo', 'todo'];
+    case STATE.CALL_MISSED: return ['done', 'retry', 'todo', 'todo'];
+    case STATE.CALL_FAILED: return ['done', 'failed', 'todo', 'todo'];
+    case STATE.GIFT_ORDERED: return ['done', 'done', 'now', 'todo'];
+    case STATE.DELIVERY_ATTEMPT_FAILED: return ['done', 'done', 'done', 'retry'];
+    case STATE.DELIVERY_FAILED: return ['done', 'done', 'done', 'failed'];
+    default: return ['done', 'done', 'done', 'done'];
+  }
+}
+
+// The status colours: fixed, so a step means the same on every scheme's theme.
+// Amber and red are dark enough for their labels to read on white. A settled
+// step (done, failed) is a filled disc; an open one (in progress, retrying) is
+// a ring in its colour over a light tint of it.
+const TONE = {
+  done: N.green,
+  now: '#0038CC',
+  retry: '#B45309',
+  failed: '#C62828',
+};
+const TINT = { now: '#E6F0FF', retry: '#FFF4E5' };
+
+// The support number as a tap-to-call link: an anchor on the web, the dialer on a phone.
+function CallLink({ color }) {
+  const url = `tel:${SUPPORT_PHONE}`;
+  return (
+    <Text
+      style={[styles.callLink, { color }]}
+      accessibilityRole="link"
+      href={Platform.OS === 'web' ? url : undefined}
+      onPress={Platform.OS === 'web' ? undefined : () => Linking.openURL(url)}
+      allowFontScaling={false}
+    >
+      {SUPPORT_PHONE}
+    </Text>
+  );
 }
 
 export default function SchemePage({ scheme, active, near = true, first, still = false, bodyAnim = null, cardAnim = null, offset, bottomPad, onTitlePress, onSeeRunning, lang = 'en', compact = false, edge = false, dismiss = null, pageIndex = 0, rulesStyle = 'list' }) {
@@ -52,7 +88,6 @@ export default function SchemePage({ scheme, active, near = true, first, still =
   const festive = Boolean(th.motif);
   const slab = scheme.fmt;
   const money = scheme.money;
-  const [addressConfirmed, setAddressConfirmed] = useState(false);
   // A long rules list folds after five rows (ProductRules.js useFold).
   const ruleFold = useFold(ruleRows(scheme.rules));
 
@@ -138,14 +173,27 @@ export default function SchemePage({ scheme, active, near = true, first, still =
   }, [celebrate]);
 
   const stepStates = withDelivery ? stepsFor(s.state) : null;
+  const f = scheme.fulfilment;
+  const dateOf = (...ms) => {
+    const at = ms.find(Boolean);
+    return at ? ddMMM(at) : '';
+  };
   const stepDates = withDelivery
     ? [
         ddMMM(scheme.endTime + 24 * 60 * 60 * 1000),
-        scheme.fulfilment.orderedAt ? ddMMM(scheme.fulfilment.orderedAt) : '',
-        s.state === STATE.GIFT_ORDERED ? `by ${ddMMM(scheme.endTime + 12 * 24 * 60 * 60 * 1000)}` : '',
-        scheme.fulfilment.deliveredAt ? ddMMM(scheme.fulfilment.deliveredAt) : '',
+        dateOf(f.orderedAt, f.callFailedAt, f.callMissedAt),
+        s.state === STATE.GIFT_ORDERED ? `by ${scheme.deliverBy.split(' ').slice(0, 2).join(' ')}` : '',
+        dateOf(f.deliveredAt, f.failedAt, f.attemptFailedAt),
       ]
     : null;
+  // The line under the stepper for a missed or failed step: what happened, and
+  // the number to call, in the step's own colour.
+  const callNote = {
+    [STATE.CALL_MISSED]: [t.callMissed, TONE.retry],
+    [STATE.CALL_FAILED]: [t.callFailed, TONE.failed],
+    [STATE.DELIVERY_ATTEMPT_FAILED]: [t.attemptFailed, TONE.retry],
+    [STATE.DELIVERY_FAILED]: [t.deliveryFailed, TONE.failed],
+  }[s.state];
 
   const lag = offset
     ? { transform: [{ translateX: offset.interpolate({ inputRange: [-1, 0, 1], outputRange: [-36, 0, 36], extrapolate: 'clamp' }) }] }
@@ -186,65 +234,52 @@ export default function SchemePage({ scheme, active, near = true, first, still =
         </View>
 
         <Animated.View style={bodyStyle}>
-        {/* ——— Delivery, for the ended-with-win states ——— */}
+        {/* ——— Delivery, for the won states: the stepper, then one line for
+            where it stands (the call to come, a call-us link, the order and
+            tracking numbers). The address is confirmed on the call. ——— */}
         {withDelivery ? (
-          <>
-            <View style={styles.card}>
-              <View style={styles.stepper}>
-                {t.steps.map((label, i) => (
+          <View style={styles.card}>
+            <View style={styles.stepper}>
+              {t.steps.map((label, i) => {
+                const state = stepStates[i];
+                const tone = TONE[state];
+                const filled = state === 'done' || state === 'failed';
+                const ring = state === 'now' || state === 'retry';
+                const name = state === 'retry' ? t.stepRetry[i] : state === 'failed' ? t.stepFailed[i] : label;
+                return (
                   <React.Fragment key={label}>
-                    {i > 0 ? <View style={[styles.connector, stepStates[i] !== 'todo' && styles.connectorDone]} /> : null}
+                    {i > 0 ? <View style={[styles.connector, state !== 'todo' && styles.connectorDone]} /> : null}
                     <View style={styles.step}>
-                      <View
-                        style={[
-                          styles.stepDot,
-                          stepStates[i] === 'done' && styles.stepDone,
-                          stepStates[i] === 'now' && [styles.stepNow, { borderColor: st.accentDeep, backgroundColor: th.card.tint }],
-                        ]}
-                      >
+                      <View style={[styles.stepDot, filled && { backgroundColor: tone, borderColor: tone }, ring && { borderColor: tone, backgroundColor: TINT[state] }]}>
                         <GiftGlyph
-                          kind={['check', 'gift', 'truck', 'check'][i]}
+                          kind={state === 'retry' ? 'alert' : state === 'failed' ? 'cross' : ['check', 'call', 'truck', 'check'][i]}
                           size={15}
-                          color={stepStates[i] === 'done' ? '#fff' : stepStates[i] === 'now' ? st.accentDeep : '#C9C9C9'}
+                          color={filled ? '#fff' : ring ? tone : '#C9C9C9'}
                           strokeWidth={2}
                         />
                       </View>
-                      <Text style={[styles.stepTitle, stepStates[i] === 'todo' && { color: '#B5B5B5' }]} allowFontScaling={false}>{label}</Text>
+                      <Text style={[styles.stepTitle, state === 'todo' && { color: '#B5B5B5' }, (state === 'retry' || state === 'failed') && { color: tone }]} allowFontScaling={false}>{name}</Text>
                       {stepDates[i] ? <Text style={[styles.stepDate, TABULAR]} allowFontScaling={false}>{stepDates[i]}</Text> : null}
                     </View>
                   </React.Fragment>
-                ))}
-              </View>
-              {s.state !== STATE.ENDED_PENDING ? <Text style={[styles.orderNo, TABULAR]} allowFontScaling={false}>{scheme.orderNo}</Text> : null}
+                );
+              })}
             </View>
-
-            {s.state === STATE.DELIVERED ? null : (
-            <View style={styles.card}>
-              <Text style={styles.cardTitle} allowFontScaling={false}>{t.shipsHere}</Text>
-              <Text style={styles.shopName} allowFontScaling={false}>{SHOP_ADDRESS.shop}</Text>
-              <Text style={styles.addressLine} allowFontScaling={false}>{SHOP_ADDRESS.line}</Text>
-              {s.state === STATE.DELIVERED ? null : addressConfirmed ? (
-                <View style={styles.confirmedRow}>
-                  <GiftGlyph kind="check" size={18} color={N.green} strokeWidth={1.8} />
-                  <Text style={styles.confirmedText} allowFontScaling={false}>{t.confirmed}</Text>
-                </View>
-              ) : (
-                <View style={styles.addressActions}>
-                  <Pressable
-                    style={({ pressed }) => [styles.confirmBtn, { backgroundColor: st.ground2 }, pressed && { transform: [{ scale: 0.96 }] }]}
-                    onPress={() => setAddressConfirmed(true)}
-                    android_ripple={{ color: '#ffffff33' }}
-                  >
-                    <Text style={styles.confirmBtnText} allowFontScaling={false}>{t.confirm}</Text>
-                  </Pressable>
-                  <Pressable style={styles.changeBtn}>
-                    <Text style={[styles.changeBtnText, { color: st.accentDeep }]} allowFontScaling={false}>{t.change}</Text>
-                  </Pressable>
-                </View>
-              )}
-            </View>
+            {s.state === STATE.ENDED_PENDING ? (
+              <Text style={styles.stepNote} allowFontScaling={false}>{t.callSoon}</Text>
+            ) : (
+              <>
+                {f.orderedAt ? <Text style={[styles.orderNo, TABULAR]} allowFontScaling={false}>{scheme.orderNo}</Text> : null}
+                {s.state === STATE.GIFT_ORDERED ? <Text style={[styles.trackingNo, TABULAR]} allowFontScaling={false}>{t.trackingId(scheme.trackingId)}</Text> : null}
+                {callNote ? (
+                  <Text style={[styles.stepNote, { color: callNote[1] }]} allowFontScaling={false}>
+                    {callNote[0]}
+                    <CallLink color={callNote[1]} />
+                  </Text>
+                ) : null}
+              </>
             )}
-          </>
+          </View>
         ) : null}
 
         {/* ——— The gift list. Only a ladder needs one: a one-gift scheme already
@@ -456,26 +491,19 @@ const styles = StyleSheet.create({
   factText: { flex: 1, fontFamily: F.regular, fontSize: 13, lineHeight: 18, color: N.ink },
 
   card: { ...CARD, marginTop: 12, padding: 16 },
-  cardTitle: { fontFamily: F.bold, fontSize: 14, lineHeight: 18, color: N.ink, marginBottom: 8 },
   stepper: { flexDirection: 'row', alignItems: 'flex-start' },
-  step: { alignItems: 'center', width: 66 },
+  // 76 wide so "Confirmation" sits on one line, "call" under it.
+  step: { alignItems: 'center', width: 76 },
   stepDot: { width: 32, height: 32, borderRadius: 16, borderWidth: 1.5, borderColor: '#DDDFE3', backgroundColor: N.paper, alignItems: 'center', justifyContent: 'center' },
-  stepDone: { backgroundColor: N.green, borderColor: N.green },
-  stepNow: {},
   stepTitle: { marginTop: 6, fontFamily: F.medium, fontSize: 11, lineHeight: 14, color: N.ink, textAlign: 'center' },
   stepDate: { marginTop: 1, fontFamily: F.regular, fontSize: 10, lineHeight: 13, color: N.sub },
   connector: { flex: 1, height: 2, borderRadius: 1, backgroundColor: '#E7E9EC', marginTop: 15 },
   connectorDone: { backgroundColor: N.green },
   orderNo: { marginTop: 12, textAlign: 'center', fontFamily: F.regular, fontSize: 11, lineHeight: 14, color: N.sub },
-  shopName: { fontFamily: F.medium, fontSize: 14, lineHeight: 18, color: N.ink },
-  addressLine: { marginTop: 2, fontFamily: F.regular, fontSize: 13, lineHeight: 18, color: N.sub },
-  addressActions: { flexDirection: 'row', alignItems: 'center', marginTop: 14, gap: 12 },
-  confirmBtn: { height: 44, borderRadius: 22, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center' },
-  confirmBtnText: { color: '#fff', fontFamily: F.bold, fontSize: 13, lineHeight: 16 },
-  changeBtn: { height: 44, justifyContent: 'center', paddingHorizontal: 6 },
-  changeBtnText: { fontFamily: F.medium, fontSize: 13, lineHeight: 16 },
-  confirmedRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },
-  confirmedText: { fontFamily: F.medium, fontSize: 13, lineHeight: 16, color: N.green },
+  trackingNo: { marginTop: 2, textAlign: 'center', fontFamily: F.regular, fontSize: 11, lineHeight: 14, color: N.sub },
+  // The line under the stepper: what happens next, or what to do.
+  stepNote: { marginTop: 12, textAlign: 'center', fontFamily: F.regular, fontSize: 13, lineHeight: 18, color: N.ink },
+  callLink: { fontFamily: F.bold, textDecorationLine: 'underline' },
 
   confetti: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
   // The dots sit in the stage's own bottom padding, over the art, 10 px up.

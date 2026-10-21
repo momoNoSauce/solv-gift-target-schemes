@@ -17,7 +17,7 @@
 //   amounts), rules {included, excluded}, deliverBy, orderNo, and `s`, the
 //   derived schemeState().
 //
-// View scenarios (?view=): typical, start, over, many, empty.
+// View scenarios (?view=): typical, start, over, many, empty, won.
 import { schemeState, STATE } from '../gifts/state';
 import { LADDERS, lakh } from '../gifts/data';
 import { indianPrice } from '../data';
@@ -119,6 +119,13 @@ function orderNoFor(id) {
   return `Amazon order ${a}-${b}-${c}`;
 }
 
+// A stable mock courier tracking ID per scheme id.
+function trackingFor(id) {
+  let h = 13;
+  for (const ch of id) h = (h * 37 + ch.charCodeAt(0)) >>> 0;
+  return `IN${String(1000000000 + (h % 9000000000)).padStart(10, '0')}`;
+}
+
 function scheme({ id, title, dockName, theme = 'default', art = null, tiers, currentValue, startTime, endTime, now, fulfilment = {}, fmt = indianPrice, rules, terms = TERMS_BRAND }) {
   const startLabel = ddMMMyyyy(startTime);
   const endLabel = ddMMMyyyy(endTime);
@@ -145,6 +152,7 @@ function scheme({ id, title, dockName, theme = 'default', art = null, tiers, cur
     // Delivery runs through Amazon after the window closes: by end + 12 days.
     deliverBy: ddMMMyyyy(endTime + 12 * DAY),
     orderNo: orderNoFor(id),
+    trackingId: trackingFor(id),
     s,
   };
 }
@@ -160,8 +168,12 @@ export function statusLine(sc) {
     case STATE.TOP_REACHED: return 'Top gift reached';
     case STATE.ENDED_MISSED: return `Ended ${ddMMM(sc.endTime)}`;
     case STATE.ENDED_PENDING: return 'Ended. Gift being confirmed';
+    case STATE.CALL_MISSED: return "We couldn't reach you. We'll call again";
+    case STATE.CALL_FAILED: return "We couldn't reach you";
+    case STATE.DELIVERY_ATTEMPT_FAILED: return 'Delivery attempt failed';
     case STATE.GIFT_ORDERED: return `On the way, by ${ddMMM(sc.endTime + 12 * DAY)}`;
     case STATE.DELIVERED: return `Delivered ${sc.fulfilment.deliveredAt ? ddMMM(sc.fulfilment.deliveredAt) : ''}`.trim();
+    case STATE.DELIVERY_FAILED: return 'Delivery failed';
     default: return '';
   }
 }
@@ -170,14 +182,14 @@ export function statusLine(sc) {
 const diwali = (now, currentValue, fulfilment) =>
   scheme({ id: 'diwali', title: 'Mega Diwali Scheme', dockName: 'Diwali', theme: 'diwali', tiers: LIFESTYLE.tiers, currentValue, startTime: D(10, 1), endTime: D(11, 9), now, fulfilment, fmt: lakh, rules: RULES_CAMPAIGN, terms: TERMS_CAMPAIGN });
 
-const bata = (now, currentValue, { start = D(9, 20), end = D(10, 28) } = {}) =>
-  scheme({ id: 'bata', title: 'Bata Scheme', dockName: 'Bata', art: { logo: BRAND.bata }, tiers: TIER_WATCH, currentValue, startTime: start, endTime: end, now, rules: RULES_BATA });
+const bata = (now, currentValue, { start = D(9, 20), end = D(10, 28), fulfilment } = {}) =>
+  scheme({ id: 'bata', title: 'Bata Scheme', dockName: 'Bata', art: { logo: BRAND.bata }, tiers: TIER_WATCH, currentValue, startTime: start, endTime: end, now, fulfilment, rules: RULES_BATA });
 
 const prestige = (now, currentValue, { end = D(11, 9) } = {}) =>
   scheme({ id: 'prestige', title: 'Prestige Scheme', dockName: 'Prestige', art: { logo: BRAND.prestige }, tiers: TIERS_CASH_LADDER, currentValue, startTime: D(10, 1), endTime: end, now, rules: RULES_PRESTIGE, terms: TERMS_CASH });
 
-const bombay = (now, currentValue, { start = D(10, 5), end = D(11, 5) } = {}) =>
-  scheme({ id: 'bombaydyeing', title: 'Bombay Dyeing Scheme', dockName: 'B. Dyeing', art: { logo: BRAND.bombaydyeing, wide: true }, tiers: TIER_MIXER, currentValue, startTime: start, endTime: end, now, rules: RULES_BOMBAY });
+const bombay = (now, currentValue, { start = D(10, 5), end = D(11, 5), fulfilment } = {}) =>
+  scheme({ id: 'bombaydyeing', title: 'Bombay Dyeing Scheme', dockName: 'B. Dyeing', art: { logo: BRAND.bombaydyeing, wide: true }, tiers: TIER_MIXER, currentValue, startTime: start, endTime: end, now, fulfilment, rules: RULES_BOMBAY });
 
 const funskool = (now, currentValue) =>
   scheme({ id: 'funskool', title: 'Funskool Scheme', dockName: 'Funskool', art: { logo: BRAND.funskool }, tiers: TIER_JC1000, currentValue, startTime: D(10, 10), endTime: D(10, 24), now, rules: RULES_FUNSKOOL, terms: TERMS_CASH });
@@ -185,15 +197,15 @@ const funskool = (now, currentValue) =>
 const onam = (now, fulfilment) =>
   scheme({ id: 'onam', title: 'Onam Scheme', dockName: 'Onam', theme: 'onam', tiers: LIFESTYLE.tiers, currentValue: 7.1 * L, startTime: D(8, 15), endTime: D(9, 12), now, fulfilment, fmt: lakh, rules: RULES_CAMPAIGN, terms: TERMS_CAMPAIGN });
 
-const havells = (now) =>
-  scheme({ id: 'havells', title: 'Havells Scheme', dockName: 'Havells', art: { logo: BRAND.havells }, tiers: TIER_KETTLE, currentValue: 47000, startTime: D(8, 20), endTime: D(9, 20), now, fulfilment: { orderedAt: D(9, 24), deliveredAt: D(10, 6) }, rules: RULES_HAVELLS });
+const havells = (now, { start = D(8, 20), end = D(9, 20), fulfilment = { orderedAt: D(9, 24), deliveredAt: D(10, 6) } } = {}) =>
+  scheme({ id: 'havells', title: 'Havells Scheme', dockName: 'Havells', art: { logo: BRAND.havells }, tiers: TIER_KETTLE, currentValue: 47000, startTime: start, endTime: end, now, fulfilment, rules: RULES_HAVELLS });
 
 const holi = (now) =>
   scheme({ id: 'holi', title: 'Holi Scheme', dockName: 'Holi', theme: 'holi', tiers: LIFESTYLE.tiers, currentValue: 5.6 * L, startTime: D(3, 1), endTime: D(3, 20), now, fulfilment: { orderedAt: D(3, 24), deliveredAt: D(4, 2) }, fmt: lakh, rules: RULES_CAMPAIGN, terms: TERMS_CAMPAIGN });
 
 // Gold: the membership's own scheme, in the membership's branding (theme gold).
-const gold = (now, currentValue) =>
-  scheme({ id: 'gold', title: 'Gold Exclusive Scheme', dockName: 'Gold', theme: 'gold', art: { logo: GOLD_LOGO, wide: true }, tiers: TIERS_GOLD, currentValue, startTime: D(10, 1), endTime: D(11, 30), now, rules: RULES_GOLD, terms: TERMS_GOLD });
+const gold = (now, currentValue, { end = D(11, 30), fulfilment } = {}) =>
+  scheme({ id: 'gold', title: 'Gold Exclusive Scheme', dockName: 'Gold', theme: 'gold', art: { logo: GOLD_LOGO, wide: true }, tiers: TIERS_GOLD, currentValue, startTime: D(10, 1), endTime: end, now, fulfilment, rules: RULES_GOLD, terms: TERMS_GOLD });
 
 export const VIEWS = {
   typical: {
@@ -220,6 +232,31 @@ export const VIEWS = {
     completed: [onam(D(10, 19), { orderedAt: D(9, 16), deliveredAt: D(9, 24) }), havells(D(10, 19)), holi(D(10, 19))],
   },
   empty: { label: 'Empty', running: [], completed: [] },
+  // Every state after a gift is won, one card each, in the order they happen.
+  // Blue is in progress, amber is missed and being retried, red is given up
+  // (the shop calls us to sort it out), green is done.
+  //   Diwali         waiting for the confirmation call       blue
+  //   Gold           call missed, we'll call again           amber
+  //   Bata           couldn't reach after several calls      red
+  //   Bombay Dyeing  on the way                              blue
+  //   Havells        delivery attempt failed, retrying       amber
+  //   Onam           delivery failed                         red
+  //   Holi           delivered                               green
+  // Cashback schemes are left out: JumboCash is credited, with no call and no
+  // shipping.
+  won: {
+    label: 'Won',
+    running: [],
+    completed: [
+      diwali(D(11, 14), 11.4 * L, {}),
+      gold(D(11, 14), 1.3 * L, { end: D(10, 31), fulfilment: { callMissedAt: D(11, 12) } }),
+      bata(D(11, 14), 63400, { fulfilment: { callMissedAt: D(11, 1), callFailedAt: D(11, 6) } }),
+      bombay(D(11, 14), 52000, { fulfilment: { orderedAt: D(11, 9) } }),
+      havells(D(11, 14), { start: D(10, 1), end: D(10, 25), fulfilment: { orderedAt: D(10, 29), attemptFailedAt: D(11, 12) } }),
+      onam(D(11, 14), { orderedAt: D(9, 16), failedAt: D(9, 26) }),
+      holi(D(11, 14)),
+    ],
+  },
 };
 
 // The dock order: running, then completed. `group` tells the docks where the
@@ -236,3 +273,7 @@ export function schemesFor(viewKey, { defaultTheme = 'default' } = {}) {
 }
 
 export const SHOP_ADDRESS = { shop: 'Sri Lakshmi Stores', line: '12, Gandhi Bazaar Main Road, Basavanagudi, Bengaluru 560004' };
+
+// The support line for the won flow (a missed call, a failed delivery). A
+// placeholder until the real number is in.
+export const SUPPORT_PHONE = '9XXXXXXXXX';

@@ -58,7 +58,7 @@ export function deriveStage(scheme, t) {
   const st = th.stage;
   const s = scheme.s;
   const running = s.started && !s.ended;
-  const withDelivery = s.state === STATE.ENDED_PENDING || s.state === STATE.GIFT_ORDERED || s.state === STATE.DELIVERED;
+  const withDelivery = [STATE.ENDED_PENDING, STATE.CALL_MISSED, STATE.CALL_FAILED, STATE.GIFT_ORDERED, STATE.DELIVERY_ATTEMPT_FAILED, STATE.DELIVERED, STATE.DELIVERY_FAILED].includes(s.state);
   const missed = s.state === STATE.ENDED_MISSED;
   const runningWithNext = running && s.next;
   // The top target crossed while the scheme runs: reached, confirmed only when
@@ -98,21 +98,25 @@ export function deriveStage(scheme, t) {
   };
   const deliveredLabel = scheme.fulfilment.deliveredAt ? ddMMM(scheme.fulfilment.deliveredAt) : '';
   const heroNote = s.state === STATE.SCHEDULED ? t.startsNote(s.startLabel) : null;
-  const stampWord = missed ? t.stampMissed : s.state === STATE.DELIVERED ? t.stampDelivered : s.state === STATE.GIFT_ORDERED ? t.stampOnTheWay : t.stampWon;
+  // The stamp says WON from the day it is won, DELIVERED once it arrives.
+  const stampWord = missed ? t.stampMissed : s.state === STATE.DELIVERED ? t.stampDelivered : t.stampWon;
   // A missed scheme's tile shows the first target's gift, the one it fell short of.
   const missedGift = missed ? s.ladder[0] : null;
   const stampDate = (
     missed ? ddMMM(scheme.endTime)
     : s.state === STATE.DELIVERED && scheme.fulfilment.deliveredAt ? ddMMM(scheme.fulfilment.deliveredAt)
-    : s.state === STATE.GIFT_ORDERED && scheme.fulfilment.orderedAt ? ddMMM(scheme.fulfilment.orderedAt)
     : s.ended ? ddMMM(scheme.endTime + 24 * 60 * 60 * 1000)
     : ddMMM(scheme.now)
   ).toUpperCase() + ' ' + new Date(scheme.endTime).getUTCFullYear();
   const wonStatus =
     s.state === STATE.DELIVERED ? { text: t.wonStatusDelivered(deliveredLabel), color: SOLV_STAGE.accent, icon: 'check' }
     : s.state === STATE.GIFT_ORDERED ? { text: t.wonStatusOnTheWay(scheme.deliverBy), color: SOLV_STAGE.accent, icon: 'truck' }
-    : s.state === STATE.TOP_REACHED ? { text: t.wonStatusTop(s.endLabel), color: st.sub, icon: 'gift' }
-    : { text: t.wonStatusPending, color: st.sub, icon: 'gift' };
+    : s.state === STATE.CALL_MISSED ? { text: t.wonStatusCallMissed, color: SOLV_STAGE.accent, icon: 'call' }
+    : s.state === STATE.CALL_FAILED ? { text: t.wonStatusCallFailed, color: SOLV_STAGE.accent, icon: 'call' }
+    : s.state === STATE.DELIVERY_ATTEMPT_FAILED ? { text: t.wonStatusAttemptFailed, color: SOLV_STAGE.accent, icon: 'truck' }
+    : s.state === STATE.DELIVERY_FAILED ? { text: t.wonStatusFailed, color: SOLV_STAGE.accent, icon: 'cross' }
+    : s.state === STATE.TOP_REACHED ? { text: t.wonStatusTop(s.endLabel), color: SOLV_STAGE.accent, icon: 'gift' }
+    : { text: t.wonStatusPending, color: SOLV_STAGE.accent, icon: 'call' };
   const amountParts = s.next
     ? s.nearSlab
       ? { pre: t.onlyPrefix, amt: scheme.money(s.remaining), post: t.onlySuffix, color: SOLV_STAGE.urgent }
@@ -595,7 +599,7 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
               <Animated.View style={rise(nameA, 8)}>
                 {heroNote ? <Text style={[styles.heroNote, { color: st.sub }]} allowFontScaling={false}>{heroNote}</Text> : null}
                 {s.earned ? (
-                  <Text style={[styles.finalBought, TABULAR, { color: heroNote ? st.ink : st.sub }, !heroNote && { marginTop: 10, fontSize: 13, lineHeight: 17 }]} allowFontScaling={false}>
+                  <Text style={[styles.finalBought, TABULAR, { color: heroNote ? st.ink : SOLV_STAGE.accent }, !heroNote && { marginTop: 10, fontSize: 13, lineHeight: 17 }]} allowFontScaling={false}>
                     {t.finalBought(money(s.currentValue))}
                   </Text>
                 ) : null}

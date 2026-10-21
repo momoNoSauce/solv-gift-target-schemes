@@ -124,6 +124,8 @@ function footerLine(scheme, t) {
   const top = s.ladder[n - 1];
   const cash = s.ladder.every((g) => g.cash);
   const money = (g) => (g && g.cash ? String(g.cash) : '');
+  // A won gift: where it stands (the call, the delivery). Cashback is credited, no steps.
+  if (s.ended && s.earned && !cash && t.footWonState[s.state]) return t.footWonState[s.state](s.secured.shortName);
   if (s.ended && s.earned) return cash ? t.footWonCash(money(s.secured)) : t.footWon(s.secured.shortName);
   if (s.ended) return cash ? t.footMissedCash : t.footMissed;
   if (s.started && !s.next && s.secured) return cash ? t.footReachedCash(money(s.secured)) : t.footReached(s.secured.shortName);
@@ -174,7 +176,7 @@ export function CardFooter({ scheme, t, style, accent = SOLV.blue, accentBg = SO
         ) : null}
       </View>
       <View style={styles.footerText}>
-        <Text style={styles.footerLine} numberOfLines={1} allowFontScaling={false}>{footerLine(scheme, t)}</Text>
+        <Text style={styles.footerLine} numberOfLines={2} allowFontScaling={false}>{footerLine(scheme, t)}</Text>
       </View>
       <View style={[styles.chev, { backgroundColor: accentBg }]}>
         <Svg width={18} height={18} viewBox="0 0 24 24">
@@ -241,8 +243,9 @@ export default function SchemesList({ viewKey = 'typical', brand = 'solv', theme
   const [size, setSize] = useState({ w: 0, h: 0 });
 
   // The two tabs, as pages of one pager. No arrow keys here: the detail's own
-  // pager takes them.
-  const tabs = usePager({ count: 2, initial: 0, keys: false });
+  // pager takes them. A view with nothing running (?view=won) opens on COMPLETED.
+  const startTab = schemes.length && !schemes.some((x) => x.group === 'running') ? 1 : 0;
+  const tabs = usePager({ count: 2, initial: startTab, keys: false });
   const { pos: tabPos, index: tab, goTo: goTab, pagePan: tabPan, setPageUnit } = tabs;
   useEffect(() => setPageUnit(size.w), [size.w]);
 
@@ -649,7 +652,9 @@ const styles = StyleSheet.create({
   countDisc: { backgroundColor: '#F3F4F6' },
   countText: { color: SOLV.ink, fontFamily: F.bold, fontSize: 11, lineHeight: 14, fontVariant: ['tabular-nums'] },
   wonBadge: { position: 'absolute', bottom: -1, width: 14, height: 14, borderRadius: 7, backgroundColor: SOLV.green, borderWidth: 1.5, borderColor: SOLV.paper, alignItems: 'center', justifyContent: 'center', zIndex: 4 },
-  footerText: { flex: 1, marginRight: 12, height: 18, overflow: 'hidden', justifyContent: 'center' },
+  // Up to two lines: a won gift's step ("Soundbar won. We'll call you to
+  // confirm details") runs longer than one; 36 px sits inside the 56 px strip.
+  footerText: { flex: 1, marginRight: 12, maxHeight: 36, overflow: 'hidden', justifyContent: 'center' },
   footerLine: { color: SOLV.ink, fontFamily: F.regular, fontSize: 14, lineHeight: 18, fontVariant: ['tabular-nums'] },
   chev: { width: 30, height: 30, borderRadius: 15, backgroundColor: SOLV.blueBg, alignItems: 'center', justifyContent: 'center' },
   layerFooter: { position: 'absolute', bottom: 0, height: FOOTER_H },

@@ -150,6 +150,23 @@ const GLYPHS = {
       <Path {...P} {...s} d="M8.5 12.3l2.4 2.4 4.6-5" />
     </>
   ),
+  cross: (s) => (
+    <>
+      <Circle {...P} {...s} cx="12" cy="12" r="8.5" />
+      <Path {...P} {...s} d="M9.2 9.2l5.6 5.6M14.8 9.2l-5.6 5.6" />
+    </>
+  ),
+  alert: (s) => (
+    <>
+      <Circle {...P} {...s} cx="12" cy="12" r="8.5" />
+      <Path {...P} {...s} d="M12 7.8v5" />
+      <Path {...P} {...s} d="M12 16.2v.1" />
+    </>
+  ),
+  // A handset, for the confirmation call (`phone` is the mobile-phone gift).
+  call: (s) => (
+    <Path {...P} {...s} d="M6.6 4.5h2.6l1.3 3.6-1.8 1.2a9.5 9.5 0 0 0 4 4l1.2-1.8 3.6 1.3v2.6a1.6 1.6 0 0 1-1.7 1.6A12.4 12.4 0 0 1 5 6.2a1.6 1.6 0 0 1 1.6-1.7z" />
+  ),
 };
 
 export default function GiftGlyph({ kind, size = 24, color = '#000', strokeWidth = 1.6 }) {
