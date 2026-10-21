@@ -36,11 +36,11 @@ import { SOLV, usePressScale, GiftThumb } from '../gifts/solv';
 // The card form of every stage in the list (see Stage's cardAnim).
 const ZERO = new Animated.Value(0);
 import { C, F } from '../theme';
-import { schemesFor } from './registry';
+import { schemesFor, SUPPORT_PHONE } from './registry';
 import { usePager } from './usePager';
 import Stage, { N, offerLine } from './Stage';
 import GoalRail, { RAIL_H } from './GoalRail';
-import SchemePage from './SchemePage';
+import SchemePage, { TONE, TINT, actionTone } from './SchemePage';
 import DockScreen from './DockScreen';
 import { useRouter } from 'expo-router';
 import { IconBack } from '../icons';
@@ -125,7 +125,7 @@ function footerLine(scheme, t) {
   const cash = s.ladder.every((g) => g.cash);
   const money = (g) => (g && g.cash ? String(g.cash) : '');
   // A won gift: where it stands (the call, the delivery). Cashback is credited, no steps.
-  if (s.ended && s.earned && !cash && t.footWonState[s.state]) return t.footWonState[s.state](s.secured.shortName);
+  if (s.ended && s.earned && !cash && t.footWonState[s.state]) return t.footWonState[s.state](s.secured.shortName, SUPPORT_PHONE);
   if (s.ended && s.earned) return cash ? t.footWonCash(money(s.secured)) : t.footWon(s.secured.shortName);
   if (s.ended) return cash ? t.footMissedCash : t.footMissed;
   if (s.started && !s.next && s.secured) return cash ? t.footReachedCash(money(s.secured)) : t.footReached(s.secured.shortName);
@@ -153,6 +153,29 @@ export function CardFooter({ scheme, t, style, accent = SOLV.blue, accentBg = SO
   const gifts = footerGifts(scheme);
   const won = scheme.s.ended && scheme.s.earned;
   const more = !scheme.s.ended && scheme.s.ladder.length > gifts.length ? scheme.s.ladder.length - gifts.length : 0;
+  // When the shop has to act (a missed call, a failed delivery) the gift gives
+  // way to the stepper's flag: an amber ring while we retry, red once we stop.
+  const action = won ? actionTone(scheme.s.state) : null;
+  if (action) {
+    const tone = TONE[action];
+    return (
+      <View style={[styles.footer, style]} pointerEvents="none">
+        <View style={[styles.thumbRow, { width: DISC }]}>
+          <View style={[styles.actionDisc, action === 'failed' ? { backgroundColor: tone, borderColor: tone } : { backgroundColor: TINT.retry, borderColor: tone }]}>
+            <GiftGlyph kind={action === 'failed' ? 'cross' : 'warning'} size={action === 'failed' ? 18 : 17} color={action === 'failed' ? '#fff' : tone} strokeWidth={2} />
+          </View>
+        </View>
+        <View style={styles.footerText}>
+          <Text style={styles.footerLine} numberOfLines={2} allowFontScaling={false}>{footerLine(scheme, t)}</Text>
+        </View>
+        <View style={[styles.chev, { backgroundColor: accentBg }]}>
+          <Svg width={18} height={18} viewBox="0 0 24 24">
+            <Path d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.42 1.41l4.59-4.59a1 1 0 0 0 0-1.41L10.71 6.7a1 1 0 0 0-1.42.01z" fill={accent} />
+          </Svg>
+        </View>
+      </View>
+    );
+  }
   return (
     <View style={[styles.footer, style]} pointerEvents="none">
       <View style={[styles.thumbRow, { width: DISC + (gifts.length - 1 + (more ? 1 : 0)) * DISC_STEP }]}>
@@ -650,6 +673,8 @@ const styles = StyleSheet.create({
   thumbSlot: { position: 'absolute', left: 0, top: 0 },
   // The hero's warm glow: a soft disc behind, no edge of its own.
   countDisc: { backgroundColor: '#F3F4F6' },
+  // The action flag, in the stepper's own anatomy (a ring, or a filled disc).
+  actionDisc: { width: DISC, height: DISC, borderRadius: DISC / 2, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   countText: { color: SOLV.ink, fontFamily: F.bold, fontSize: 11, lineHeight: 14, fontVariant: ['tabular-nums'] },
   wonBadge: { position: 'absolute', bottom: -1, width: 14, height: 14, borderRadius: 7, backgroundColor: SOLV.green, borderWidth: 1.5, borderColor: SOLV.paper, alignItems: 'center', justifyContent: 'center', zIndex: 4 },
   // Up to two lines: a won gift's step ("Soundbar won. We'll call you to

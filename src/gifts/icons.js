@@ -150,17 +150,19 @@ const GLYPHS = {
       <Path {...P} {...s} d="M8.5 12.3l2.4 2.4 4.6-5" />
     </>
   ),
+  // The cross in an octagon, the stop sign's shape: something has failed.
   cross: (s) => (
     <>
-      <Circle {...P} {...s} cx="12" cy="12" r="8.5" />
+      <Path {...P} {...s} d="M8.56 3.69h6.88l4.87 4.87v6.88l-4.87 4.87H8.56l-4.87-4.87V8.56z" />
       <Path {...P} {...s} d="M9.2 9.2l5.6 5.6M14.8 9.2l-5.6 5.6" />
     </>
   ),
-  alert: (s) => (
+  // A warning triangle, for a won gift that needs the shop to act.
+  warning: (s) => (
     <>
-      <Circle {...P} {...s} cx="12" cy="12" r="8.5" />
-      <Path {...P} {...s} d="M12 7.8v5" />
-      <Path {...P} {...s} d="M12 16.2v.1" />
+      <Path {...P} {...s} d="M10.3 4.9a2 2 0 0 1 3.4 0l6.9 12a2 2 0 0 1-1.7 3H5.1a2 2 0 0 1-1.7-3z" />
+      <Path {...P} {...s} d="M12 9.6v4.2" />
+      <Path {...P} {...s} d="M12 16.9v.1" />
     </>
   ),
   // A handset, for the confirmation call (`phone` is the mobile-phone gift).

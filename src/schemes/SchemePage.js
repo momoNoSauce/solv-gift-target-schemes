@@ -52,13 +52,21 @@ function stepsFor(state) {
 // Amber and red are dark enough for their labels to read on white. A settled
 // step (done, failed) is a filled disc; an open one (in progress, retrying) is
 // a ring in its colour over a light tint of it.
-const TONE = {
+export const TONE = {
   done: N.green,
   now: '#0038CC',
   retry: '#B45309',
   failed: '#C62828',
 };
-const TINT = { now: '#E6F0FF', retry: '#FFF4E5' };
+export const TINT = { now: '#E6F0FF', retry: '#FFF4E5' };
+
+// A won gift that waits on the shop (a missed call, a failed delivery): the
+// stepper's tone for it, so the list card can flag it too.
+export function actionTone(state) {
+  if (state === STATE.CALL_MISSED || state === STATE.DELIVERY_ATTEMPT_FAILED) return 'retry';
+  if (state === STATE.CALL_FAILED || state === STATE.DELIVERY_FAILED) return 'failed';
+  return null;
+}
 
 // The support number as a tap-to-call link: an anchor on the web, the dialer on a phone.
 function CallLink({ color }) {
@@ -252,7 +260,7 @@ export default function SchemePage({ scheme, active, near = true, first, still =
                     <View style={styles.step}>
                       <View style={[styles.stepDot, filled && { backgroundColor: tone, borderColor: tone }, ring && { borderColor: tone, backgroundColor: TINT[state] }]}>
                         <GiftGlyph
-                          kind={state === 'retry' ? 'alert' : state === 'failed' ? 'cross' : ['check', 'call', 'truck', 'check'][i]}
+                          kind={state === 'retry' ? 'warning' : state === 'failed' ? 'cross' : ['check', 'call', 'truck', 'check'][i]}
                           size={15}
                           color={filled ? '#fff' : ring ? tone : '#C9C9C9'}
                           strokeWidth={2}

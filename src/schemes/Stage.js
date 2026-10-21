@@ -108,15 +108,16 @@ export function deriveStage(scheme, t) {
     : s.ended ? ddMMM(scheme.endTime + 24 * 60 * 60 * 1000)
     : ddMMM(scheme.now)
   ).toUpperCase() + ' ' + new Date(scheme.endTime).getUTCFullYear();
+  // The line under the won headline: words only, in white.
   const wonStatus =
-    s.state === STATE.DELIVERED ? { text: t.wonStatusDelivered(deliveredLabel), color: SOLV_STAGE.accent, icon: 'check' }
-    : s.state === STATE.GIFT_ORDERED ? { text: t.wonStatusOnTheWay(scheme.deliverBy), color: SOLV_STAGE.accent, icon: 'truck' }
-    : s.state === STATE.CALL_MISSED ? { text: t.wonStatusCallMissed, color: SOLV_STAGE.accent, icon: 'call' }
-    : s.state === STATE.CALL_FAILED ? { text: t.wonStatusCallFailed, color: SOLV_STAGE.accent, icon: 'call' }
-    : s.state === STATE.DELIVERY_ATTEMPT_FAILED ? { text: t.wonStatusAttemptFailed, color: SOLV_STAGE.accent, icon: 'truck' }
-    : s.state === STATE.DELIVERY_FAILED ? { text: t.wonStatusFailed, color: SOLV_STAGE.accent, icon: 'cross' }
-    : s.state === STATE.TOP_REACHED ? { text: t.wonStatusTop(s.endLabel), color: SOLV_STAGE.accent, icon: 'gift' }
-    : { text: t.wonStatusPending, color: SOLV_STAGE.accent, icon: 'call' };
+    s.state === STATE.DELIVERED ? { text: t.wonStatusDelivered(deliveredLabel), color: SOLV_STAGE.accent }
+    : s.state === STATE.GIFT_ORDERED ? { text: t.wonStatusOnTheWay(scheme.deliverBy), color: SOLV_STAGE.accent }
+    : s.state === STATE.CALL_MISSED ? { text: t.wonStatusCallMissed, color: SOLV_STAGE.accent }
+    : s.state === STATE.CALL_FAILED ? { text: t.wonStatusCallFailed, color: SOLV_STAGE.accent }
+    : s.state === STATE.DELIVERY_ATTEMPT_FAILED ? { text: t.wonStatusAttemptFailed, color: SOLV_STAGE.accent }
+    : s.state === STATE.DELIVERY_FAILED ? { text: t.wonStatusFailed, color: SOLV_STAGE.accent }
+    : s.state === STATE.TOP_REACHED ? { text: t.wonStatusTop(s.endLabel), color: SOLV_STAGE.accent }
+    : { text: t.wonStatusPending, color: SOLV_STAGE.accent };
   const amountParts = s.next
     ? s.nearSlab
       ? { pre: t.onlyPrefix, amt: scheme.money(s.remaining), post: t.onlySuffix, color: SOLV_STAGE.urgent }
@@ -474,7 +475,6 @@ export default function Stage({ scheme, compact = false, anim = SETTLED_ANIM, la
               <Animated.View style={[rise(nameA, 8), lag]}>
                 <Text style={[styles.wonHeadline, { color: st.ink }]} allowFontScaling={false}>{(hero.gift.cash ? t.wonHeadlineCash : t.wonHeadline)(hero.gift.shortName || hero.gift.name)}</Text>
                 <View style={styles.wonStatusRow}>
-                  <GiftGlyph kind={wonStatus.icon} size={16} color={wonStatus.color} strokeWidth={2} />
                   <Text style={[styles.wonStatus, { color: wonStatus.color }]} allowFontScaling={false}>{wonStatus.text}</Text>
                 </View>
               </Animated.View>

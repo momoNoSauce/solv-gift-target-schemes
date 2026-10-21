@@ -71,7 +71,7 @@ export const T = {
     // gift is ordered and shipped. A step that is being retried (amber) or has
     // been given up (red) names what happened in place of its label.
     steps: ['Won', 'Confirmation call', 'On the way', 'Delivered'],
-    stepRetry: [null, 'Call missed', null, 'Attempt failed'],
+    stepRetry: [null, 'Call missed', null, 'Delivery attempt failed'],
     stepFailed: [null, "Couldn't reach", null, 'Delivery failed'],
     // The line under the stepper, per state. The number is a tap-to-call link.
     callSoon: "We'll call you to confirm your address",
@@ -118,7 +118,7 @@ export const T = {
     footWonState: {
       ENDED_PENDING: (short) => `${short} won. We'll call you to confirm details`,
       CALL_MISSED: (short) => `${short} won. We tried calling to confirm details`,
-      CALL_FAILED: (short) => `${short} won. We couldn't reach you, please call us`,
+      CALL_FAILED: (short, phone) => `${short} won. We couldn't reach you, please call us at ${phone}`,
       GIFT_ORDERED: () => 'Details confirmed. Your gift is on the way',
       DELIVERY_ATTEMPT_FAILED: () => "Delivery attempt failed. We'll try again",
       DELIVERY_FAILED: () => 'Delivery failed. Please call us',
@@ -194,7 +194,7 @@ export const T = {
     notEligible: 'एलिजिबल नहीं',
     next: 'अगला',
     steps: ['जीता', 'कन्फ़र्मेशन कॉल', 'रास्ते में', 'डिलीवर'],
-    stepRetry: [null, 'कॉल मिस हुई', null, 'डिलीवरी अटकी'],
+    stepRetry: [null, 'कॉल मिस हुई', null, 'डिलीवरी की कोशिश नाकाम'],
     stepFailed: [null, 'बात नहीं हुई', null, 'डिलीवरी नहीं हुई'],
     callSoon: 'आपका पता कन्फ़र्म करने के लिए हम आपको कॉल करेंगे',
     callMissed: 'हम आपसे बात नहीं कर पाए। हम फिर कॉल करेंगे, या हमें कॉल करें: ',
@@ -237,7 +237,7 @@ export const T = {
     footWonState: {
       ENDED_PENDING: (short) => `${short} जीता। जानकारी कन्फ़र्म करने के लिए हम कॉल करेंगे`,
       CALL_MISSED: (short) => `${short} जीता। हमने जानकारी कन्फ़र्म करने के लिए कॉल किया`,
-      CALL_FAILED: (short) => `${short} जीता। हम बात नहीं कर पाए, हमें कॉल करें`,
+      CALL_FAILED: (short, phone) => `${short} जीता। हम बात नहीं कर पाए, हमें ${phone} पर कॉल करें`,
       GIFT_ORDERED: () => 'जानकारी कन्फ़र्म हो गई। आपका गिफ़्ट रास्ते में है',
       DELIVERY_ATTEMPT_FAILED: () => 'डिलीवरी नहीं हो पाई। हम फिर कोशिश करेंगे',
       DELIVERY_FAILED: () => 'डिलीवरी नहीं हो पाई। हमें कॉल करें',
